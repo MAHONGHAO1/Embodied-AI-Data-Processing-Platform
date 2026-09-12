@@ -1,0 +1,20 @@
+{
+  "revision": "54141acb0bd6bcb868e34b4eb328f26481d333b2",
+  "files": {
+    "README.md": "8cd7aef5d9b9dda67c6aa10f3452fa08854afe779bfdbc2f82e2f586b90ce722",
+    "meta/info.json": "7b590db935f781e4809b4cac9ddc3bc5ad6c06cef20627ac700969160939e5ab",
+    "meta/episodes.jsonl": "5e0ddbf8055555455172f7e0815c2f0f7a1cbb606604ec1412173ce7d2919b28",
+    "meta/tasks.jsonl": "daf013e3dc76014d33d1e5a7b3128880f014d348f11e39be7fba084e49cfbdd8",
+    "meta/stats.json": "42d5b66e06a1f0fffd17657affce9287ba0fc080bdffde09653a0940a9cf2e74",
+    "data/chunk-000/episode_000000.parquet": "d5b2c07971e600ce2b660b3577e06d4ebc4eabd698f4cd71f860c25b8469953b",
+    "data/chunk-000/episode_000001.parquet": "478fc54ca2bcede444c6a6fcb7af33c568052e2956e466baf9fb2fd5252954ec",
+    "data/chunk-000/episode_000002.parquet": "21b180714ac373b02c7138c89f9cea8c5075dab79ae3657604885d3deb3ae907",
+    "data/chunk-000/episode_000003.parquet": "d6a99edc7597976a0220e4893e6346051675c29d8fad8c853a90b14d902cd63d",
+    "data/chunk-000/episode_000004.parquet": "63134fcd6bd392a5deaf76ce4eec28ed037eec96f5ab686392a4fe7c0b5a861c",
+    "videos/chunk-000/observation.images.laptop/episode_000000.mp4": "927baa14017edfb0e4f05d59b8f6010c366af1f2a380993aa47854dc55877f67",
+    "videos/chunk-000/observation.images.laptop/episode_000001.mp4": "9b45b4520501e2a04ed16b5866953680629415defd814a2137955a02aa85182b",
+    "videos/chunk-000/observation.images.laptop/episode_000002.mp4": "b19183f7a37fa19c921439b94d25e3e2ed07e83f8f17fd48fa17eb154b230b6e",
+    "videos/chunk-000/observation.images.laptop/episode_000003.mp4": "c714e2f692d5fa5079370554c0763bb1d3200c482cb63d5fc99181fac45be296",
+    "videos/chunk-000/observation.images.laptop/episode_000004.mp4": "44d8b31195182157c9f409ba9b677396c46444307873ca0f2cdd33492fff887f"
+  }
+}
