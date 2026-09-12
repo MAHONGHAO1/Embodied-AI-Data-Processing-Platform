@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "scope": "HDF5 全量数据范围（demo_0-9）八节点闭环验收",
+  "recorded_at_utc": "2026-09-12T14:10:26Z",
+  "app_version": "0.4.0",
+  "data_range_env": "ROBODATA_HDF5_EPISODES=0-9",
+  "source": {
+    "repo_id": "robomimic/robomimic_datasets",
+    "revision": "74fa018461f479cd9fd15b924a16103012096203",
+    "path": "test/test.hdf5",
+    "sha256": "80dea9ca9bb99dd7b96109712fc6b46bb6fa6b87e9622b8aebbe1e4ee5fadbab",
+    "declared_total": 9666,
+    "actual_total": 531,
+    "demo_count": 10
+  },
+  "result": {
+    "status": "passed",
+    "episode_count": 10,
+    "frame_count": 531
+  },
+  "batch_id": "batch_f855e10b250a4956a5988df17970e94d",
+  "runs": {
+    "import": "20260912T140629_fe3aed846552",
+    "quality": "20260912T140637_58b92c26e224",
+    "conversion": "20260912T140830_8853bf1b11db",
+    "delivery": "20260912T140854_622486bb60fa",
+    "independent_verify": "20260912T140904_36fab563792f",
+    "duplicate_import": "20260912T141026_c3c600c0664f"
+  },
+  "checks": {
+    "input_quality": {
+      "coverage_performed": 100, "coverage_total": 100, "issue_count": 0,
+      "data_issue_count": 0, "load_failure_count": 0, "not_checked_count": 0,
+      "passed_episode_count": 10, "row_count": 531
+    },
+    "conversion": {
+      "coverage_performed": 110, "coverage_total": 110, "issue_count": 0,
+      "data_issue_count": 0, "load_failure_count": 0, "not_checked_count": 0,
+      "passed_episode_count": 10, "row_count": 531
+    },
+    "official_verify": {
+      "offline": true, "checked_numeric_frames": 531, "sample_count": 30, "batch_size": 2
+    },
+    "selection": {
+      "source_episode_indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+      "frames": 531
+    },
+    "raw_preview": {
+      "sampled_positions": 30,
+      "image_shape": [84, 84, 3],
+      "state_dim": 9,
+      "action_dim": 7
+    },
+    "delivery": {
+      "sha256": "fb5a07aa3a72e9046617715b74ee1b3e287dcb492cbe1d2e329bb688874daf2c",
+      "size_bytes": 193016,
+      "episode_count": 10,
+      "row_count": 531,
+      "format_version": "v3.0"
+    },
+    "duplicate_import_reuses_batch": true,
+    "zip_portable": true,
+    "independent_official_load": true,
+    "raw_source_unchanged": true
+  },
+  "review_fixture": "人工审核标签为验收固定装置：保留一条被标注为「失败」的任务，用于证明有效失败轨迹可通过质检与审核并被交付，不宣称公开源任务实际失败。",
+  "environment_note": "本摘要不含本地绝对路径。在临时文件批量清理被安全策略拦截的环境中，转换需要 ROBODATA_STREAMING_ENCODING=1（LeRobot 流式编码，不落临时图片目录）。"
+}

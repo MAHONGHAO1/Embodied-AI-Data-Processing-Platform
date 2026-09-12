@@ -1,0 +1,90 @@
+[
+  {
+    "dir": "hdf5-isolation",
+    "run_id": "20260910T170419_4436597a4ad5",
+    "status": "completed",
+    "batch_id": "batch_997f88bfb2824b7f8e5981b0d437aea3",
+    "nodes": [
+      {
+        "id": "quality",
+        "label": "批次基础质检",
+        "status": "completed",
+        "message": "检查完成，发现数据异常",
+        "data_issue_count": 2
+      },
+      {
+        "id": "registration",
+        "label": "结果回写与业务版本核验",
+        "status": "completed",
+        "message": "外部工作进程执行完成",
+        "data_issue_count": 0
+      }
+    ]
+  },
+  {
+    "dir": "missing-video",
+    "run_id": "20260910T170502_6e8007f889cf",
+    "status": "completed",
+    "batch_id": "batch_ca2894fa7e1d4d00b176d04ba4fa1311",
+    "nodes": [
+      {
+        "id": "quality",
+        "label": "批次基础质检",
+        "status": "completed",
+        "message": "检查完成",
+        "data_issue_count": 0
+      },
+      {
+        "id": "registration",
+        "label": "结果回写与业务版本核验",
+        "status": "completed",
+        "message": "外部工作进程执行完成",
+        "data_issue_count": 0
+      }
+    ]
+  },
+  {
+    "dir": "so100-anomalies",
+    "run_id": "20260910T170452_fb05f802c513",
+    "status": "completed",
+    "batch_id": "batch_4a403f9049fc4908b04ab1e28d370b1f",
+    "nodes": [
+      {
+        "id": "quality",
+        "label": "批次基础质检",
+        "status": "completed",
+        "message": "检查完成，发现数据异常",
+        "data_issue_count": 7
+      },
+      {
+        "id": "registration",
+        "label": "结果回写与业务版本核验",
+        "status": "completed",
+        "message": "外部工作进程执行完成",
+        "data_issue_count": 0
+      }
+    ]
+  },
+  {
+    "dir": "tampered-zip",
+    "run_id": "20260910T170507_27d145072b08",
+    "status": "failed",
+    "batch_id": null,
+    "nodes": [
+      {
+        "id": "verify",
+        "label": "独立解包与清单校验",
+        "status": "failed",
+        "message": "交付文件缺失、大小或 SHA-256 不一致：dataset/meta/info.json",
+        "data_issue_count": 0
+      },
+      {
+        "id": "archive_verify",
+        "label": "交付包官方离线加载",
+        "status": "skipped",
+        "message": "前置步骤失败，未执行",
+        "data_issue_count": 0
+      }
+    ]
+  }
+]
