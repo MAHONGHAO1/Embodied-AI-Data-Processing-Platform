@@ -1,0 +1,165 @@
+{
+  "date": "2026-09-10",
+  "tests": {
+    "passed": 38,
+    "duration_seconds": 9.62
+  },
+  "source_bytes": 53108400,
+  "source": {
+    "repo_id": "jmrog/so100_sweet_pick",
+    "revision": "54141acb0bd6bcb868e34b4eb328f26481d333b2",
+    "camera": "observation.images.laptop"
+  },
+  "summary": {
+    "coverage_performed": 55,
+    "coverage_total": 55,
+    "data_issue_count": 0,
+    "episode_count": 5,
+    "issue_count": 0,
+    "load_failure_count": 0,
+    "not_checked_count": 0,
+    "passed_episode_count": 5,
+    "row_count": 3562
+  },
+  "rule_version": "0.1.1",
+  "source_integrity": "matches_manifest",
+  "result_digest": "b621d4042dc33315d299e19ca38912581409c7af46ba5224ebc052d2e720cddd",
+  "video_points": [
+    {
+      "episode_index": 0,
+      "rows": 503,
+      "decoded_frames": 503,
+      "codec": "av1",
+      "nominal_timestamp_max_error": 8.900960288826809e-07,
+      "points": [
+        {
+          "row": 0,
+          "timestamp": 0.0,
+          "video_pts": 0.0,
+          "error_seconds": 0.0
+        },
+        {
+          "row": 251,
+          "timestamp": 8.366666793823242,
+          "video_pts": 8.366666666666667,
+          "error_seconds": -1.2715657504713818e-07
+        },
+        {
+          "row": 502,
+          "timestamp": 16.733333587646484,
+          "video_pts": 16.733333333333334,
+          "error_seconds": -2.5431315009427635e-07
+        }
+      ]
+    },
+    {
+      "episode_index": 1,
+      "rows": 797,
+      "decoded_frames": 797,
+      "codec": "av1",
+      "nominal_timestamp_max_error": 8.900960288826809e-07,
+      "points": [
+        {
+          "row": 0,
+          "timestamp": 0.0,
+          "video_pts": 0.0,
+          "error_seconds": 0.0
+        },
+        {
+          "row": 398,
+          "timestamp": 13.266666412353516,
+          "video_pts": 13.266666666666667,
+          "error_seconds": 2.543131518706332e-07
+        },
+        {
+          "row": 796,
+          "timestamp": 26.53333282470703,
+          "video_pts": 26.533333333333335,
+          "error_seconds": 5.086263037412664e-07
+        }
+      ]
+    },
+    {
+      "episode_index": 2,
+      "rows": 497,
+      "decoded_frames": 497,
+      "codec": "av1",
+      "nominal_timestamp_max_error": 8.900960288826809e-07,
+      "points": [
+        {
+          "row": 0,
+          "timestamp": 0.0,
+          "video_pts": 0.0,
+          "error_seconds": 0.0
+        },
+        {
+          "row": 248,
+          "timestamp": 8.266666412353516,
+          "video_pts": 8.266666666666667,
+          "error_seconds": 2.543131518706332e-07
+        },
+        {
+          "row": 496,
+          "timestamp": 16.53333282470703,
+          "video_pts": 16.533333333333335,
+          "error_seconds": 5.086263037412664e-07
+        }
+      ]
+    },
+    {
+      "episode_index": 3,
+      "rows": 898,
+      "decoded_frames": 898,
+      "codec": "av1",
+      "nominal_timestamp_max_error": 8.900960288826809e-07,
+      "points": [
+        {
+          "row": 0,
+          "timestamp": 0.0,
+          "video_pts": 0.0,
+          "error_seconds": 0.0
+        },
+        {
+          "row": 449,
+          "timestamp": 14.966666221618652,
+          "video_pts": 14.966666666666667,
+          "error_seconds": 4.4504801444134046e-07
+        },
+        {
+          "row": 897,
+          "timestamp": 29.899999618530273,
+          "video_pts": 29.9,
+          "error_seconds": 3.8146972514141453e-07
+        }
+      ]
+    },
+    {
+      "episode_index": 4,
+      "rows": 867,
+      "decoded_frames": 867,
+      "codec": "av1",
+      "nominal_timestamp_max_error": 8.900960288826809e-07,
+      "points": [
+        {
+          "row": 0,
+          "timestamp": 0.0,
+          "video_pts": 0.0,
+          "error_seconds": 0.0
+        },
+        {
+          "row": 433,
+          "timestamp": 14.433333396911621,
+          "video_pts": 14.433333333333334,
+          "error_seconds": -6.357828752356909e-08
+        },
+        {
+          "row": 866,
+          "timestamp": 28.866666793823242,
+          "video_pts": 28.866666666666667,
+          "error_seconds": -1.2715657504713818e-07
+        }
+      ]
+    }
+  ],
+  "repeat_result_digest_equal": true
+}

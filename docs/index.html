@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-page-node-id="7rPKIdu8CszdGKTRQ2q21o">
+<head data-page-node-id="ceJjeWr8qSA5yzyib1EfFh">
+<meta charset="utf-8" data-page-node-id="HRS2foLtGWWwIvMoBaatn2">
+<meta name="viewport" content="width=device-width,initial-scale=1" data-page-node-id="ukk0Cv2nEkXuEEBS3WXHSn">
+<title>RoboData Workbench · 具身智能数据处理平台</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
+color:#1f2430;background:#f6f7f9;line-height:1.7}
+.wrap{max-width:1080px;margin:0 auto;padding:0 24px 72px}
+header{background:#12233d;color:#fff;padding:56px 24px 48px;margin-bottom:36px}
+header .inner{max-width:1080px;margin:0 auto}
+h1{font-size:32px;font-weight:600;letter-spacing:.5px}
+.tagline{font-size:17px;color:#b9c7dd;margin-top:10px}
+.badges{margin-top:18px;display:flex;gap:8px;flex-wrap:wrap}
+.badge{background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.25);
+padding:4px 11px;border-radius:999px;font-size:13px}
+section{background:#fff;border:1px solid #e4e7ec;border-radius:12px;
+padding:26px 28px;margin-bottom:22px}
+h2{font-size:20px;font-weight:600;margin-bottom:6px;color:#12233d}
+.sub{color:#6b7383;font-size:14px;margin-bottom:18px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px}
+.stat{background:#f8fafc;border:1px solid #e4e7ec;border-radius:10px;padding:16px}
+.stat .v{font-size:26px;font-weight:600;color:#12233d}
+.stat .k{font-size:13px;color:#6b7383;margin-top:2px}
+.flow{display:flex;gap:10px;flex-wrap:wrap}
+.grp{flex:1;min-width:180px;background:#f8fafc;border:1px solid #e4e7ec;border-radius:10px;padding:14px}
+.grp-t{font-size:13px;color:#6b7383;margin-bottom:8px;font-weight:500}
+.grp-n{display:flex;flex-direction:column;gap:5px}
+.nd{background:#12233d;color:#fff;font-size:13px;padding:5px 10px;border-radius:6px;text-align:center}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid #edeff2}
+th{color:#6b7383;font-weight:500;font-size:13px}
+td.num{text-align:right;font-variant-numeric:tabular-nums}
+.ok{color:#0f7b52;font-size:13px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.fcard{background:#fdf6f5;border:1px solid #f3d9d5;border-radius:10px;padding:14px 16px}
+.fcard h4{font-size:14px;color:#a3352b;margin-bottom:2px;font-weight:600}
+.fcard .st{font-size:12px;color:#6b7383;margin-bottom:8px}
+.fcard ul{list-style:none;font-size:13px}
+.fcard li{margin-bottom:5px;color:#4a5261}
+.shots{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+figure{border:1px solid #e4e7ec;border-radius:10px;overflow:hidden;background:#fafbfc}
+figure img{width:100%;display:block}
+figcaption{font-size:13px;color:#6b7383;padding:8px 12px;border-top:1px solid #edeff2}
+pre{background:#12233d;color:#e6edf5;padding:14px 16px;border-radius:8px;
+overflow-x:auto;font-size:13px;line-height:1.6}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+ul.plain{list-style:none}
+ul.plain li{padding:5px 0 5px 18px;position:relative;color:#4a5261;font-size:14px}
+ul.plain li:before{content:"";position:absolute;left:0;top:13px;width:6px;height:6px;
+border-radius:50%;background:#12233d}
+.warn{background:#fffaf0;border:1px solid #f2e2be;border-radius:10px;padding:16px 18px}
+.warn li:before{background:#b58105}
+footer{text-align:center;color:#8b93a3;font-size:13px;padding:24px}
+a{color:#1c4f91}
+</style>
+</head>
+<body data-page-node-id="a6OrssM9yNgwbfDq7O2fzY">
+<header data-page-node-id="xYRmLGlWubq1VUOEHB4zEa"><div class="inner" data-page-node-id="sieVyjBI0JNYqhGY4V9rrs">
+<h1 data-page-node-id="1vJpDgwHkaUph4n6QaXlh8">RoboData Workbench</h1>
+<div class="tagline" data-page-node-id="M4UDCv23MxQQqSDf0Z6eZ6">具身智能数据处理平台 · 把一批机器人演示数据变成可检查、可追溯、可读取的训练样本</div>
+<div class="badges" data-page-node-id="Pie6KxABSaz1MT3XsJF9Lw">
+<span class="badge" data-page-node-id="JVilBHoxA6MK0cgfxLnN38">应用版本 0.4.0</span>
+<span class="badge" data-page-node-id="2EmYaW48ACC2tQRtpT3Eee">LeRobot 格式 v3.0</span>
+<span class="badge" data-page-node-id="cLOmQmBImdTR2l9Q5EE5gh">Python 3.12 · Windows / CPU</span>
+<span class="badge" data-page-node-id="jG615RPUBFP9V8QU13hu1N">14 节点自动链</span>
+<span class="badge" data-page-node-id="SnZFdXthKtoGWCIHCVLjK9">116 帧真实转换验证</span>
+</div>
+</div></header>
+
+<div class="wrap" data-page-node-id="nG4NkY4Nt55qfAvyiy0DPh">
+
+<section data-page-node-id="X4zThabOaIzq9rlhL9EXzR">
+<h2 data-page-node-id="P3qMhboBOXoRMRbXaHa6cD">它解决什么问题</h2>
+<div class="sub" data-page-node-id="lEsC85SYBtdX1m9KH6ThHE">具身数据工程的核心不是“能读文件”，而是四件事能不能被证明。</div>
+<div class="stats" data-page-node-id="tRsyCpEzgfzLOPCZlEH6Ba">
+<div class="stat" data-page-node-id="FXLrGJhJDPAfCj5x8KYHK8"><div class="v" data-page-node-id="Ag8C7ur3Sxmcb5mZhaT3Gg">可追溯</div><div class="k" data-page-node-id="wQB0v8AuD1T1j33eNhXMBb">每次处理的输入、节点、日志、产物全留痕</div></div>
+<div class="stat" data-page-node-id="7C0VQ8TT8KCwXrCIAtQDHR"><div class="v" data-page-node-id="FhQCCIhEqTDxrbjBTB6ZB8">可定位</div><div class="k" data-page-node-id="IT25fWwtoYKs1gTVuYxyjR">运行 → 节点 → 任务/文件 → 字段/行</div></div>
+<div class="stat" data-page-node-id="c1oTclTvGy0A1QaGaWrweZ"><div class="v" data-page-node-id="UbrNj7QCZhD024Wm3GGJm9">有验证</div><div class="k" data-page-node-id="dXcBLuLB5zbNopfz24GIuH">官方库写入后全量数值比对 + 离线加载</div></div>
+<div class="stat" data-page-node-id="NFjrr1AIyPojGgvYcNCkzn"><div class="v" data-page-node-id="Q5S9FlKrKHi3YwRzGtwsgt">可读取</div><div class="k" data-page-node-id="XKHDYklVC6QHJijAj9qFMC">交付包独立解包校验，篡改即拒</div></div>
+</div>
+</section>
+
+<section data-page-node-id="5GoZl4pCjvHOhdZAR1r3ej">
+<h2 data-page-node-id="Cb9LO0E8HxNKAbWUK7PHQq">八节点链路</h2>
+<div class="sub" data-page-node-id="TpTGB5lenGC6CzYmEDyNJg">对应具身数据交付的标准链路，每个节点独立记录输入、处理、输出与日志。</div>
+<div class="flow" data-page-node-id="2h862EBAmnpuJW1Z5PSAUs"><div class="grp" data-page-node-id="Pxxrc66zE6zVNS0vWjK2GG"><div class="grp-t" data-page-node-id="Xv2ff5qELMKjDHxPvRBfEy">数据上传</div><div class="grp-n" data-page-node-id="DrDucDRF59AsX920srTee4"><span class="nd" data-page-node-id="OrbSJzFHLwZZWq2OCxUA1w">上传／导入</span></div></div><div class="grp" data-page-node-id="EtOLniz8AkQ4KRqntHNP37"><div class="grp-t" data-page-node-id="PiIRRXBYzmXaSmdHSD4YyL">清洗、筛选、标注</div><div class="grp-n" data-page-node-id="oIaq4G6tuKuJsmAXLSwo6j"><span class="nd" data-page-node-id="TgA3OTSGHu03Ur6QkNfVd1">数据清洗</span><span class="nd" data-page-node-id="2dP0FHm85UXlsm4G53jDVN">数据筛选</span><span class="nd" data-page-node-id="3IbAKrBLtkbKN8mBgOvfkb">数据标注</span></div></div><div class="grp" data-page-node-id="OcyYB6d1C3JzaeAHZNT7Rh"><div class="grp-t" data-page-node-id="jtOAuGZVL1iIlBQN8k1E92">审核、质检</div><div class="grp-n" data-page-node-id="srCdCbvEFV0oK607UblqU4"><span class="nd" data-page-node-id="tlKeT6mD0Q1lvBwg33Kvur">标注审核</span><span class="nd" data-page-node-id="b17Pkcr1TdqpUZmTHnlLZ2">数据质检</span></div></div><div class="grp" data-page-node-id="B6xtJrQ2BH0kyjaiJayARe"><div class="grp-t" data-page-node-id="5El0AbjJdMGy40IHKeoheQ">转换、交付</div><div class="grp-n" data-page-node-id="ZzxSy0VgGpwHhFUgYcI6a9"><span class="nd" data-page-node-id="OWCFOjHtKkYHLDpFZQiNxI">格式转换</span><span class="nd" data-page-node-id="OjAdeERRVLmqurjrG0bUqg">打包交付</span></div></div></div>
+</section>
+
+<section data-page-node-id="4P3RHlILMQWASIkOOS5ooN">
+<h2 data-page-node-id="hLn8iu0UbAqibGO5is5ISg">真实数据</h2>
+<div class="sub" data-page-node-id="IfVXsGNkgoLqhgchuEqK6D">使用公开数据集的固定版本，revision 锁定，可复现。</div>
+<table data-page-node-id="ZXXHrokbIyGjZwyWH9lvjM">
+<tr data-page-node-id="Rc24lzFoaCqCBGAfTVJxUX"><th data-page-node-id="Jovp5sheGPukeRJfH7IUE0">来源</th><th data-page-node-id="Hf57ldHOUZr2p6v0H7oXdo">范围</th><th data-page-node-id="IQomX7nFXqV9ME8m5RkPik">维度</th><th data-page-node-id="adSJOrXT0nDPamwKqJlCKo">用途</th></tr>
+<tr data-page-node-id="7ii4Ephnslx9Jcuj788dUQ"><td data-page-node-id="oIh3NQLGQVAHIjbRHCFywF">jmrog/so100_sweet_pick</td><td data-page-node-id="qhAe3dNwcjKC8AranO4JaO">Episode 0–4，3,562 帧</td><td data-page-node-id="yFI52rF4eHZUecUYkPD3vR">状态 6 / 动作 6，单相机 30Hz</td><td data-page-node-id="P7Ugk71E25sIMymTZ5CAcg">导入、预览、质检、标注</td></tr>
+<tr data-page-node-id="Mmpf3avNlXGzYEC3mLGYiA"><td data-page-node-id="dRLlURMIQVCJEcLoD3ug1v">robomimic/robomimic_datasets（Panda / Lift）</td><td data-page-node-id="Fc9451GPDzHeI2zW4VhRsJ">demo_0–2，174 帧</td><td data-page-node-id="BVn1b14o9ydKeGxx2N5PTD">状态 9 / 动作 7，84×84 RGB</td><td data-page-node-id="2ouYwbx0QxPpLuWTF8rsEV">候选集转换与打包交付</td></tr>
+</table>
+</section>
+
+<section data-page-node-id="r0MAZVCEY3e765SFVXx90z">
+<h2 data-page-node-id="og0rK1Q6IoubAodijivzTM">一次真实运行的证据</h2>
+<div class="sub" data-page-node-id="FeGr4oOJYGKOm2hGiwsckG">运行 20260910T173026_631fc1c917c8，源任务 []，内容版本 25。</div>
+<div class="stats" data-page-node-id="SmV6MjMR5OEM3BqHyTYYqp">
+<div class="stat" data-page-node-id="eQ9tidLWpFfpQ3dkHaLMQN"><div class="v" data-page-node-id="VLzTm7nDVlU6MQSRFFm6By">14</div><div class="k" data-page-node-id="FFunpY4iMmKOAL3rSnVrgn">节点全部完成</div></div>
+<div class="stat" data-page-node-id="7a7cCbEu9hdFvLE9tbs3L9"><div class="v" data-page-node-id="gIqx59hsHG4RtM6OZwyQwi">116</div><div class="k" data-page-node-id="CmZYlM7zTEN7ZBJ2DxYm3b">输出帧数</div></div>
+<div class="stat" data-page-node-id="jPzPNQYwcuiGqPYkSbpMLx"><div class="v" data-page-node-id="ATnguknAuZbj66nwrd1LM3">29.3s</div><div class="k" data-page-node-id="ve84sV5QCGmfTvU2AFxud9">端到端耗时</div></div>
+<div class="stat" data-page-node-id="VdIfS2R6TW9LvMBkFs8SSV"><div class="v" data-page-node-id="6PgSAMgOI0uBYCb9eXTdRT">116</div><div class="k" data-page-node-id="pMwFhUAUFOE7Jg3MHI4Py9">全量数值比对帧</div></div>
+<div class="stat" data-page-node-id="xKXDpaQpfolUSAaYH3WNFQ"><div class="v" data-page-node-id="zBzZZtdGKDNztb68F2jwDt">6</div><div class="k" data-page-node-id="CjBCOtfli0hT7kLZm9IkLA">官方抽查位置</div></div>
+<div class="stat" data-page-node-id="HtpwPQWA7BFEQDeGHRmaUh"><div class="v" data-page-node-id="3DKEqXukk7pPAGo5p8JZWg">18/18</div><div class="k" data-page-node-id="eqnhmUSzKGWzA1zlS3C0M8">最终质检项</div></div>
+</div>
+<h3 style="font-size:15px;margin:22px 0 10px" data-page-node-id="PR1bmk24sekLbKhEfxv4hs">节点耗时明细</h3>
+<table data-page-node-id="SGeCZoRqHzU4I11EzPKtMV"><tr data-page-node-id="SwiOPQo9KTWC5cfk6Nl4Zh"><th data-page-node-id="KtcadpwAwgw3MJHLhNeHz8">#</th><th data-page-node-id="e1am6uOzagfhkOLtAzTUuW">节点</th><th data-page-node-id="qye1vsj0D607awfUB3MraM">状态</th><th data-page-node-id="Xsd31ZO9DKEIXk7cWSGwTc">耗时(s)</th><th data-page-node-id="EEmuDVsge0fYSnE9tNIWZy">数据异常</th></tr><tr data-page-node-id="Z3iKaOtugeODaapqjoxs1R"><td data-page-node-id="yM9KQEEK5H2LCfBJSnTnB0">1</td><td data-page-node-id="oCVZTicuHeYRRbwVy0DCYh">管理副本完整性复核</td><td data-page-node-id="DSZ2ZAmL5JlbeL8rHcsY2A"><span class="ok" data-page-node-id="7zA5vDskOjjJTUuSqoyJs0">completed</span></td><td class="num" data-page-node-id="hq7Jizf0pfrWtfE2HhAAZ4">0.742</td><td class="num" data-page-node-id="0TQkXkLiOw0GxIbClBjEfW">0</td></tr><tr data-page-node-id="wcWtHVhfoe2CpT6yD3IK6O"><td data-page-node-id="zq7SIBx6p2GrfxuYqOOHTE">2</td><td data-page-node-id="D2A9GP2KvVDPfUArjfRDG6">最终数据与标注质检</td><td data-page-node-id="KffHQIw4slLVCJCHjwp1sb"><span class="ok" data-page-node-id="wGHHftzpi0lNPPWin8Nbzs">completed</span></td><td class="num" data-page-node-id="p3Ky3fRVv8zfpgxwSAoeA4">2.289</td><td class="num" data-page-node-id="BZdYZPiW4RzS9zQ75Eoud0">0</td></tr><tr data-page-node-id="osdkHlOpxpqP65RNF7EjUi"><td data-page-node-id="4olUCxeP6FIK8xKmN4kxu1">3</td><td data-page-node-id="brS6sGBaGFdyxXIW4WVKcQ">最终质检证据登记</td><td data-page-node-id="pP3bfUu2u5wbN2l3nDQDsL"><span class="ok" data-page-node-id="Y0iSdtfvRKgv2UAwkG0HAm">completed</span></td><td class="num" data-page-node-id="6AjiuMhcME7sUHDNwHpayw">0.742</td><td class="num" data-page-node-id="LbjVfAtfaKj1eRD31aFMKN">0</td></tr><tr data-page-node-id="I4mcGlcLQIBq3lQ6FLYISB"><td data-page-node-id="xCxkoqqffYDjZ5NGSgclgx">4</td><td data-page-node-id="jQbHdx0vPwrn3NvQDhhTCx">文件校验</td><td data-page-node-id="cuXgmQXa7HvzQEpyYAm49X"><span class="ok" data-page-node-id="JCK7iTIB5kqLhkBCwmB5os">completed</span></td><td class="num" data-page-node-id="vp3BsIEzkwymlEje5nGsYJ">0.431</td><td class="num" data-page-node-id="7n0eLBexYBXAk5Wpm13axH">0</td></tr><tr data-page-node-id="Il0h6VabA4CamwNtOMLDUd"><td data-page-node-id="jwXeEbmbaocnkMZPuMrDpq">5</td><td data-page-node-id="KOoyHltuolgt98aMwtvsEE">HDF5 结构与数值检查</td><td data-page-node-id="9DvCOFX9kMpOmhvfHI9oDf"><span class="ok" data-page-node-id="FVCEl4rS2FY9PpMh48VPtq">completed</span></td><td class="num" data-page-node-id="DjZw0aGUDS6hGzbQBOvM93">0.639</td><td class="num" data-page-node-id="JXAFcbQDwG3LLuSwCvduhp">0</td></tr><tr data-page-node-id="bTJrQIXgIiSALuU3EWypLB"><td data-page-node-id="e9jnmlvo3ogPcoeBEmR5Ix">6</td><td data-page-node-id="vxvNalGrrm0FUPvXRYRLDp">审核候选集字段映射</td><td data-page-node-id="CUDp5j4jexo4yE2c7tXDhA"><span class="ok" data-page-node-id="yDZTRr6RGDNF7fFb8i9LNS">completed</span></td><td class="num" data-page-node-id="QQTFoRrh6eJlEtbA7qcZ4F">0.645</td><td class="num" data-page-node-id="tzeWDoaNK0xIlJg092dUEE">0</td></tr><tr data-page-node-id="2lQkrI928B1ptDyYAkiRHF"><td data-page-node-id="IrcQSulDhHlQdDhznfLYYs">7</td><td data-page-node-id="R1DITNqdRoyT9nESeyEpdX">官方格式写入</td><td data-page-node-id="ozDhyK1oQN8C9ghrAHFsrz"><span class="ok" data-page-node-id="nDruraIeeOUw5u9IySJqmu">completed</span></td><td class="num" data-page-node-id="LnP1CzXFtmblMKVBayBD4E">5.945</td><td class="num" data-page-node-id="EfjlxTde7YU1TgCtnkIDCy">0</td></tr><tr data-page-node-id="OfaqgByCmaKLixmNs5Kfan"><td data-page-node-id="EaDoPhqptaj158ShmR6zQq">8</td><td data-page-node-id="Oo1pd5vnOmbAfzdSJC1Enu">官方加载与全量数值验证</td><td data-page-node-id="vepbj9JtLZ803GUFSfHmUz"><span class="ok" data-page-node-id="pEJzgItSyRjhbjAv0GVho0">completed</span></td><td class="num" data-page-node-id="kt3bRmCXJdhJeGeO9GKi8H">5.755</td><td class="num" data-page-node-id="8g2phSMN97ZdwQ04uzT5XQ">0</td></tr><tr data-page-node-id="TFDCOF3LmlG00HOmWYEMrr"><td data-page-node-id="BPA3Dapp4yasdUzPHFaHeG">9</td><td data-page-node-id="s0DqWFtbDud3yJ6BJZPnWA">输出质检</td><td data-page-node-id="GFKlVc2AOKRqk2W28YqZDO"><span class="ok" data-page-node-id="QPAbSpUXld6QcAvQYCm8Ae">completed</span></td><td class="num" data-page-node-id="0TCpsVuL06aIWBkSgmCVts">1.363</td><td class="num" data-page-node-id="pHYrJS4NfivbtIFYIN3TIe">0</td></tr><tr data-page-node-id="l4zMsPsK6cRTVr2oeAjF0n"><td data-page-node-id="Qknu1d51jjxNUbdI3oMChZ">10</td><td data-page-node-id="7yF9GZiwmWpA4fbnahonAQ">转换产物登记</td><td data-page-node-id="FDSCmIgDMzo9JA5v1R9iaS"><span class="ok" data-page-node-id="BVWmj9FmNsoj5RQhFviQfu">completed</span></td><td class="num" data-page-node-id="PU4hwmFfgCYQvcyLOpGaam">1.160</td><td class="num" data-page-node-id="OkNcvvsWEqcn6RaUqzDBor">0</td></tr><tr data-page-node-id="492CKqEpXwzceT2sNRxF0O"><td data-page-node-id="KZUOZ7s50jEvCaGJ0mWj53">11</td><td data-page-node-id="2OzBWYPhW4DSfCbK0AKrMr">生成交付 ZIP</td><td data-page-node-id="nZkBQPnWeUpOWaMXfAMqEW"><span class="ok" data-page-node-id="4znxDwcDT3sTiErjP4ZmAS">completed</span></td><td class="num" data-page-node-id="Ydp56GjfHEYNbHs2xer7uu">1.162</td><td class="num" data-page-node-id="aSCln5d1ORMOr65ToRpsct">0</td></tr><tr data-page-node-id="GL84onvxUtEN0ydAJF52wQ"><td data-page-node-id="tvu0IPfLSlXWjWQYchL348">12</td><td data-page-node-id="DTssTWXDXD2ZcVnZby6D42">独立解包与清单校验</td><td data-page-node-id="HDUSOL4UPtRAbIV3whHFBw"><span class="ok" data-page-node-id="f4goMU5pWG0PNiL1uxeubF">completed</span></td><td class="num" data-page-node-id="bCaCmehawB4x6ya5dwn3is">0.959</td><td class="num" data-page-node-id="lR9DEjUE6fFidpY7qJcwlq">0</td></tr><tr data-page-node-id="kUMo5eBjPfOAlEoabEuirf"><td data-page-node-id="5bwXHDkG2Oa4SOZXtGgQFq">13</td><td data-page-node-id="qCMaAiAGjVMcDlvF3X5a9B">交付包官方离线加载</td><td data-page-node-id="N95xO3Wt3qkQ2TEsli1dxk"><span class="ok" data-page-node-id="aoepgkND5IMxV40gPVrFCL">completed</span></td><td class="num" data-page-node-id="CZZXaHD5bQd7qKElt1KIzE">5.448</td><td class="num" data-page-node-id="DVFggPGbsQ3X2slAOGFTSg">0</td></tr><tr data-page-node-id="l0EwzkE73aprrsKuRSCB0J"><td data-page-node-id="S5IUBMBYLLRSOzGx2FW5k8">14</td><td data-page-node-id="CuReR6lVx7FoZxVkzH9p7n">结果回写与业务版本核验</td><td data-page-node-id="h7UMs4yCZRKRMCmfvBQtV4"><span class="ok" data-page-node-id="qOFppO7Ydgt0j1nEaUmA5N">completed</span></td><td class="num" data-page-node-id="6CbuSV1eJAfjrFyOupO3SX">1.163</td><td class="num" data-page-node-id="LDzWxLmtVGT8aKQLuILpKy">0</td></tr></table>
+<div class="grid2" style="margin-top:18px" data-page-node-id="EER9JW5nKRvABWm1POfCC9">
+<div class="fcard" style="background:#f2f8f5;border-color:#cfe6da" data-page-node-id="Vy316VLItGTRtQnvGAOnek">
+<h4 style="color:#0f7b52" data-page-node-id="SLQqdLaFEDOcbaxgJs0Iss">官方格式验证</h4>
+<p class="st" data-page-node-id="ouB9X0E912ncehk5p0N22P">状态 passed · 格式 v3.0</p>
+<ul data-page-node-id="ayjnRvi0gIgmoFpSSUcwe2"><li data-page-node-id="Exq9PsDfs71MV2ntrNjhRa">输出全量 116 帧与源 float32 映射一致</li>
+<li data-page-node-id="nQREVAdwD5WYfEWOayPXDD">官方离线抽查 6 个位置，DataLoader 批读取通过</li>
+<li data-page-node-id="acPT2AYOEtbKRh9KAydhkQ">输出全量数值与源 float32 映射一致，官方离线抽查和 DataLoader 加载</li></ul></div>
+<div class="fcard" style="background:#f2f8f5;border-color:#cfe6da" data-page-node-id="UijPFt9nj6IBTvi5NR7hyG">
+<h4 style="color:#0f7b52" data-page-node-id="zQ9om1FPTHsQWeVLu5GSxu">交付包独立验证</h4>
+<p class="st" data-page-node-id="goxcSSR066r1zOZMhGMdhs">状态 passed</p>
+<ul data-page-node-id="9eOuTge6jkwyTgxsNSMH7C"><li data-page-node-id="tKQRWM1ba0Dkhh9CkGh7hC">在新目录独立解包，校验文件哈希、元数据与索引</li>
+<li data-page-node-id="x9IuadeMZHUja4pC8VMTFm">官方离线加载通过，检查 116 帧</li>
+<li data-page-node-id="lg4ek4ssCxBsOZePyOzgQl">解包后文件哈希、元数据、索引、有限数值与官方离线加载；源数值一致性仅引用转换时记录，未重新读取源文件</li></ul></div>
+</div>
+</section>
+
+<section data-page-node-id="mDJABeRv9zEKEphH5bFaPB">
+<h2 data-page-node-id="GR2gxijIebQy3vcreix6of">故障与门禁</h2>
+<div class="sub" data-page-node-id="DJX9NwCwuUTc3D7fhARsIk">故意注入的异常不是缺陷演示，而是证明门禁真的在拦。</div>
+<div class="grid2" data-page-node-id="CIFOmG82aCz76aYWCtjfuE"><div class="fcard" data-page-node-id="PmfdhE6aL8CKcArxLXT0EF"><h4 data-page-node-id="uNSa5xOezqeuPRBC9bXQLK">hdf5-isolation</h4><p class="st" data-page-node-id="gcT7js3Dkt6bGXVEwqqBpe">completed</p><ul data-page-node-id="CmXPwAuhxkcwlqtVHGnYmm"><li data-page-node-id="afFsOpO2HAGh8jiUf6NPMb"><b data-page-node-id="DgEsqlpDdih9mwT0KG6XLm">批次基础质检</b>：检查完成，发现数据异常</li><li data-page-node-id="BFXBAjDczzJKtOigIa7WIA"><b data-page-node-id="hDAe8UgFPw8GcQuu4T9CGG">结果回写与业务版本核验</b>：外部工作进程执行完成</li></ul></div><div class="fcard" data-page-node-id="yoqL97MEJtijzTuRigTaE0"><h4 data-page-node-id="DU2FpF3Re4c4VgZ8sadayE">missing-video</h4><p class="st" data-page-node-id="W4I3xVuWBlLeF5tUDtaPGG">completed</p><ul data-page-node-id="GghiF2BSNSqubgN5igv4PQ"><li data-page-node-id="H2DDv4tRlQhxHlMSfc0kLR"><b data-page-node-id="3owvgEg0sosaTXqHQzHcxp">批次基础质检</b>：检查完成</li><li data-page-node-id="4H1QkiyxGGEDjacmiuRBPp"><b data-page-node-id="46NLNIp5WtHh2dwT07AwY2">结果回写与业务版本核验</b>：外部工作进程执行完成</li></ul></div><div class="fcard" data-page-node-id="fWRG5JGcVtO6jHpF6LKF4R"><h4 data-page-node-id="S1p2FvVHUqJVWXdezW6nD4">so100-anomalies</h4><p class="st" data-page-node-id="7ULRCUnCz8iVEwgPoDoW5w">completed</p><ul data-page-node-id="tfsfujoy8CHEk9SYgvRbjr"><li data-page-node-id="0mz9c2Zs7Q6ZoSwGwQ1Byu"><b data-page-node-id="BTjL5qLbJ0akYzIDqnNaRH">批次基础质检</b>：检查完成，发现数据异常</li><li data-page-node-id="03E8qxPR6gBhDT3FlqMDAq"><b data-page-node-id="KDZY0jwEl0MVU80x0sq1QO">结果回写与业务版本核验</b>：外部工作进程执行完成</li></ul></div><div class="fcard" data-page-node-id="zL3ncL7RztkYhn4D1YJRIZ"><h4 data-page-node-id="nIFBDJV3E6ahC88ZFKwmY3">tampered-zip</h4><p class="st" data-page-node-id="qEYIxl4N7kOQhihyf5xazZ">failed</p><ul data-page-node-id="1kCJUsE1HxFtQNTYDXFAYE"><li data-page-node-id="vFMapMYYooSHPQxa0AQkYJ"><b data-page-node-id="2gtkfKC1vDBGb8Ay0Wtwi0">独立解包与清单校验</b>：交付文件缺失、大小或 SHA-256 不一致：dataset/meta/info.json</li><li data-page-node-id="jOcMnCH0k8efs5GTFOK72n"><b data-page-node-id="wwjKFLqaIqC27U4pTFXRgz">交付包官方离线加载</b>：前置步骤失败，未执行</li></ul></div></div>
+</section>
+
+<section data-page-node-id="N7m1iAnpKmnxBJ80Kuo7Ev">
+<h2 data-page-node-id="XALqC9ggzGsEyXu3hqy4cQ">界面</h2>
+<div class="sub" data-page-node-id="M2d70y4PxdlFC50AUITBUB">2026-09-11 本机实测截图，侧栏为八个业务节点＋批次总览＋运行记录。</div>
+<div class="shots" data-page-node-id="rMjG0YENCL1i9ZeogcoAsM"><figure data-page-node-id="Mxf4BwszxlLCIoqfssAROO"><img src="assets/v04/01_overview.png" alt="批次总览" loading="lazy" data-page-node-id="TBmFJhwFZHyCMc6MCZ45EA"><figcaption data-page-node-id="HYO9rVWBKAHg1vIwnbt4kZ">批次总览</figcaption></figure><figure data-page-node-id="g6bYWn2wQcSbBXIWdU7IH1"><img src="assets/v04/02_import.png" alt="上传／导入" loading="lazy" data-page-node-id="7W9pZeyXlHmRLQ6chr9bd5"><figcaption data-page-node-id="fV7IW1FjDv0V5HsX8uq0vt">上传／导入</figcaption></figure><figure data-page-node-id="xKbHe7Py6nX9ihwEwnQsVT"><img src="assets/v04/03_clean.png" alt="数据清洗" loading="lazy" data-page-node-id="rijw8rvMIGVl0jtF92wUlu"><figcaption data-page-node-id="crqyIK4Sx24BzTqy0K0b7u">数据清洗</figcaption></figure><figure data-page-node-id="DjoB5Mb1kSQVKkNWas8DX5"><img src="assets/v04/04_select.png" alt="数据筛选" loading="lazy" data-page-node-id="Nb6B8W9nFT4b93fxTqsuT0"><figcaption data-page-node-id="P1eHUbcqSheDF2GV5M7tAc">数据筛选</figcaption></figure><figure data-page-node-id="lXb5CiGZ5Gbb9DFnsw5yry"><img src="assets/v04/05_annotate.png" alt="数据标注" loading="lazy" data-page-node-id="jwGESBVDfRxQEP5xcTVGSa"><figcaption data-page-node-id="DurY9nYR4QOqJJEKUdxDtE">数据标注</figcaption></figure><figure data-page-node-id="2hCRwFxD3i1HOvCn002tWp"><img src="assets/v04/06_review.png" alt="标注审核" loading="lazy" data-page-node-id="8ogcJF1mhaGZNBzbOkFhhJ"><figcaption data-page-node-id="FAfE94bL4N0WGfbfTNk7ao">标注审核</figcaption></figure><figure data-page-node-id="Qv2GDVxjfyYHpyABgRsMor"><img src="assets/v04/07_quality.png" alt="数据质检" loading="lazy" data-page-node-id="AdGPpj5UP1tAoRxDbDWqZy"><figcaption data-page-node-id="rtN2tGXerTnyj3j1T7j57w">数据质检</figcaption></figure><figure data-page-node-id="glNdiwHpZzW9fglQE0pMNg"><img src="assets/v04/08_convert.png" alt="格式转换" loading="lazy" data-page-node-id="tyruXnoMaFDX3yFJPdsWF2"><figcaption data-page-node-id="mAgZgfnHxi8aZ5y9L6l2J3">格式转换</figcaption></figure><figure data-page-node-id="v0YSjYraOFWwAaJtpTIBfn"><img src="assets/v04/09_deliver.png" alt="打包交付" loading="lazy" data-page-node-id="JMzWStOvV3u2IBhCDhwokr"><figcaption data-page-node-id="BQiRX1ptZWDNuwtDKx2gJ5">打包交付</figcaption></figure><figure data-page-node-id="hn9Egi9cerE9BDXKAz2dP7"><img src="assets/v04/10_runs.png" alt="运行记录" loading="lazy" data-page-node-id="SKFBLHEBk9fqCBcGRXvPts"><figcaption data-page-node-id="7iStBnSsqgKXlNli7PjDSD">运行记录</figcaption></figure></div>
+</section>
+
+<section data-page-node-id="3q4PwVaLLwTDSrFUh6uRyK">
+<h2 data-page-node-id="dB6I5NHPrZE1MuXgUMTt4O">技术栈</h2>
+<table data-page-node-id="DjKcCvVKXH9673o9Wp0JmM">
+<tr data-page-node-id="8qBGKFFzCvI9ATJXgWUHGz"><th data-page-node-id="T4ZDXxiFigOol8lteEMy2V">层</th><th data-page-node-id="E4ovxrVqomTyRBnGpsrb94">选用</th></tr>
+<tr data-page-node-id="SOGDZnMcZC27QmSgZYW1JJ"><td data-page-node-id="neCFm889fA5Dy2NJlS6Dxi">页面交互</td><td data-page-node-id="CZchhCqqBui5tLUa3Sd4tx">Streamlit</td></tr>
+<tr data-page-node-id="ZHJ2j2M1gHQvuESM9Dey5r"><td data-page-node-id="iXRCAVxhuHZEATiI9BGlDU">业务判断</td><td data-page-node-id="OZGzyG1RIp8ncr81y9FiYu">批次 / 任务状态机，人工审核与修订号</td></tr>
+<tr data-page-node-id="gx3zqu4sizDdUJnZnUguvD"><td data-page-node-id="1rLFSroQc8lejO9sENDyZn">后台执行</td><td data-page-node-id="XST2Uw1Rm7E0Vs0Krsn0Dd">独立 Python 工作进程，JSONL 事件流</td></tr>
+<tr data-page-node-id="pn1Le2AotJpkfo6AKn8ylH"><td data-page-node-id="HDnLOsOanDWXhoSfcsqTyL">数据处理</td><td data-page-node-id="wU68TwNFgBmAYk1AbQB1mf">Pandas、NumPy、PyArrow、PyAV、h5py</td></tr>
+<tr data-page-node-id="ucYoXBnOxTidOgBwtU2a4M"><td data-page-node-id="difvyXPOv0ziFFZ0TGWRkD">格式与验证</td><td data-page-node-id="xayj8Z9IUtJmc4Q1waNzVO">LeRobot 官方写入与加载、PyTorch DataLoader</td></tr>
+<tr data-page-node-id="m3il7J3L2jifuTnkq0jobw"><td data-page-node-id="YE513iL4OVQc3nh4vithOO">证据</td><td data-page-node-id="mVTy5PN0RsQqkzqncNzZyE">SHA-256、JSON / JSONL、逐节点产物</td></tr>
+</table>
+</section>
+
+<section data-page-node-id="9BjMRtMDMaLVLzrvZ3htLB">
+<h2 data-page-node-id="BQk62XKYq0SzkU61HKEM6J">快速开始</h2>
+<pre data-page-node-id="cXjdY0PQ72L1LVeEfw233n"><code data-page-node-id="SlIBRkhLL6UHyjh0xCRT8N"># 主环境
+uv sync --frozen
+
+# HDF5 全流程需要独立转换环境
+uv sync --project tools/conversion --frozen
+uv run robodata fetch-hdf5
+
+# 启动本地工作台
+.\启动工作台.cmd
+# 浏览器打开 http://127.0.0.1:8501/</code></pre>
+<p style="font-size:13px;color:#6b7383;margin-top:10px" data-page-node-id="7xTab24yzxuT5fVlUlceeD">
+需要 Python 3.12 与 uv。SO-100 样本另需 <code data-page-node-id="NnuQCqrLYgpzMmYMZf97sr">uv run robodata fetch-sample</code>（约 53 MB）。
+</p>
+</section>
+
+<section class="warn" data-page-node-id="xOUAA1XV07fYj88GloJN4o">
+<h2 data-page-node-id="HVTxFKXEMkLnCDANiXEttP">边界与未做的事</h2>
+<div class="sub" data-page-node-id="ghRdZJyvkPB17TbXC7XGdY">以下均未在本次交付中实现，不宣称具备。</div>
+<ul class="plain" data-page-node-id="W49kM3BYsVthx6BdowHHes">
+<li data-page-node-id="XEMPenDQngrcpWbFA5efc2">不训练模型：验证了“数据能被官方库正确加载”，未验证训练效果</li>
+<li data-page-node-id="o3ZXh9AkzdDHmIdDYfSJ9P">不支持通用 HDF5 / MCAP 自动接入，仅固定配置的两个公开数据源</li>
+<li data-page-node-id="ZAhQaHHpZDRCCUadOvE8kB">未做多相机硬件同步、自动轨迹修复、逐帧标注</li>
+<li data-page-node-id="sGGrRuRKtd1b5UzagCggZK">未做大规模吞吐压测，当前为单机单用户、CPU</li>
+<li data-page-node-id="EeacVdNONcQ5vqzp0HQK3Y">SO-100 暂无业务转换交付适配器</li>
+<li data-page-node-id="ychismnZnY8P2J5Kd4WSXz">公开样本图片为 H.264 有损，float32 映射非 float64 无损</li>
+</ul>
+</section>
+
+<footer data-page-node-id="5Zv2RPU7Kj4s1ELlBbCuOS">
+<a href="https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform" data-page-node-id="3mw1UNtba0rWK8o4T8cCB6">GitHub 仓库</a>
+· 页面生成于 2026-09-11 · 证据取自本机真实运行
+</footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RoboData 工作台 V0.4 · 标准操作 SOP</title><style>body{max-width:1080px;margin:32px auto;padding:32px;color:#183044;font:16px/1.8 "Microsoft YaHei",Arial,sans-serif}h1,h2{color:#134349}table{border-collapse:collapse;width:100%}th,td{border:1px solid #d9e4eb;padding:8px;text-align:left;vertical-align:top}th{background:#eaf3f5}code,pre{background:#f3f6f9;padding:3px}pre{padding:14px;overflow:auto}a{color:#087f79}</style></head><body><h1 id="robodata-v0.4-sop">RoboData 工作台 V0.4 · 标准操作 SOP</h1>
+<p>适用：Windows、本机单用户、Python 3.12、CPU。更新：2026-09-11。本文对应 V0.4 业务页面；实际应用版本看页面侧栏，LeRobot <strong>数据格式版本 v3.0</strong> 与应用版本分别记录。文中的任务数和帧数是固定样本的操作预期，实际是否通过，请以本次报告与验收记录为准。</p>
+<p>版本口径与实际验证范围见 <a href="STATUS_v04.md">V0.4 状态</a>和 <a href="VALIDATION_v04.md">V0.4 验收</a>。首次使用可先按第 3–7 节跑一个批次；面试演示可按 <a href="demo.md">8 分钟路线</a>查看现有证据。</p>
+<blockquote>
+<p>完整体验：上传／导入 → 数据清洗 → 数据筛选 → 数据标注 → 标注审核 → 数据质检 → 格式转换 → 打包交付。导入后自动做基础清洗检查，再等待人工筛选、标注和审核；固定 HDF5 的候选审核全部通过后，自动执行最后三步。</p>
+</blockquote>
+<h2 id="section">1. 启动、准备与停止</h2>
+<p>获取源码后，在文件资源管理器中打开包含 <code>app.py</code>、<code>pyproject.toml</code> 和 <code>启动工作台.cmd</code> 的项目根目录。获取源码与环境要求见 <a href="../README.md">项目 README</a>。</p>
+<p>双击 <strong>启动工作台.cmd</strong>，保留启动窗口，可以最小化。浏览器打开 <a href="http://127.0.0.1:8501/">本机工作台</a>。地址只供本机访问；已有服务正常运行时不必重复启动。侧栏收起时点击左上角展开。</p>
+<p>首次安装或样本缺失时，在项目根目录 PowerShell 依次执行：</p>
+<pre><code class="language-powershell">uv sync --frozen
+uv sync --project tools/conversion --frozen
+uv run robodata fetch-hdf5
+# 使用 SO-100 旧功能或目录导入时再获取：
+uv run robodata fetch-sample
+</code></pre>
+<p>HDF5 默认下载到 <code>data/robomimic/test.hdf5</code>，约 46 MB；SO-100 下载到 <code>data/so100_sweet_pick/</code>，约 53 MB。独立转换环境另含 CPU PyTorch 等依赖，HDF5 导入预览也需要此环境。代理仅对当前下载进程配置，不写入公共代码或修改系统网络。</p>
+<p>本机同时只处理一个长运行。开始导入、质检、转换或打包前，先看是否已有活动运行；普通标注保存仍可进行，但内容变化会使旧快照失效。</p>
+<p>关闭或刷新网页不会停止后台处理，也不会重新执行任务。停止使用时，先等处理运行结束，再在启动窗口按 <code>Ctrl+C</code> 停止页面服务。重新启动后，磁盘上的批次和历史仍可读取。</p>
+<h2 id="section-1">2. 导航与八个业务节点</h2>
+<p>默认进入 <strong>批次总览</strong>，在同一批次上依次处理八个节点。即使上游未完成，下游仍可查看等待原因。</p>
+<table>
+<thead>
+<tr>
+<th>节点</th>
+<th>主要操作</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>上传／导入</td>
+<td>固定配置的本地路径／文件上传、管理副本与原始预览。</td>
+</tr>
+<tr>
+<td>数据清洗</td>
+<td>基础结构与可读取性检查、自动保留／隔离建议、清洗处理记录。</td>
+</tr>
+<tr>
+<td>数据筛选</td>
+<td>人工保留／隔离／排除、确认候选集、筛选清单。</td>
+</tr>
+<tr>
+<td>数据标注</td>
+<td>任务描述、执行结果、标签与备注、保存或提交标注。</td>
+</tr>
+<tr>
+<td>标注审核</td>
+<td>核对提交内容、退回修改或审核通过。</td>
+</tr>
+<tr>
+<td>数据质检</td>
+<td>审核后的最终数据、映射与标注检查。</td>
+</tr>
+<tr>
+<td>格式转换</td>
+<td>已审核且最终质检通过的候选集转换与官方验证。</td>
+</tr>
+<tr>
+<td>打包交付</td>
+<td>ZIP 生成、独立解包验证、下载与重新验证。</td>
+</tr>
+</tbody>
+</table>
+<p>每个节点下方的 <strong>节点输入、进度与输出</strong> 显示状态、结论、原因、版本、本次及上游尝试；展开 <strong>当前输入、已保存中间产物、节点输出</strong> 可查看实际文件、哈希与有效性，使用 <strong>下载所选实际文件</strong> 获取当前可用文件。上方的八节点进度条和侧栏进入同一组独立节点，后续节点会沿用本批次输入，无需逐步重新选文件。</p>
+<p>侧栏保留 <strong>批次总览、八个业务节点、运行记录</strong>。辅助功能按当前批次收纳：</p>
+<table><thead><tr><th>要做的事</th><th>现在的入口</th></tr></thead><tbody><tr><td>查看批次统计、任务清单和流程状态</td><td>批次总览 → 数据概览</td></tr><tr><td>浏览当前批次图像、状态／动作和问题位置</td><td>批次总览 → 任务浏览，也可点击“浏览本批次任务”</td></tr><tr><td>核对来源版本、字段维度和分量顺序</td><td>批次总览 → 来源与字段</td></tr><tr><td>执行最终质检</td><td>数据质检 → 当前质检</td></tr><tr><td>看当前报告、选择历史运行的报告并下载</td><td>数据质检 → 报告与历史</td></tr><tr><td>排查运行节点、错误与日志</td><td>运行记录；也可在历史报告点击“查看该报告的节点与日志”</td></tr><tr><td>独立样本浏览、故障演示、固定公开样本转换</td><td>展开侧栏“高级工具”</td></tr></tbody></table>
+<p>“报告与历史”只列当前批次的历史报告，显示原运行时间与内容版本；历史证据不替代当前交付结论。报告文件损坏时仍可进入对应日志。顶部八节点进度条可点击跳转；刷新后保留页面与批次。</p>
+<p>“高级工具”包含 <strong>样本数据概览、样本任务浏览、样本质检报告、公开样本转换</strong>。其中“公开样本转换”保留固定 demo_0–2 的直接转换验证，不经过业务审核流程。进入样本工具会移除所选业务运行的报告上下文，避免把业务批次结果套到独立样本上；返回业务页面仍保留选中的批次。</p>
+<p>批次顶部保留业务阶段、导入数、候选数、待审核数、内容版本和保存修订号。业务审计记录人工决定，程序运行与日志记录处理过程。</p>
+<h2 id="hdf5">3. 导入 HDF5 并做转换前预览</h2>
+<ol>
+<li>进入 <strong>上传／导入 → 导入一个本地批次</strong>。</li>
+<li><strong>导入方式</strong>选 <strong>本机 HDF5 路径</strong>，填写名称，例如“Lift 非连续任务演示”，以及完整 <strong>本机输入路径</strong>。也可选 <strong>上传 HDF5 文件</strong>，通过 <strong>选择 HDF5 文件</strong>选取本机文件。</li>
+<li>原始公开样本不要填写测试副本说明。仅导入明确制作的故障副本时，展开 <strong>故障副本标记（仅测试输入填写）</strong>，填写真实用途。</li>
+<li>点击 <strong>开始导入</strong>。在运行记录观察复制与校验输入、原始预览解析、批次登记、基础清洗检查与结果回写。</li>
+<li>完成后点击 <strong>返回关联批次</strong>。也可回批次总览选择批次，再点 <strong>刷新批次状态</strong>。</li>
+<li>进入 <strong>批次总览 → 任务浏览</strong>，查看当前批次清单和预览。</li>
+<li>在 <strong>选择源任务</strong>中依次选任务 0、1、2。展开 <strong>图像与状态／动作预览</strong>，点 <strong>首帧／中间帧／末帧</strong>，或拖动 <strong>任务内记录位置</strong>。</li>
+</ol>
+<p>HDF5 下载完成后，在项目根目录执行以下只读命令，取得可粘贴到输入框的完整本机路径：</p>
+<pre><code class="language-powershell">(Resolve-Path -LiteralPath '.\data\robomimic\test.hdf5').Path
+</code></pre>
+<p>上传文件也只保存在本机。导入创建管理副本，原件保持不变。同一输入指纹不会重复建立批次，重复导入会返回已有批次。批次登记后，导入运行继续执行基础清洗检查。应分别查看各节点，批次已出现不代表后续检查完成；基础清洗完成也不代表人工审核、最终质检或交付完成。</p>
+<p>上传入口仍受固定 HDF5 配置与来源校验约束，不支持任意文件自动推断。测试副本需显式标记，仍会进行结构与质量检查；严重损坏的文件可能在导入预览节点失败。</p>
+<table>
+<thead>
+<tr>
+<th>固定配置</th>
+<th>操作时核对</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>来源</td>
+<td>robomimic 公开仓库，固定版本 <code>74fa018461f479cd9fd15b924a16103012096203</code>，来源卡声明 MIT。</td>
+</tr>
+<tr>
+<td>数据性质</td>
+<td>Panda／Lift 仿真测试片段，不能称为真机采集。</td>
+</tr>
+<tr>
+<td>导入选择</td>
+<td>demo_0、demo_1、demo_2，预期 59、58、57 帧，合计 174 帧。</td>
+</tr>
+<tr>
+<td>状态／动作</td>
+<td>9 维状态、7 维动作，各自保留来源分量顺序。</td>
+</tr>
+<tr>
+<td>图像与时间</td>
+<td>agentview，84×84 RGB；任务时间按 <code>frame_index / 20</code> 派生。</td>
+</tr>
+<tr>
+<td>来源统计警告</td>
+<td>文件全局标注 9666，实际 10 条 demo 共 531 帧；当前批次按所选任务重新统计。</td>
+</tr>
+</tbody>
+</table>
+<p>来源统计说明不等于阻断性数据问题，不能直接解释为当前 174 条记录缺失；也不能据此放行 NaN、缺字段或长度不一致。预览和检查证据一起用于判断。</p>
+<h2 id="section-2">4. 基础清洗、定位问题与确认筛选</h2>
+<ol>
+<li>导入运行结束后，进入 <strong>数据清洗</strong>，核对基础检查结论与规则覆盖。固定 HDF5 是 10 类规则 × 3 条任务，预期 30 项；不要与 LeRobot 输出或最终质检的项数混用。</li>
+<li>若需要重新检查，点击 <strong>重新执行基础清洗检查</strong>，到运行记录观察结果。重跑会更新筛选建议并要求重新确认、提交审核。</li>
+<li>有问题时选择源任务，在 <strong>选择问题证据</strong> 中核对规则、字段、文件、行和证据。有行位置时点击 <strong>定位到问题记录</strong>；行索引从 0 开始。可 <strong>导出清洗处理记录 JSON</strong>。</li>
+<li>进入独立的 <strong>数据筛选</strong> 节点。完整通过的任务可保留；异常、读取失败或检查不完整的任务隔离。隔离与排除必须填写原因。</li>
+<li>演示非连续选择时，可将源任务 1 的 <strong>筛选决定</strong> 设为排除，填写“本次选择任务 0 和 2，用于验证非连续任务映射”，点击 <strong>保存筛选决定</strong>。这表示选择范围，不表示任务 1 有质量问题。</li>
+<li>核对候选任务 0、2 共 116 帧，排除任务 1 共 58 帧，合计应与导入清单一致。点击 <strong>确认筛选候选集</strong>，可 <strong>导出筛选清单 JSON</strong>。</li>
+</ol>
+<p>基础清洗采用检查与建议，不删原件、不插值、不修复轨迹。最终数据质检在标注审核后另行执行。没有保留任务时不能确认；筛选变化后需重新确认，所有保留任务需重新提交审核，已填写标注文字会保留。导出的清洗记录与筛选清单是决策和数据引用，不是重新生成的完整训练数据集。</p>
+<h2 id="section-3">5. 数据标注、退回修改与审核</h2>
+<ol>
+<li>进入 <strong>数据标注</strong>，选择保留任务，结合预览填写 <strong>任务描述、机器人任务执行结果、标签（逗号分隔）、标注备注</strong>。</li>
+<li>判断依据不足时选“不确定”。未完成可 <strong>保存草稿</strong>；准备好后 <strong>保存并提交审核</strong>。任务描述非空、结果已标注且候选集已确认，才能提交。可 <strong>导出标注文件 JSON</strong>。</li>
+<li>进入独立的 <strong>标注审核</strong> 节点，查看已提交的内容与原始预览。</li>
+<li>需修改时填写 <strong>审核意见／退回原因（退回必填）</strong>，点击 <strong>退回修改</strong>；返回数据标注修改，再保存并提交，然后回审核页复核。</li>
+<li>点击 <strong>审核通过</strong>。所有保留任务均需审核；可 <strong>导出审核记录 JSON</strong>。</li>
+<li>HDF5 最后一条保留任务审核通过后，自动启动“最终质检 → 转换 → 打包验证”，进入运行记录。若因已有活动运行等原因提示审核已保存但自动处理未启动，等待活动运行结束，再到数据质检节点点击 <strong>执行最终质检并自动继续</strong>。</li>
+</ol>
+<p>机器人执行失败、数据质量问题、处理程序失败分别记录。完整的失败尝试也可作为有效数据保留。该功能是本机单用户的任务级标注审核，不包含多账号分权或逐帧框选。</p>
+<p>修改已审核标注会回到草稿并使旧输出失效。页面修订过期时刷新后核对，避免用旧内容覆盖新决定。</p>
+<h2 id="section-4">6. 最终数据质检与格式转换</h2>
+<ol>
+<li>进入 <strong>数据质检</strong>，查看当前候选的最终检查状态。该检查在人工审核后执行，核对候选数据、映射、标注完整性和审核状态，保留此前的人工审核决定。</li>
+<li>若自动流程已经运行，查看节点与运行记录即可；若未启动或处理问题后需要重试，点击 <strong>执行最终质检并自动继续</strong>。</li>
+<li>HDF5 最终质检通过后自动进行候选转换及打包验证；规则未通过或进程失败会保留报告并停止后续步骤。SO-100 可执行最终质检，当前没有其转换交付适配器。</li>
+<li>进入 <strong>格式转换</strong>，核对源／输出任务映射、候选快照和转换证据。当前内容版本未通过最终质检时，手动 <strong>转换并验证候选集</strong> 按钮会被阻止。</li>
+<li>官方验证按实际候选帧数核对 float32 数值、每任务首／中／末样本与 DataLoader 批读取。保留源任务 0、2 时，输出编号 0、1，共 116 帧；全部保留则为 174 帧。</li>
+<li>展开当前输出的 <strong>预览当前 LeRobot 输出与视频偏移</strong>，检查第二条输出任务的首帧及共享 MP4 的偏移。通过当前节点输出文件区查看清单、标注与报告。</li>
+</ol>
+<p>三个检查阶段的对象不同：基础清洗检查导入任务是否完整可读；最终质检重新读取源数据，并检查保留候选的映射、标注和审核；输出质检检查实际写出的 LeRobot 文件。保留源任务 0、2 的示例分别对应 30 项基础检查、18 项最终检查、22 项输出检查，数量不能互相替代，结果以当前运行报告为准。</p>
+<p>在数据质检节点使用 <strong>下载本节点质检报告 HTML／JSON</strong> 导出最终报告。在运行记录中分别查看 <strong>官方加载与批读取验证</strong>、<strong>交付包官方离线加载验证</strong>：前者包含源 float32 数值比对，后者只检查解包输出并官方加载，不重复读取源 HDF5。两份证据分别提供 JSON 下载。</p>
+<p>相机编码为有损 H.264；时间按 20 Hz 派生，不代表硬件同步。输出归入 train 不代表完成训练评估。源描述与人工标注映射随输出保留。</p>
+<p>自动流程、手动重试都按当前内容版本处理。运行期间修改筛选或标注，旧快照的产物不能作为新内容的有效输出；应按最新候选重新验证。</p>
+<h2 id="section-5">7. 打包、下载并独立验证下载包</h2>
+<ol>
+<li>进入 <strong>打包交付</strong>，查看自动流程生成的当前交付记录；需要手动打包时先 <strong>选择当前已验证输出</strong>。</li>
+<li>自动流程已完成打包时可直接核对结果；需要新建包时点击 <strong>生成并验证交付包</strong>。手动打包使用当前已验证输出。</li>
+<li>观察生成 ZIP、独立解包与清单校验、交付包官方离线加载、结果回写。文件写出不等于可交付，必须以验证和登记结果为准。</li>
+<li>在打包交付页核对内容版本、任务数、帧数、数据格式、包大小、SHA-256 和运行编号。</li>
+<li>点击 <strong>下载已验证交付包 ZIP</strong>。从浏览器下载记录确认保存位置，通常是 Windows“下载”目录。</li>
+<li><strong>重新独立验证此包</strong>验证管理目录中的 ZIP；核验刚下载的文件时，执行以下命令并替换为实际下载路径。</li>
+</ol>
+<pre><code class="language-powershell"># 整包哈希应与打包交付页显示的 SHA-256 一致。
+Get-FileHash -Algorithm SHA256 -LiteralPath 'C:\实际下载目录\delivery.zip'
+
+# 在项目根目录运行：新建运行、独立解包并再次官方离线加载。
+uv run robodata verify-delivery --archive 'C:\实际下载目录\delivery.zip'
+</code></pre>
+<p>交付包主要包含：</p>
+<pre><code class="language-text">dataset/                              LeRobot v3.0 数据、视频与元数据
+documents/annotations.json            人工标注
+documents/mapping.json                源／输出编号、版本与快照
+documents/source.json                 来源信息
+documents/cleaning_summary.json        筛选决定与原因
+documents/cleaning_record.json         基础清洗策略与无数值修改记录
+documents/selection.json               候选集与排除／隔离原因
+documents/review.json                  当前保留任务的审核记录
+documents/final_quality.json           审核后最终质检证据
+documents/quality_report.json          输出质检证据
+documents/conversion_verification.json 官方转换验证证据
+documents/SOURCE_LICENSE.txt           来源许可声明
+manifest.json                         相对文件清单与逐文件 SHA-256
+README.md                             包内使用说明
+</code></pre>
+<p>清单不递归计算自身哈希，ZIP 整包哈希在包外记录。数据或 ZIP 在登记后变化时，不再提供有效下载。业务内容变化后，旧包保留为历史，不作为当前版本下载。</p>
+<p>独立验证交付包不重新读取源 HDF5；源数值一致性来自此前转换验证随包保存的证据。包验证检查清单、表格及官方离线读取，不能描述为再次完成源数值比对。生成与下载 ZIP 都是本地操作，不会自动发布到 GitHub。</p>
+<h2 id="section-6">8. 出错时看哪里、如何恢复</h2>
+<p>先点选流程中的对应节点，在 <strong>节点输入、进度与输出</strong> 查看原因、上游尝试和文件证据。展开 <strong>当前节点日志与尝试记录</strong>，按 <strong>任务筛选、尝试筛选、级别筛选</strong> 查找事件，可 <strong>下载当前筛选日志 JSONL</strong>；人工节点的决定另存于业务审计。</p>
+<p>从批次 <strong>相关程序运行与日志 → 查看节点与日志</strong>，或进入 <strong>运行记录 → 选择历史运行</strong>。按以下顺序排查：</p>
+<ol>
+<li><strong>节点执行情况</strong>：停在哪一步、执行状态、耗时与数据异常数。</li>
+<li><strong>节点诊断与文件证据 → 选择节点</strong>：中文原因、输入文件、字段与位置。</li>
+<li><strong>运行日志</strong>：按 <strong>日志任务／日志节点／日志级别</strong>筛选，展开完整事件与诊断。</li>
+<li><strong>运行参数、产物和完整诊断</strong>：输入快照、产物路径、原异常和堆栈；可选 <strong>进程原始日志</strong>并下载。</li>
+<li>显示产物待回写时，点 <strong>核对并恢复业务登记</strong>。恢复重新核对产物和版本，不强行登记过期结果，也不重复登记同一结果。</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>状态</th>
+<th>含义与下一步</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>数据异常</td>
+<td>已读取并发现问题；去清洗筛选看证据、定位和隔离。</td>
+</tr>
+<tr>
+<td>执行失败／读取失败</td>
+<td>文件、结构、环境或写入步骤未完成；保留诊断，处理原因后创建新运行。</td>
+</tr>
+<tr>
+<td>执行超时</td>
+<td>节点超过预算并终止工作进程；查看预算和最后日志。</td>
+</tr>
+<tr>
+<td>未检查／未执行</td>
+<td>前置条件失败，不能算合格；先处理上游原因。</td>
+</tr>
+<tr>
+<td>待回写</td>
+<td>产物与业务登记尚未闭合；核对恢复，不能只凭目录存在判成功。</td>
+</tr>
+<tr>
+<td>历史／已过期</td>
+<td>内容版本变化；保留历史证据，当前处理需要新快照。</td>
+</tr>
+<tr>
+<td>页面内容已过期</td>
+<td>存在新保存；刷新后核对，不自动覆盖。</td>
+</tr>
+</tbody>
+</table>
+<p>默认本机目录：</p>
+<pre><code class="language-text">work/business/batch_&lt;编号&gt;.json         批次状态与业务审计
+work/business/managed/&lt;运行编号&gt;/       管理副本、清单和预览
+work/business/outputs/&lt;运行编号&gt;/       候选集转换产物
+work/business/flows/&lt;批次编号&gt;/&lt;版本&gt;/   清洗、筛选、标注、审核的不可变导出
+work/business/final_quality/&lt;批次编号&gt;/ 最终质检登记与文件校验值
+work/runs/&lt;运行编号&gt;/request.json       实际输入、操作与参数快照
+work/runs/&lt;运行编号&gt;/state.json         节点状态、耗时和产物路径
+work/runs/&lt;运行编号&gt;/events.jsonl       程序事件日志
+work/runs/&lt;运行编号&gt;/steps/             各阶段结构化证据
+work/runs/&lt;运行编号&gt;/reports/           最终质检及输出质检报告
+work/runs/&lt;运行编号&gt;/final_checks/      最终质检重新执行基础检查的证据
+work/runs/&lt;运行编号&gt;/requests/          各次登记时冻结的请求
+work/runs/&lt;运行编号&gt;/registrations/     分阶段业务登记与校验值
+work/runs/&lt;运行编号&gt;/*.log              协调器与节点原始日志
+</code></pre>
+<p>即使报告未生成，也能读此前日志。批次 JSON 损坏时保留诊断，其他批次仍可访问，不手工覆盖损坏记录。业务审计在批次页下载，程序日志在运行页下载。</p>
+<h2 id="so-100-v0.3">9. 保留的 SO-100、故障演示与 V0.3 入口</h2>
+<p><strong>SO-100 业务导入：</strong> 在上传／导入选 <strong>SO-100 数据目录</strong>，填写 <code>data/so100_sweet_pick</code> 的完整路径。可导入、预览、质检、筛选和标注；可在审核后继续最终质检；候选转换交付仅支持固定 Panda／Lift HDF5 配置，SO-100 转换按钮会说明范围。</p>
+<p><strong>旧样本浏览：</strong> 展开 <strong>高级工具 → 样本数据概览／样本任务浏览</strong>，选择“原始公开样本”。固定数据为 5 条、3,562 帧、状态和动作各 6 维。点击 <strong>运行基础质检</strong>，V0.3 历史基线为 11 类规则 × 5 条任务、55 项；当次以新报告为准。状态／动作单位来源未说明，不自行推断。</p>
+<p><strong>三种故障演示：</strong></p>
+<ul>
+<li>选 <strong>异常演示副本</strong>，必要时点 <strong>准备演示副本</strong>再质检。任务 0 行 50 的动作 NaN 可在报告中 <strong>跳转定位</strong>，行 100 和 150 涉及时间故障。历史基线 7 条问题，不表示公开原件自带异常。</li>
+<li>选 <strong>视频缺失演示副本</strong>，准备后质检，查看任务 0 读取失败、依赖项未检查与其他任务继续。历史基线 1 条读取失败、2 条未检查说明。</li>
+<li>选择原始公开样本，将 <strong>运行情景</strong>设为 <strong>运行超时演示</strong>再质检。任务 0 视频节点人为等待超过短预算，原件未损坏；结束后恢复“正常运行”。</li>
+</ul>
+<p><strong>八节点 HDF5 故障体验：</strong> 在项目根目录执行下列命令，创建一个新的明确标注副本。目标已存在时工具会拒绝覆盖；改用新的文件名，不要修改原件。</p>
+<pre><code class="language-powershell">uv run --project tools/conversion python tools/conversion/make_demo.py --input '.\data\robomimic\test.hdf5' --output '.\work\hdf5-demo-01\isolated.hdf5' --scenario isolated
+</code></pre>
+<p>将该副本按第 3 节导入，故障副本说明填写“人为测试：任务 0 动作 NaN，任务 1 缺少状态字段”。数据清洗中查看任务 0 行 10 的 <code>actions[2]</code> 和任务 1 的 <code>obs/robot0_eef_pos</code>；任务 2 保持原样。基础检查记录不通过的任务，不能把它们保留进入转换。人工隔离任务 0、1，只保留任务 2 并完成标注审核后，可继续验证 57 帧候选的转换和交付。隔离的原因、原故障与后续结果均留在批次和运行证据中。</p>
+<p>旧检查参数默认普通节点 60 秒、视频节点 120 秒，可在侧栏调整；历史显示原始参数。业务运行使用各阶段自身保存的预算，不套用旧样本侧栏设置。</p>
+<p><strong>V0.3 固定转换：</strong> 在 <strong>公开样本转换</strong>点击 <strong>开始格式转换</strong>，成功后从 <strong>已验证输出</strong>点 <strong>浏览这份转换样本</strong>。固定转换 demo_0–2，预期 3 条／174 帧，可继续做 11 类规则 × 3 条任务的输出质检。完整业务交付使用八个业务节点。</p>
+<h2 id="section-7">10. 常用命令、常见问题与范围</h2>
+<p>以下命令在项目根目录 PowerShell 执行；尖括号表示需要替换的实际编号。<code>revision</code> 使用 <strong>show-batch</strong>返回的保存修订号，不是内容版本。</p>
+<pre><code class="language-powershell">uv run robodata batches
+uv run robodata show-batch &lt;batch_id&gt;
+uv run robodata show-flow &lt;batch_id&gt;
+uv run robodata import-batch --input '.\data\robomimic\test.hdf5' --source hdf5 --label 'Lift 本地批次'
+uv run robodata check-batch &lt;batch_id&gt; --revision &lt;revision&gt;
+uv run robodata final-check-batch &lt;batch_id&gt; --revision &lt;revision&gt;
+uv run robodata final-check-batch &lt;batch_id&gt; --revision &lt;revision&gt; --check-only
+uv run robodata convert-batch &lt;batch_id&gt; --revision &lt;revision&gt;
+uv run robodata deliver-batch &lt;batch_id&gt; --output-id &lt;output_id&gt; --revision &lt;revision&gt;
+uv run robodata reconcile-run &lt;run_id&gt;
+uv run robodata runs
+uv run robodata show-run &lt;run_id&gt; --events
+</code></pre>
+<p>筛选与人工审核按页面完成。CLI 和页面共用业务接口与运行锁。长操作默认等待，可加 <code>--no-wait</code>只返回运行编号。<code>final-check-batch</code> 默认通过最终质检后自动转换和打包，<code>--check-only</code> 只执行最终质检；<code>convert-batch</code> 先做最终质检再转换，完成转换即停止，不自动打包。最终质检规则不通过时 CLI 退出码为 2，程序执行失败为 1，通过为 0。</p>
+<table>
+<thead>
+<tr>
+<th>现象</th>
+<th>处理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CONNECTING／无法打开</td>
+<td>检查启动窗口和服务，已有网页标签不代表服务仍在。</td>
+</tr>
+<tr>
+<td>已有活动运行</td>
+<td>到运行记录查看，不要反复点击启动。</td>
+</tr>
+<tr>
+<td>转换按钮不可用</td>
+<td>先读中文原因，再核对候选集、审核与数据配置。</td>
+</tr>
+<tr>
+<td>看到英文日志</td>
+<td>主错误说明为中文；原异常类型、库消息和堆栈保留用于诊断。</td>
+</tr>
+<tr>
+<td>零异常但有未检查</td>
+<td>不能算全部通过，先处理上游失败。</td>
+</tr>
+<tr>
+<td>下载文件找不到</td>
+<td>查看浏览器下载记录与保存目录。</td>
+</tr>
+<tr>
+<td>8501 端口占用</td>
+<td>已有本项目服务可使用；需要另一端口时用下方命令。</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-powershell">powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\start.ps1 -Port 8502
+</code></pre>
+<p>随后打开 <code>http://127.0.0.1:8502/</code>；多个页面仍共享本机长运行限制。</p>
+<p>当前范围：本机单用户、两个固定配置、任务级筛选标注、指定 HDF5 转换与可校验交付。没有通用 HDF5／MCAP 导入、云存储、多人权限、自动修复、多相机硬件同步、模型训练或公开网站发布。</p>
+<p>进一步阅读：<a href="STATUS_v04.md">V0.4 状态</a>、<a href="data_dictionary.md">数据字典</a>、<a href="../tools/conversion/README.md">独立转换环境</a>、<a href="demo.md">项目体验路线</a>、<a href="VALIDATION_v02.md">V0.2 验收</a>、<a href="VALIDATION_v03.md">V0.3 验收</a>。本文不替代运行证据。</p>
+<footer>RoboData Workbench · <a href="SOP.md">Markdown 版本</a> · <a href="STATUS_v04.md">版本状态</a></footer></body></html>
+
