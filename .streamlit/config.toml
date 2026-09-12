@@ -1,0 +1,21 @@
+[theme]
+base = "light"
+primaryColor = "#0d9488"
+backgroundColor = "#f7f9fc"
+secondaryBackgroundColor = "#ffffff"
+textColor = "#0f172a"
+font = "sans serif"
+
+[client]
+# 隐藏右上角 Deploy 按钮与开发者工具条，演示时更干净。
+toolbarMode = "minimal"
+showSidebarNavigation = false
+
+[server]
+address = "127.0.0.1"
+# 关闭 headless：服务就绪后自动打开浏览器，桌面双击即可使用。
+headless = false
+runOnSave = false
+
+[browser]
+gatherUsageStats = false
