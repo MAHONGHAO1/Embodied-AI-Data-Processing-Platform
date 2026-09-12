@@ -131,15 +131,32 @@ def package(request: dict, run: Path) -> dict:
         raise ValueError('当前产物缺少审核后的最终质检报告，不能打包')
     _atomic_json(docs/'conversion_verification.json',_portable(proof))
     _atomic_json(docs/'quality_report.json',_portable(_read_json(quality)))
-    (docs/'SOURCE_LICENSE.txt').write_text(
-        'Source: robomimic/robomimic_datasets\nRevision: 74fa018461f479cd9fd15b924a16103012096203\n'
-        'License: MIT (upstream dataset card declaration).\n'
-        'https://huggingface.co/datasets/robomimic/robomimic_datasets/tree/74fa018461f479cd9fd15b924a16103012096203\n'
-        'Panda/Lift simulation test subset. Source robot numeric representation preserved.\n',encoding='utf-8')
+    source = batch.get('source', {})
+    source_kind = source.get('kind', 'hdf5')
+    source_repo = source.get('repo_id', 'robomimic/robomimic_datasets')
+    source_revision = source.get('revision', '74fa018461f479cd9fd15b924a16103012096203')
+    source_license = source.get('license', 'MIT (upstream dataset card declaration)')
+    source_robot = source.get('robot', 'Panda / Lift 仿真测试数据')
+    if source_kind == 'so100':
+        dataset_summary = ('SO-100 真机遥操作子集；状态与动作均为 6 维关节值，保留来源顺序与原始数值；'
+                           '相机为 640×480 AV1，remux 无重编码；时间按 30 Hz 派生。')
+        license_block = (
+            f'Source: {source_repo}\nRevision: {source_revision}\n'
+            f'License: {source_license}\n'
+            f'https://huggingface.co/datasets/{source_repo}/tree/{source_revision}\n'
+            f'{source_robot}. Source robot numeric representation preserved.\n')
+    else:
+        dataset_summary = 'Panda/Lift 仿真测试片段，H.264 有损，时间按 20 Hz 派生，全部属于 train。'
+        license_block = (
+            f'Source: {source_repo}\nRevision: {source_revision}\n'
+            f'License: {source_license}\n'
+            f'https://huggingface.co/datasets/{source_repo}/tree/{source_revision}\n'
+            f'{source_robot}. Source robot numeric representation preserved.\n')
+    (docs/'SOURCE_LICENSE.txt').write_text(license_block, encoding='utf-8')
     (payload/'README.md').write_text(
         '# RoboData 本地交付包\n\n数据位于 dataset/，人工标注、来源、清洗和验证证据位于 documents/。\n'
         'manifest.json 保存相对文件清单与 SHA-256，不包含其自身哈希。ZIP 整包哈希在包外记录。\n'
-        '本数据为 Panda/Lift 仿真测试片段，H.264 有损，时间按 20 Hz 派生，全部属于 train。\n'
+        f'本数据为 {dataset_summary}\n'
         '使用 LeRobot 0.4.4、torch 2.7.1+cpu、torchvision 0.22.1+cpu、av 15.1.0。\n'
         '在独立环境设置 HF_HUB_OFFLINE=1、HF_DATASETS_OFFLINE=1、PYTHONUTF8=1 后：\n\n'
         '```python\nfrom lerobot.datasets.lerobot_dataset import LeRobotDataset\n'

@@ -21,12 +21,31 @@ def _safe_path(root: Path, relative: str) -> Path:
     return path
 
 
+def _v30_camera(info: dict) -> str:
+    """Pick the only video feature v3.0 datasets are allowed to declare.
+
+    Both the Panda/Lift and SO-100 v3.0 outputs are written with exactly one
+    video feature key; reading the first entry keeps the loader agnostic to
+    which camera the source profile produced.
+    """
+    for key, feature in (info.get("features") or {}).items():
+        if isinstance(feature, dict) and feature.get("dtype") == "video":
+            return key
+    raise ValueError("v3.0 任务的元数据未声明 video 字段，无法定位相机分片")
+
+
 def _source(info: dict, manifest: dict) -> dict:
     if info.get('codebase_version') == 'v3.0':
         from .sources import HDF5_SOURCE
         source = manifest.get('source', {})
+        camera = _v30_camera(info)
+        robot = (manifest.get('source', {}).get('robot')
+                 or manifest.get('source', {}).get('robot_type')
+                 or source.get('robot')
+                 or source.get('robot_type')
+                 or HDF5_SOURCE.get('robot', 'Panda / Lift'))
         return {**HDF5_SOURCE, **{k: v for k, v in source.items() if k in HDF5_SOURCE},
-                'format_version': 'v3.0'}
+                'camera': camera, 'format_version': 'v3.0', 'robot': str(robot)}
     return {'repo_id': REPO_ID, 'revision': REVISION,
             'url': f'https://huggingface.co/datasets/{REPO_ID}/tree/{REVISION}',
             'license': 'Apache-2.0（来源声明）', 'camera': CAMERA,
@@ -74,9 +93,9 @@ def load_metadata(root: Path) -> dict:
     if not isinstance(manifest, dict):
         raise ValueError("源数据清单必须是对象")
     if info.get('codebase_version') == 'v3.0':
-        from .sources import V3_CAMERA
-        if V3_CAMERA not in info['features']:
-            raise ValueError('当前仅支持本项目的 Panda/Lift 主相机 v3.0 输出配置')
+        camera = _v30_camera(info)
+        if camera not in info['features']:
+            raise ValueError('v3.0 元数据未声明主相机 video 字段')
         files = sorted((root / 'meta/episodes').glob('chunk-*/file-*.parquet'))
         if not files:
             raise FileNotFoundError('缺少 v3.0 任务索引 meta/episodes')

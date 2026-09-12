@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "scope": "SO-100 真机数据集（LeRobot v2.0）八节点闭环验收",
+  "recorded_at_utc": "2026-09-12T19:27:00Z",
+  "app_version": "0.4.0",
+  "data_range_env": "ROBODATA_SO100_EPISODES=0-4 (default)",
+  "source": {
+    "repo_id": "jmrog/so100_sweet_pick",
+    "revision": "54141acb0bd6bcb868e34b4eb328f26481d333b2",
+    "codebase_version": "v2.0",
+    "robot_type": "so100",
+    "fps": 30,
+    "camera": "observation.images.laptop",
+    "image_shape": [
+      480,
+      640,
+      3
+    ],
+    "available_on_disk": {
+      "episodes": 50,
+      "frames": 32068
+    }
+  },
+  "result": {
+    "status": "passed",
+    "episode_count": 5,
+    "frame_count": 3562
+  },
+  "runs": {
+    "import": "20260912T190900_adc0f99f181f",
+    "quality": "20260912T190956_dfbe3e80d71d",
+    "conversion": "20260912T191222_bff2617f2727",
+    "delivery": "20260912T191331_c498cccacdb8"
+  },
+  "checks": {
+    "input_quality": {
+      "coverage_performed": 55,
+      "coverage_total": 55,
+      "data_issue_count": 0,
+      "episode_count": 5,
+      "issue_count": 0,
+      "load_failure_count": 0,
+      "not_checked_count": 0,
+      "passed_episode_count": 5,
+      "row_count": 3562
+    },
+    "conversion": {
+      "coverage_performed": 55,
+      "coverage_total": 55,
+      "data_issue_count": 0,
+      "episode_count": 5,
+      "issue_count": 0,
+      "load_failure_count": 0,
+      "not_checked_count": 0,
+      "passed_episode_count": 5,
+      "row_count": 3562
+    },
+    "official_verify": {
+      "format_version": "v3.0",
+      "source_repo": "jmrog/so100_sweet_pick",
+      "source_revision": "54141acb0bd6bcb868e34b4eb328f26481d333b2",
+      "camera": "observation.images.laptop",
+      "fps": 30,
+      "checked_numeric_frames": 3562,
+      "output_numeric_frames_checked": 3562,
+      "source_numeric_consistency_rechecked": false,
+      "validation_scope": "输出全量数值、官方离线抽查与 DataLoader 批量加载；数值与源分片哈希绑定",
+      "episode_count": 5,
+      "row_count": 3562,
+      "sample_count": 15,
+      "batch_size": 2,
+      "batch_image_shape": [
+        2,
+        3,
+        480,
+        640
+      ],
+      "decoded_samples": "decoded_samples.npz",
+      "offline": true,
+      "video_backend": "pyav",
+      "cuda_available": false,
+      "image_comparison": "来源为 AV1 有损编码，remux 不重编码；不对逐像素恒等作断言",
+      "file_count": 7,
+      "snapshot_id": "76b718491a589303b8a477d6db6fdaa57795a6a033161fc3582cfb2b86e1c3fc",
+      "warnings": [],
+      "manifest_sha256": "dec1062c6ff6b1c8507e785bed0cdb0f46c5fcb391610735926fd5cb9ed67743"
+    },
+    "output_metadata": {
+      "episodes": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "total_frames": 3562,
+      "fps": 30,
+      "camera": "observation.images.laptop"
+    },
+    "output_frames_compared": 15,
+    "delivery": {
+      "zip": "delivery.zip",
+      "row_count": 3562,
+      "episode_count": 5,
+      "size_bytes": 53034512
+    }
+  },
+  "conversion_path": "v2.0 → v2.1（补齐 per-episode 统计）→ v3.0（逐阶段转换）",
+  "environment_note": "源数据只读；官方 convert_dataset() 的原地替换已跳过。AV1 remux 不重编码，故按帧数与解码样本哈希核对，不作逐像素恒等断言。"
+}

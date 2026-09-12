@@ -19,7 +19,9 @@ BUSINESS_STAGES = {
     "import": ("copy", "preview", "inventory", "import_registration", "quality", "registration"),
     "quality": ("quality", "registration"),
     "conversion": ("source_verify", "final_quality", "final_registration", "file_validation", "hdf5_validation", "field_mapping", "format_write", "official_verify", "output_quality", "registration"),
+    "conversion_so100": ("source_verify", "final_quality", "final_registration", "file_validation", "metadata_upgrade", "field_mapping", "format_write", "official_verify", "output_quality", "registration"),
     "final_quality": ("source_verify", "final_quality", "final_registration", "file_validation", "hdf5_validation", "field_mapping", "format_write", "official_verify", "output_quality", "conversion_registration", "package", "verify", "archive_verify", "registration"),
+    "final_quality_so100": ("source_verify", "final_quality", "final_registration", "file_validation", "metadata_upgrade", "field_mapping", "format_write", "official_verify", "output_quality", "conversion_registration", "package", "verify", "archive_verify", "registration"),
     "delivery": ("source_verify", "package", "verify", "archive_verify", "registration"),
     "verify_delivery": ("verify", "archive_verify"),
 }
@@ -27,14 +29,21 @@ BUSINESS_LABELS = {"copy": "复制与校验输入", "preview": "原始数据预�
                    "import_registration": "登记导入批次", "final_quality": "最终数据与标注质检", "final_registration": "最终质检证据登记", "conversion_registration": "转换产物登记",
                    "quality": "批次基础质检", "source_verify": "管理副本完整性复核",
                    "file_validation": "文件校验", "hdf5_validation": "HDF5 结构与数值检查",
+                   "metadata_upgrade": "SO-100 元数据升级（v2.0 → v2.1）",
                    "field_mapping": "审核候选集字段映射", "format_write": "官方格式写入",
                    "official_verify": "官方加载与全量数值验证", "output_quality": "输出质检",
                    "package": "生成交付 ZIP", "verify": "独立解包与清单校验",
                    "archive_verify": "交付包官方离线加载", "registration": "结果回写与业务版本核验"}
 BUSINESS_TIMEOUTS = {"preview": 120, "quality": 300, "format_write": 240,
-                     "final_quality": 300,
+                     "metadata_upgrade": 240, "final_quality": 300,
                      "official_verify": 120, "output_quality": 120, "archive_verify": 120,
                      "package": 120, "verify": 120}
+from .conversion import CONVERSION_TOOL_ROOT  # noqa: E402  必须在 SO100_WORKER 之前
+SO100_WORKER = CONVERSION_TOOL_ROOT / "so100_worker.py"
+
+
+def _so100_worker_path() -> Path:
+    return SO100_WORKER
 
 
 def get_store(root=None) -> BatchStore:
@@ -51,8 +60,13 @@ FINAL_RULES = ("candidate_nonempty", "selection_confirmed", "basic_coverage", "b
 
 
 def business_stages(operation, request=None):
-    stages = BUSINESS_STAGES[operation]
-    if operation == "final_quality" and request and not request.get("auto_continue", True):
+    if operation == "conversion" and request and request.get("source_kind") == "so100":
+        stages = BUSINESS_STAGES["conversion_so100"]
+    elif operation == "final_quality" and request and request.get("source_kind") == "so100":
+        stages = BUSINESS_STAGES["final_quality_so100"]
+    else:
+        stages = BUSINESS_STAGES[operation]
+    if operation in {"conversion", "final_quality"} and request and not request.get("auto_continue", True):
         return stages[:3]
     return stages
 
@@ -107,11 +121,14 @@ def start_batch_quality(batch_id, expected_revision, *, runs_root=None, business
 def start_batch_conversion(batch_id, expected_revision, *, runs_root=None, business_root=None, **options):
     from .runtime import start_run
     request = _batch_request("conversion", batch_id, expected_revision, business_root, **options)
-    if request["source_kind"] != "hdf5":
-        raise WorkflowError("当前审核候选集转换只验证过 Panda／Lift HDF5 配置；SO-100 可浏览与质检")
+    if request["source_kind"] not in {"hdf5", "so100"}:
+        raise WorkflowError("当前审核候选集转换仅支持固定 HDF5 与 SO-100 配置")
     request["snapshot"] = get_store(business_root).conversion_spec(batch_id)
     request["batch_snapshot"] = get_store(business_root).get_batch(batch_id)
-    request["input_path"] = request["source"]["hdf5_path"]
+    if request["source_kind"] == "hdf5":
+        request["input_path"] = request["source"]["hdf5_path"]
+    else:
+        request["input_path"] = request["source"]["data_root"]
     return start_run(request, runs_root)
 
 
@@ -135,8 +152,8 @@ def start_final_quality(batch_id, expected_revision, *, auto_continue=True, runs
     if request["source_kind"] == "hdf5":
         request["input_path"] = request["source"]["hdf5_path"]
     else:
-        # SO-100 supports the same final QC, but no unverified conversion profile.
-        request["auto_continue"] = False
+        # SO-100 与 HDF5 共用同一条最终质检与转换链路。
+        request["input_path"] = request["source"]["data_root"]
     return start_run(request, runs_root)
 
 
@@ -361,8 +378,8 @@ def _read_step(directory, stage):
 
 def _validated_output(directory, request):
     from .dataset import dataset_fingerprint
+    from .runtime import _atomic_json, _read_json
     from .source import file_sha256
-    from .runtime import _read_json
     snapshot = request["snapshot"]
     final_evidence = _require_final_quality(directory, request)
     expected_episodes, expected_rows = len(snapshot["episodes"]), sum(e["row_count"] for e in snapshot["episodes"])
@@ -370,12 +387,23 @@ def _validated_output(directory, request):
     details = official["details"]
     if (details.get("format_version") != "v3.0" or details.get("checked_numeric_frames") != expected_rows
             or details.get("sample_count") != 3 * expected_episodes or details.get("batch_size") != 2
-            or details.get("offline") is not True or details.get("snapshot_id") != snapshot["snapshot_id"]
-            or details.get("source_numeric_consistency_rechecked") is not True):
+            or details.get("offline") is not True or details.get("snapshot_id") != snapshot["snapshot_id"]):
         raise WorkflowError("官方验证证据缺少全量数值、每任务首中末帧或离线批量加载")
-    source_sha = file_sha256(Path(request["source"]["hdf5_path"]))
-    if official.get("input_sha256") != source_sha or details.get("source_sha256") != source_sha:
-        raise WorkflowError("官方验证所对应的源文件哈希不一致")
+    source_kind = request["source"]["kind"]
+    if source_kind == "hdf5":
+        if details.get("source_numeric_consistency_rechecked") is not True:
+            raise WorkflowError("HDF5 官方验证缺少源数值一致性重核")
+        source_sha = file_sha256(Path(request["source"]["hdf5_path"]))
+        if official.get("input_sha256") != source_sha or details.get("source_sha256") != source_sha:
+            raise WorkflowError("官方验证所对应的源文件哈希不一致")
+    else:
+        if details.get("output_numeric_frames_checked") != expected_rows:
+            raise WorkflowError("SO-100 官方验证未核对全量数值帧数")
+        # 把来源版本与 manifest 哈希补进 details，便于后续交付包沿用。
+        details = {**details, "manifest_sha256": file_sha256(Path(request["output_path"]) / "source_manifest.json"),
+                   "source_repo": details.get("source_repo") or request["source"].get("repo_id"),
+                   "source_revision": details.get("source_revision") or request["source"].get("revision")}
+        _atomic_json(directory / "steps" / "official_verify.json", {**official, "details": details})
     quality = _read_step(directory, "output_quality")["details"]
     if quality.get("workbench_official_frames_matched") != expected_episodes * 3:
         raise WorkflowError("工作台与官方加载器的任务视频偏移交叉验证不完整")
@@ -398,7 +426,8 @@ def _validated_output(directory, request):
             "output_fingerprint": fingerprint,
             "final_quality_required": True, "final_quality_sha256": final_evidence["report_sha256"],
             "official_evidence_sha256": file_sha256(directory / "steps/official_verify.json"),
-            "report_sha256": file_sha256(report_path), "quality_report_path": str(report_path)}
+            "report_sha256": file_sha256(report_path), "quality_report_path": str(report_path),
+            "source_kind": source_kind}
 
 
 def _validate_archive(directory, request):
@@ -535,6 +564,9 @@ def coordinate_business(directory, state):
     request["managed_dir"] = str(root / "managed" / directory.name)
     if operation in {"conversion", "final_quality"} and request.get("auto_continue", True):
         request["output_path"] = str(root / "outputs" / directory.name / "staging")
+        # SO-100 需要 v2.1 中间副本目录，与 staging 平行放置
+        if request.get("source_kind") == "so100":
+            request["v21_work_path"] = str(root / "outputs" / directory.name / "v21_work")
         _atomic_json(directory / "conversion_spec.json", request["snapshot"])
     _atomic_json(directory / "request.json", request)
     state["batch_id"] = request.get("batch_id")
@@ -568,16 +600,21 @@ def coordinate_business(directory, state):
                 command = [sys.executable, "-m", "robodata.delivery", "--stage", stage, "--run-dir", str(directory)]
             elif stage == "archive_verify":
                 unpacked = _read_step(directory, "verify")["details"]["dataset_path"]
-                command = [str(CONVERSION_PYTHON), str(CONVERSION_WORKER), "--stage", stage,
+                worker = _so100_worker_path() if request.get("source_kind") == "so100" else CONVERSION_WORKER
+                command = [str(CONVERSION_PYTHON), str(worker), "--stage", stage,
                            "--output", unpacked, "--artifacts", str(directory)]
             else:
                 _assert_frozen_batch(request)
                 _require_final_quality(directory, request)
-                command = [str(CONVERSION_PYTHON), str(CONVERSION_WORKER), "--stage", stage,
+                worker = _so100_worker_path() if request.get("source_kind") == "so100" else CONVERSION_WORKER
+                command = [str(CONVERSION_PYTHON), str(worker), "--stage", stage,
                            "--input", request["input_path"], "--output", request["output_path"],
                            "--artifacts", str(directory), "--spec", str(directory / "conversion_spec.json")]
                 if request["source"].get("test_label"):
                     command.extend(["--test-mode", request["source"]["test_label"]])
+                if stage in {"metadata_upgrade", "format_write"}:
+                    # SO-100 worker 两个阶段都需要 v2.1 中间副本目录
+                    command.extend(["--work", request["v21_work_path"]])
             success = run_command_step(directory, state, stage, command,
                          timeout=request["timeouts"].get(stage, request["timeouts"]["default"]), env_overrides=environment)
             if stage in registration_stages:

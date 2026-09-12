@@ -76,7 +76,7 @@ uv run robodata fetch-hdf5
 
 HDF5 样本约 46 MB；独立环境还需下载 CPU PyTorch 等依赖。首次安装完成后，日常双击 **启动工作台.cmd** 即可。已有服务正常运行时直接打开页面。
 
-SO-100 浏览与故障演示另需执行 `uv run robodata fetch-sample`，下载约 53 MB。下载器固定版本与文件清单，支持复用、重试和完整性检查；代理只通过下载参数或当前进程变量配置。
+SO-100 浏览与故障演示另需执行 `uv run robodata fetch-sample`，下载默认子集（5 条 / 3,562 帧）约 53 MB；执行 `获取全量数据.cmd` 可补齐全量 50 条 / 32,068 帧（约 535 MB）。下载器固定版本与文件清单，支持复用、重试和完整性检查；代理只通过下载参数或当前进程变量配置。
 
 ## 八节点操作入口
 
@@ -122,12 +122,17 @@ SO-100 浏览与故障演示另需执行 `uv run robodata fetch-sample`，下载
 
 | 来源 | 固定范围 | 字段与处理范围 |
 | --- | --- | --- |
-| [jmrog/so100_sweet_pick](https://huggingface.co/datasets/jmrog/so100_sweet_pick) | revision `54141acb0bd6bcb868e34b4eb328f26481d333b2`；Episode 0–4，3,562 帧。 | LeRobot v2.0 浏览子集，状态／动作各 6 维，laptop 单相机、30 Hz；支持导入、预览、质检和标注。 |
+| [jmrog/so100_sweet_pick](https://huggingface.co/datasets/jmrog/so100_sweet_pick) | revision `54141acb0bd6bcb868e34b4eb328f26481d333b2`；硬盘已备 Episode 0–49（32,068 帧），默认启用 Episode 0–4（3,562 帧）。 | LeRobot v2.0 真机数据，状态／动作各 6 维，laptop 单相机 640×480、30 Hz、AV1 编码；支持导入、预览、质检、标注、转换与交付。 |
 | [robomimic/robomimic_datasets](https://huggingface.co/datasets/robomimic/robomimic_datasets) | revision `74fa018461f479cd9fd15b924a16103012096203`；`test/test.hdf5` 共 demo_0–9（531 帧），默认启用 demo_0–2（174 帧）。 | Panda / Lift 仿真测试片段，状态 9 维、动作 7 维、agentview 84×84 RGB；业务候选子集可转换和打包。 |
 
-HDF5 本地上传仍受固定配置约束，不是通用 HDF5 导入器。测试副本必须显式标记；标记不会让结构或质量检查自动通过。SO-100 当前没有业务转换交付适配器。
+HDF5 本地上传仍受固定配置约束，不是通用 HDF5 导入器。测试副本必须显式标记；标记不会让结构或质量检查自动通过。
 
-状态与动作保留来源语义，不补充未经核对的单位或控制含义。HDF5 时间由 `frame_index/20` 派生；H.264 视频有损。来源全局统计 9,666 与文件实际 531 帧不一致，作为警告保留，输出按候选任务重新计数。详见 [数据字典](docs/data_dictionary.md) 和 [来源与许可](docs/DATA_NOTICE.md)。
+**两种来源都能跑完整条链路**（导入 → 质检 → 筛选 → 标注 → 最终质检 → 转换 → 交付 → 独立验证），转换链路上各有各的适配器：
+
+- **HDF5 → v3.0**：由 `tools/conversion/worker.py` 直接读取 HDF5 的 demo 结构，映射字段后用官方 `LeRobotDataset.create()` 写入。
+- **SO-100 v2.0 → v3.0**：源是 LeRobot v2.0，缺 v2.1 要求的 `meta/episodes_stats.jsonl`，因此先补齐 per-episode 统计（数值读 parquet，视频抽帧后走官方 `sample_images`），再逐阶段调用官方转换函数。**官方 `convert_dataset()` 末尾会 `rmtree` 并原地替换源数据集，平台只调用其阶段函数，源数据始终只读。**
+
+状态与动作保留来源语义，不补充未经核对的单位或控制含义。HDF5 时间由 `frame_index/20` 派生；H.264 视频有损。SO-100 视频为 AV1 有损，v2.1→v3.0 是 remux 不重编码，因此不对逐像素恒等作断言，而是核对帧数与解码样本哈希。来源全局统计 9,666 与文件实际 531 帧不一致，作为警告保留，输出按候选任务重新计数。详见 [数据字典](docs/data_dictionary.md) 和 [来源与许可](docs/DATA_NOTICE.md)。
 
 ### 调整 HDF5 数据范围
 
@@ -156,6 +161,27 @@ $env:ROBODATA_HDF5_EPISODES = "0-2,5,7-9" # 混合区间与单点
 10 条 / 531 帧走完导入 → 质检 → 筛选确认 → 标注审核 → 格式转换 → 打包交付 → 独立验证，
 输入质检 100/100 项、输出质检 110/110 项、0 数据问题，官方库离线加载并对 531 帧
 数值与 30 个采样位置像素比对一致，交付包 531 帧 / 10 条整包路径可移植、独立加载通过。
+
+### 调整 SO-100 数据范围
+
+SO-100 全量 **50 条 / 32,068 帧（约 535 MB）** 已在本地备齐（可执行 `获取全量数据.cmd`
+或 `uv run robodata fetch-sample --full`），默认只启用 Episode 0–4（3,562 帧，约 53 MB），
+保证日常演示秒开。通过 `ROBODATA_SO100_EPISODES` 可调整：
+
+```powershell
+$env:ROBODATA_SO100_EPISODES = "0-49"   # 全量 50 条 / 32,068 帧
+$env:ROBODATA_SO100_EPISODES = "0-9"    # 前 10 条
+.\启动工作台.cmd
+```
+
+**SO-100 已通过端到端验收**（2026-09-13，证据见 `work/so100-acceptance.json`，
+由 `scripts/verify_so100.py` 生成）：默认 5 条 / 3,562 帧走完导入 → 质检 → 筛选确认
+→ 标注审核 → 最终质检 → 格式转换 → 打包交付 → 独立验证，输入质检 55/55 项、
+输出质检 55/55 项、0 数据问题，官方库离线加载并对 3,562 帧数值与 15 个采样位置
+像素比对一致，交付包 53 MB 路径可移植、解包后独立加载通过。
+
+转换链路额外验证两点：v2.0 → v2.1 阶段为 5 条任务补齐了 per-episode 统计；
+源目录在转换前后 SHA-256 不变（平台不原地替换）。
 
 若运行环境的临时文件批量清理被安全策略拦截（表现为转换节点报"工作进程意外退出，
 退出码 1"，日志出现 `SAFE_DELETE_BULK_CONFIRM_REQUIRED`），追加设置
