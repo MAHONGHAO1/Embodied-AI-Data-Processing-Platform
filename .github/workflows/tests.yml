@@ -1,0 +1,27 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  pytest:
+    # 与开发环境保持一致：Windows + Python 3.12。
+    # 部分用例验证 Windows Job Object 的父进程退出保证，仅在 Windows 上执行。
+    # 转换相关用例需要 tools/conversion 独立环境与已下载的固定样本；
+    # 缺失时用例自身会 skip，因此本工作流只同步主环境。
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 设置 uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: 同步主环境
+        run: uv sync --frozen
+
+      - name: 运行测试
+        run: uv run pytest -q
