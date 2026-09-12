@@ -1,12 +1,12 @@
 """固定来源配置与可覆盖的数据范围。
 
-HDF5 数据范围支持通过环境变量扩容，无需改动代码：
+两处数据范围都支持通过环境变量扩容，无需改动代码：
 
-    ROBODATA_HDF5_EPISODES=0-9        # 使用全部 10 条 demo（531 帧）
-    ROBODATA_HDF5_EPISODES=0-4,6,8    # 混合区间与单点
+    ROBODATA_HDF5_EPISODES=0-9        # robomimic HDF5：全部 10 条 demo（531 帧）
+    ROBODATA_SO100_EPISODES=0-49      # SO-100：全部 50 条（32068 帧）
 
-默认保持 V0.4 验收所用的 3 条（demo_0-2 / 174 帧），避免既有验收数字失效。
-范围变化会改变输入指纹，已导入批次需重新导入，这是预期行为。
+两者默认都保持 V0.4 验收所用的最小范围，避免既有验收数字与访客的下载量
+被动放大。范围变化会改变输入指纹，已导入批次需重新导入，这是预期行为。
 """
 import os
 from pathlib import Path
@@ -14,7 +14,6 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 REPO_ID = "jmrog/so100_sweet_pick"
 REVISION = "54141acb0bd6bcb868e34b4eb328f26481d333b2"
-EPISODES = (0, 1, 2, 3, 4)
 CAMERA = "observation.images.laptop"
 APP_VERSION = "0.4.0"
 RULE_VERSION = "0.3.0"
@@ -60,3 +59,8 @@ def parse_episode_range(raw, default):
 
 
 HDF5_EPISODES = parse_episode_range(os.environ.get("ROBODATA_HDF5_EPISODES"), (0, 1, 2))
+
+# SO-100 任务范围。默认 5 条（浏览子集，约 53 MB）；全集 50 条 / 32068 帧
+# 通过 ROBODATA_SO100_EPISODES=0-49 启用（单相机约 650 MB）。
+SO100_EPISODES = parse_episode_range(os.environ.get("ROBODATA_SO100_EPISODES"), (0, 1, 2, 3, 4))
+EPISODES = tuple(SO100_EPISODES)
