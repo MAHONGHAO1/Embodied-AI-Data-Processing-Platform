@@ -1,0 +1,4 @@
+repository=https://github.com/huggingface/lerobot.git
+ref=1396b9fab7aecddd10006c33c47a487ffdcb54b4
+version=v0.5.1
+source_sha256=fe0b3079a517f0c60bdf325afc7832d81ae384bd1d022f4e802e7da8f73606dd

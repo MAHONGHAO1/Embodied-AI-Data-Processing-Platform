@@ -1,0 +1,160 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "quic-op"
+dynamic = ["version"]
+description = "quic_op 具身智能多模态数据处理算子库（云边端同构）"
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [
+  { name = "qcy" }
+]
+# 基础依赖：CPU 轻量算子（clean / core / export 编排等）即可运行
+dependencies = [
+  "numpy>=1.24.0",
+  "opencv-python>=4.8.0",
+]
+keywords = [
+  "embodied-ai",
+  "quic-op",
+  "hand-pose",
+  "yolo",
+  "onnx",
+  "perception",
+]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Operating System :: OS Independent",
+]
+
+[project.optional-dependencies]
+# YOLOv8m-pose 人手 Pose：默认 CPU 推理（onnxruntime）
+hand-pose = [
+  "ultralytics>=8.0.0",
+  "onnxruntime>=1.16.0",
+  "onnx>=1.14.0",
+  "h5py>=3.8.0",
+]
+# YOLOv8m-pose 人手 Pose：GPU 推理环境（onnxruntime-gpu）
+# 代码仍默认走 CPU；仅当 CUDA 可用且本 extras 完整时才自动用 GPU
+hand-pose-gpu = [
+  "ultralytics>=8.0.0",
+  "onnxruntime-gpu>=1.16.0",
+  "onnx>=1.14.0",
+  "h5py>=3.8.0",
+]
+# 物理感知库当前可用 extras（默认 CPU，与 hand-pose 对齐）
+perception = [
+  "ultralytics>=8.0.0",
+  "onnxruntime>=1.16.0",
+  "onnx>=1.14.0",
+  "h5py>=3.8.0",
+]
+# 重 GPU 感知合集（含人手 Pose GPU 运行时）
+gpu = [
+  "ultralytics>=8.0.0",
+  "onnxruntime-gpu>=1.16.0",
+  "onnx>=1.14.0",
+  "h5py>=3.8.0",
+]
+dev = [
+  "build>=1.2.0",
+  "pytest>=7.0.0",
+]
+
+[project.entry-points."quic_op.operators"]
+hand-pose = "quic_op.perception.detecthands:HandDetector"
+
+[tool.setuptools.dynamic]
+# SDK 发行版本由根包 __version__ 提供，不在本文件硬编码数字
+version = { attr = "quic_op.__version__" }
+
+# YOLOv8m-pose 人手 Pose 检测算子元数据
+[tool.quic_op.hand-pose]
+name = "quic-op-hand-pose"
+dynamic = ["version"]
+description = "YOLOv8m-pose 人手 Pose 检测算子（ONNX，默认 CPU）"
+readme = "perception/README_YOLO.md"
+requires-python = ">=3.9"
+default-device = "cpu"
+authors = [
+  { name = "lyl" }
+]
+
+# 同构于 [tool.setuptools.dynamic]：算子版本 attr 传参
+[tool.quic_op.dynamic.hand-pose]
+version = { attr = "quic_op.perception.detecthands.__version__" }
+
+[project.entry-points."quic_op.operators"]
+quality-lowlight = "quic_op.clean.quality_inspector:QualityInspector"
+quality-blur = "quic_op.clean.quality_inspector:QualityInspector"
+quality-frame-drop = "quic_op.clean.quality_inspector:QualityInspector"
+
+[tool.setuptools.dynamic]
+# 发行版本由 clean 包内 __version__ 提供，不在本文件硬编码数字
+version = { attr = "quic_op.clean.__version__" }
+
+# clean 质量检测算子元数据（版本 attr 引用包内变量）
+[tool.quic_op.quality-lowlight]
+name = "quic-op-quality-lowlight"
+dynamic = ["version"]
+description = "clean 低光质量检测算子"
+readme = "clean/README_CLEAN.md"
+requires-python = ">=3.9"
+
+[tool.quic_op.quality-blur]
+name = "quic-op-quality-blur"
+dynamic = ["version"]
+description = "clean 模糊质量检测算子"
+readme = "clean/README_CLEAN.md"
+requires-python = ">=3.9"
+
+[tool.quic_op.quality-frame-drop]
+name = "quic-op-quality-frame-drop"
+dynamic = ["version"]
+description = "clean 掉帧质量检测算子"
+readme = "clean/README_CLEAN.md"
+requires-python = ">=3.9"
+
+[tool.quic_op.dynamic.quality-lowlight]
+version = { attr = "quic_op.clean.quality_inspector.__version__" }
+
+[tool.quic_op.dynamic.quality-blur]
+version = { attr = "quic_op.clean.quality_inspector.__version__" }
+
+[tool.quic_op.dynamic.quality-frame-drop]
+version = { attr = "quic_op.clean.quality_inspector.__version__" }
+
+[tool.setuptools]
+include-package-data = true
+packages = [
+  "quic_op",
+  "quic_op.core",
+  "quic_op.clean",
+  "quic_op.perception",
+  "quic_op.perception.models",
+  "quic_op.sync",
+  "quic_op.sync.models",
+  "quic_op.label",
+  "quic_op.compliance",
+  "quic_op.export",
+]
+
+[tool.setuptools.package-dir]
+quic_op = "."
+"quic_op.core" = "core"
+"quic_op.clean" = "clean"
+"quic_op.perception" = "perception"
+"quic_op.perception.models" = "perception/models"
+"quic_op.sync" = "sync"
+"quic_op.sync.models" = "sync/models"
+"quic_op.label" = "label"
+"quic_op.compliance" = "compliance"
+"quic_op.export" = "export"

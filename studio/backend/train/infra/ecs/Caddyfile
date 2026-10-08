@@ -1,0 +1,38 @@
+# Shared-edge snippet for /opt/caddy/Caddyfile (host network).
+# QuicTrain Compose no longer runs its own gateway; paste/merge this site block
+# alongside data.quicrobot.xyz. Loopback backends:
+#   API 127.0.0.1:8001  Web 127.0.0.1:3000  MLflow 127.0.0.1:5001
+#
+# App-level multi-user login owns /login (QUICTRAIN_AUTH_MODE=local).
+# Do NOT put Basic Auth on the training hostname (double-login wall).
+# Optional break-glass Basic Auth may still protect mlflow.* only.
+
+{$PUBLIC_HOSTNAME:train.quicrobot.xyz} {
+    encode zstd gzip
+
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        -Server
+    }
+
+    handle /health {
+        reverse_proxy 127.0.0.1:8001
+    }
+
+    handle /api/* {
+        reverse_proxy 127.0.0.1:8001
+    }
+
+    handle_path /mlflow/* {
+        reverse_proxy 127.0.0.1:5001 {
+            header_up X-Forwarded-Prefix /mlflow
+        }
+    }
+
+    handle {
+        reverse_proxy 127.0.0.1:3000
+    }
+}

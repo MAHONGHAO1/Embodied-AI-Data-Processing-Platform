@@ -1,0 +1,13 @@
+{
+  "registration": {
+    "mode": "admin_only",
+    "default_role": "annotator",
+    "self_register_role": "annotator",
+    "min_password_length": 10,
+    "creator_roles": ["admin"],
+    "creatable_roles": {
+      "admin": ["admin", "annotator", "auditor"]
+    },
+    "allowed_email_domains": []
+  }
+}

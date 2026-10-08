@@ -1,0 +1,51 @@
+# quic_op SDK Requirements
+
+依赖的权威声明在根目录 [`pyproject.toml`](./pyproject.toml)。
+本文件仅作可读索引；安装请优先使用 extras：
+
+```bash
+pip install -e .                 # 基础 CPU 算子
+pip install -e ".[hand-pose]"    # 人手 Pose 默认 CPU（onnxruntime）
+pip install -e ".[hand-pose-gpu]" # 人手 Pose GPU 运行时（onnxruntime-gpu；代码按条件启用）
+pip install -e ".[perception]"   # 感知合集（默认 CPU）
+pip install -e ".[gpu]"
+pip install -e ".[dev]"
+```
+
+## 基础依赖（`[project].dependencies`）
+
+```
+numpy>=1.24.0
+opencv-python>=4.8.0
+```
+
+## 人手 Pose / 感知 extras（懒加载，仅推理节点需要）
+
+```
+ultralytics>=8.0.0
+onnxruntime>=1.16.0          # hand-pose / perception（默认 CPU）
+# onnxruntime-gpu>=1.16.0    # hand-pose-gpu / gpu（与上者互斥）
+onnx>=1.14.0                 # ultralytics 加载 ONNX 权重所需
+h5py>=3.8.0
+```
+
+设备策略：默认 `device=cpu`；仅当 CUDA 可用且 onnxruntime 提供 `CUDAExecutionProvider` 时自动使用 GPU。
+可用环境变量 `QUICOP_HAND_POSE_DEVICE=cpu|cuda` 覆盖。
+
+## 版本管理
+
+- 发行版本：`quic_op.__version__`（由 pyproject `dynamic.version` 引用）
+- 各领域包各自维护：`quic_op.core.__version__`、`quic_op.perception.__version__` 等
+- **人手 Pose 算子**：`quic_op.perception.detecthands.__version__`（当前 `0.1.0`）
+  - 同构于 SDK 的 `[project]` / `[tool.setuptools.dynamic]`：
+    - `[tool.quic_op.hand-pose]` → `dynamic = ["version"]`
+    - `[tool.quic_op.dynamic.hand-pose]` → `version = { attr = "quic_op.perception.detecthands.__version__" }`
+- **禁止**在 `pyproject.toml` 中硬编码 `version = "0.1.0"` 数字字面量
+
+## 其他模型占位（尚未纳入 extras）
+
+```
+# geocalib
+# moge
+# hawor
+```

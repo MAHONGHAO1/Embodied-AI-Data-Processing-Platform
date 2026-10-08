@@ -1,0 +1,12 @@
+id: G-001
+model: act
+resource: 1x RTX_4090
+steps: 100
+assertions:
+  - no_oom
+  - no_nan
+  - loss_metric_present
+  - checkpoint_loadable
+  - artifact_manifest_valid
+  - success_marker_present
+  - cancellation_variant_passes

@@ -1,0 +1,27 @@
+{
+  "qrdf_version": "0.2.0",
+  "episode_id": "fixture-generic-partitioned-episode",
+  "data_file": "data.mcap",
+  "recording_status": "complete",
+  "integrity_status": "not_checked",
+  "capture": {
+    "mode": "iphone_umi",
+    "episode_type": "human_demonstration",
+    "app": "quic_ego"
+  },
+  "source_group": {
+    "name": "Fixture Partitioned Group",
+    "key": "sg1_102843c1046b4fc49f716a53e2726f304c21437c74cf067cc79436d50f6ada77"
+  },
+  "operator": {
+    "type": "human_ego",
+    "id": "0099"
+  },
+  "devices": [
+    {
+      "device_id": "primary",
+      "type": "iphone",
+      "serial_number": "FIXTURE-SN-02"
+    }
+  ]
+}

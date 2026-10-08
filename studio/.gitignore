@@ -1,0 +1,54 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+backend/.env
+backend/.venv
+deploy/secrets/*
+!deploy/secrets/.gitignore
+deploy/.env
+deploy/runtime/*
+!deploy/runtime/.gitignore
+
+# Runtime data & uploads
+backend/runtime/
+backend/uploads/
+backend/logs/
+backend/.pids/
+backend/build/
+*.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+.qoder/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 测试与缓存
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.log
+celerybeat-schedule*
+
+# QRDF SDK：部署时从 Git 拉取，不提交源码
+backend/vendor/qrdf/*
+!backend/vendor/qrdf/.gitkeep
+
+# Local linked worktrees
+.worktrees/
+
+.superpowers/
+
+# Local JavaScript dependencies and tool caches
+node_modules/
+
+# Local scratch exports and analysis artifacts
+scratch_*.json

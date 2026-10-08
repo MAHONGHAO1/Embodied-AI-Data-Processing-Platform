@@ -1,0 +1,28 @@
+{
+  "event_id": "evt_lerobot_pusht_7628202a",
+  "event_type": "dataset_version.published",
+  "occurred_at": "2026-07-15T00:00:00Z",
+  "dataset_version": {
+    "external_dataset_id": "lerobot/pusht",
+    "external_version_id": "7628202a2180972f291ba1bc6723834921e72c19",
+    "display_name": "LeRobot PushT Sample",
+    "status": "READY",
+    "format": "lerobot",
+    "format_version": "3.0",
+    "uri": "hf://datasets/lerobot/pusht@7628202a2180972f291ba1bc6723834921e72c19",
+    "repo_id": "lerobot/pusht",
+    "revision": "7628202a2180972f291ba1bc6723834921e72c19",
+    "checksum": "git:7628202a2180972f291ba1bc6723834921e72c19",
+    "episodes": 206,
+    "frames": 25650,
+    "duration_hours": 0.7125,
+    "fps": 10,
+    "robot_type": "pusht",
+    "camera_keys": [
+      "observation.image"
+    ],
+    "action_dim": 2,
+    "state_dim": 2,
+    "language_tasks": false
+  }
+}

@@ -1,0 +1,15 @@
+ARG QUICTRAIN_BASE_IMAGE=quic-robot-registry-vpc.cn-beijing.cr.aliyuncs.com/quicrobot/quictrain-lerobot-runtime@sha256:7581c74724c61ae056f14d6b84f7277df97b6955a637e603e518457ac3e2dc57
+FROM ${QUICTRAIN_BASE_IMAGE}
+
+ARG QUICTRAIN_RUNTIME_VERSION=0.3.0
+LABEL ai.quictrain.runtime-version="${QUICTRAIN_RUNTIME_VERSION}"
+
+COPY src/quictrain_runner /opt/quictrain/src/quictrain_runner
+COPY runtimes/lerobot/quictrain_runtime_lerobot /opt/quictrain/runtimes/lerobot/quictrain_runtime_lerobot
+
+ENV QUICTRAIN_WORK_ROOT=/tmp/quictrain
+
+RUN python -m compileall -q \
+      /opt/quictrain/src/quictrain_runner \
+      /opt/quictrain/runtimes/lerobot/quictrain_runtime_lerobot \
+    && python -c "from quictrain_runner import JobSpec; from quictrain_runtime_lerobot import ActRuntime, Pi05Runtime; assert JobSpec.model_fields['output_uri'].annotation == (str | None); assert ActRuntime.policy_type == 'act'; assert Pi05Runtime.policy_type == 'pi05'"

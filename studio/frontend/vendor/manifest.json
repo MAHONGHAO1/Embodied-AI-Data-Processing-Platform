@@ -1,0 +1,92 @@
+{
+  "format": 1,
+  "packages": [
+    {
+      "name": "vue",
+      "version": "3.5.13",
+      "assets": [
+        {
+          "source": "dist/vue.global.prod.js",
+          "target": "vue.global.prod.js",
+          "sha256": "c459ba7cc8db65c982589fa5d64c7ff478877e8e5b0fd75683207cec6a4e89e8"
+        }
+      ]
+    },
+    {
+      "name": "vue-router",
+      "version": "4.5.0",
+      "assets": [
+        {
+          "source": "dist/vue-router.global.prod.js",
+          "target": "vue-router.global.prod.js",
+          "sha256": "a2755cf2acf83df38132e204cd21ade913a216658014a631716d795e9ea49c83"
+        }
+      ]
+    },
+    {
+      "name": "element-plus",
+      "version": "2.8.8",
+      "assets": [
+        {
+          "source": "dist/index.full.min.js",
+          "target": "index.full.min.js",
+          "sha256": "9f1e40409d9efba7464b72e77bb038aff7bcb9e924bd61e61159b23877e36bf1"
+        },
+        {
+          "source": "dist/index.css",
+          "target": "index.css",
+          "sha256": "f23e78f5016cee5505829e416cfecfd8954bd5cc484d4ef3dde40b240dd3d009"
+        }
+      ]
+    },
+    {
+      "name": "xgplayer",
+      "version": "3.0.20",
+      "assets": [
+        {
+          "source": "dist/index.min.js",
+          "target": "index.min.js",
+          "sha256": "9bd0cc4634f7c86b16478b7fa8f1ec34f991e1d21aef924a20c411b5fe4e1611"
+        },
+        {
+          "source": "dist/index.min.css",
+          "target": "index.min.css",
+          "sha256": "387f2d74b3939145df182c05d8fafe6cb25baca24f027e3b1ee62982ac90f425"
+        }
+      ]
+    },
+    {
+      "name": "echarts",
+      "version": "5.5.1",
+      "assets": [
+        {
+          "source": "dist/echarts.min.js",
+          "target": "echarts.min.js",
+          "sha256": "e84270bd0cd5bdf60fefc26d00c2a391cb2e81f4d26a7a9ee16185a54773a3cf"
+        }
+      ]
+    },
+    {
+      "name": "socket.io-client",
+      "version": "4.8.1",
+      "assets": [
+        {
+          "source": "dist/socket.io.min.js",
+          "target": "socket.io.min.js",
+          "sha256": "b0e735814f8dcfecd6cdb8a7ce95a297a7e1e5f2727a29e6f5901801d52fa0c5"
+        }
+      ]
+    },
+    {
+      "name": "qrcode-generator",
+      "version": "1.5.0",
+      "assets": [
+        {
+          "source": "qrcode.js",
+          "target": "qrcode.js",
+          "sha256": "18ae399f81182bc9de916e9c77b195df20cc58d6f2d55a62b085a299f1bf1780"
+        }
+      ]
+    }
+  ]
+}

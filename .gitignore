@@ -1,12 +1,18 @@
-.venv/
+# === model weights (GitHub 100MB hard limit) ===
+data-engine/perception/weights/YOLO/detector.onnx
+
+# === Python ===
 __pycache__/
+*.py[cod]
+.venv/
+venv/
 .pytest_cache/
-*.pyc
-data/
-reports/
+.mypy_cache/
+
+# === env / secrets ===
 .env
-.env.*
-*.local.*
-work/
-dist/
-*.log
+*.local
+
+# === OS ===
+.DS_Store
+Thumbs.db

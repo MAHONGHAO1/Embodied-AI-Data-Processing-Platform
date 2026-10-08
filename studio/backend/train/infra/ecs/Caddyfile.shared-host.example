@@ -1,0 +1,104 @@
+# Example host Caddyfile for co-located QuicData + QuicTrain on one ECS.
+# Install as /opt/caddy/Caddyfile (docker compose uses network_mode: host).
+# Data platform keeps :8000 / host PG :5432 / Redis :6379.
+# QuicTrain publishes only loopback :8001 / :3000 / :5001.
+#
+# Public names (A → ECS public IP):
+#   data.quicrobot.xyz  → QuicData (:8000)
+#   train.quicrobot.xyz → QuicTrain (:8001/:3000/:5001)  ← team primary
+#   mlflow.quicrobot.xyz → optional dedicated MLflow
+# Temporary alias 39-105-51-76.sslip.io may remain during transition.
+#
+# Training hostname uses app-level /login (no edge Basic Auth).
+# Optional MLflow hostname may keep break-glass Basic Auth:
+#   HASH=$(docker run --rm caddy:2.10.2-alpine caddy hash-password --plaintext '...')
+#   printf '%s' "$HASH" | base64 -w0; echo
+
+{
+	admin off
+}
+
+data.quicrobot.xyz {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	reverse_proxy 127.0.0.1:8000
+}
+
+# Training control plane — app multi-user login at /login
+train.quicrobot.xyz {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	handle /health {
+		reverse_proxy 127.0.0.1:8001
+	}
+
+	handle /api/* {
+		reverse_proxy 127.0.0.1:8001
+	}
+
+	handle_path /mlflow/* {
+		reverse_proxy 127.0.0.1:5001 {
+			header_up X-Forwarded-Prefix /mlflow
+		}
+	}
+
+	handle {
+		reverse_proxy 127.0.0.1:3000
+	}
+}
+
+# Temporary bootstrap hostname (optional during cutover)
+39-105-51-76.sslip.io {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	handle /health {
+		reverse_proxy 127.0.0.1:8001
+	}
+
+	handle /api/* {
+		reverse_proxy 127.0.0.1:8001
+	}
+
+	handle_path /mlflow/* {
+		reverse_proxy 127.0.0.1:5001 {
+			header_up X-Forwarded-Prefix /mlflow
+		}
+	}
+
+	handle {
+		reverse_proxy 127.0.0.1:3000
+	}
+}
+
+# Optional dedicated MLflow hostname (break-glass Basic Auth OK)
+mlflow.quicrobot.xyz {
+	encode zstd gzip
+	basic_auth bcrypt QuicTrain-SharedEdge {
+		quictrain-admin TRAIN_BASIC_AUTH_HASH
+	}
+	reverse_proxy 127.0.0.1:5001
+}

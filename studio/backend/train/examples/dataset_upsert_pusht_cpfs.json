@@ -1,0 +1,28 @@
+{
+  "event_id": "evt_pusht_cpfs_v1_20260717",
+  "event_type": "dataset_version.published",
+  "occurred_at": "2026-07-17T09:40:00+08:00",
+  "dataset_version": {
+    "external_dataset_id": "quictrain/pusht",
+    "external_version_id": "cpfs-v1-20260717",
+    "display_name": "PushT CPFS 验收数据",
+    "status": "READY",
+    "format": "lerobot",
+    "format_version": "3.0",
+    "uri": "bmcpfs://bmcpfs-03001wmodv0g6pynhun3u.cn-beijing/quictrain/datasets/lerobot/quictrain-pusht-smoke-v1",
+    "repo_id": "quicrobot/quictrain-pusht-smoke-v1",
+    "revision": "cpfs-v1-20260717",
+    "checksum": "generated:quictrain-pusht-smoke-v1",
+    "episodes": 4,
+    "frames": 128,
+    "duration_hours": 0.004,
+    "fps": 10,
+    "robot_type": "pusht",
+    "camera_keys": [
+      "observation.image"
+    ],
+    "action_dim": 2,
+    "state_dim": 2,
+    "language_tasks": false
+  }
+}

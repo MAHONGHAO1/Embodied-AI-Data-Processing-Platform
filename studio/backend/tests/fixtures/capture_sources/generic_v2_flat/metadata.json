@@ -1,0 +1,27 @@
+{
+  "qrdf_version": "0.2.0",
+  "episode_id": "fixture-generic-flat-episode",
+  "data_file": "data.mcap",
+  "recording_status": "complete",
+  "integrity_status": "not_checked",
+  "capture": {
+    "mode": "iphone_ego",
+    "episode_type": "human_demonstration",
+    "app": "quic_ego"
+  },
+  "source_group": {
+    "name": "Fixture Flat Group",
+    "key": "sg1_ceb9860321d5cbb5ab8be5938fd8b4b53c30e36973c651fd816829ae1ee52077"
+  },
+  "operator": {
+    "type": "human_ego",
+    "id": "0042"
+  },
+  "devices": [
+    {
+      "device_id": "primary",
+      "type": "iphone",
+      "serial_number": "FIXTURE-SN-01"
+    }
+  ]
+}

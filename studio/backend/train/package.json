@@ -1,0 +1,12 @@
+{
+  "name": "quictrain",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "pnpm@11.7.0",
+  "scripts": {
+    "dev:web": "pnpm --dir apps/web dev",
+    "build:web": "pnpm --dir apps/web build",
+    "test:web": "pnpm --dir apps/web test",
+    "lint:web": "pnpm --dir apps/web lint"
+  }
+}

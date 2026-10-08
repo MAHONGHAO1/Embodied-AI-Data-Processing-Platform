@@ -1,0 +1,17 @@
+.train-console .panel-heading > div { display: grid; gap: 6px; min-width: 0; }
+.train-console .panel-heading { gap: 16px; align-items: start; }
+.train-console .surface-panel { padding: 18px; }
+.train-console .train-project-facts { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 12px 0 8px; align-items: center; }
+.train-console .train-project-facts code { padding: 3px 7px; border-radius: 4px; background: #f1f4f9; overflow-wrap: anywhere; }
+.train-console .form-help { display: block; width: 100%; margin-top: 6px; color: var(--muted); line-height: 1.5; }
+.train-console .train-dataset-register-form { margin-top: 16px; }
+.train-console .train-dataset-metadata { margin-bottom: 16px; }
+.train-console .train-dataset-metadata .el-collapse-item__content { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 16px; padding-top: 12px; }
+.train-console .el-checkbox { white-space: normal; height: auto; }
+.train-console .el-checkbox__label { white-space: normal; }
+.train-console .train-resource-hint { margin-top: 12px; padding: 10px 12px; border-radius: 6px; background: #f5f7fb; color: var(--muted); line-height: 1.55; display: grid; gap: 4px; }
+.train-console .train-job-detail .train-job-overview { margin: 12px 0 8px; display: grid; gap: 10px; }
+.train-console .train-job-facts { display: flex; flex-wrap: wrap; gap: 8px 16px; color: var(--muted); font-size: 13px; }
+.train-console .train-log-toolbar { display: flex; align-items: center; gap: 12px; margin: 12px 0 8px; }
+.train-console .train-log-toolbar strong { margin-right: auto; }
+@media (max-width: 640px) { .train-console .train-dataset-metadata .el-collapse-item__content { grid-template-columns: minmax(0, 1fr); } }

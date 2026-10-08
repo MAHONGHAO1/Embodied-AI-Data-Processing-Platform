@@ -1,0 +1,9 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import test from 'node:test';
+import vm from 'node:vm';
+const read = (name) => readFileSync(new URL(`../js/${name}`, import.meta.url), 'utf8');
+const context = vm.createContext({}); vm.runInContext(`${read('dashboard-charts.js')}\n${read('collection-dashboard-filters.js')}\n${read('collection-data-board.js')}\nglobalThis.board = QuicStudioCollectionDataBoard;`, context); const board = context.board;
+const payload = () => ({ workspace_id: 1, projects: { total: 2, today: 1, trend: [] }, tasks: { total: 3, today: 0, trend: [] }, packages: { total: 10, today: 2, trend: [], status_counts: {} }, duration: { basis: 'valid', total_s: 3600, today_s: 60, pending_review_duration_s: 120, trend: [] }, size: { basis: 'valid', total_bytes: 1024, today_bytes: 0, trend: [] } });
+test('request params and cards', () => { assert.deepEqual(JSON.parse(JSON.stringify(board.requestParams(4, { start_date: '2026-09-01' }, { granularity: 'day', basis: 'all' }))), { workspace_id: 4, start_date: '2026-09-01', granularity: 'day', basis: 'all', tz: 'Asia/Shanghai' }); assert.equal(board.cards(payload())[3].total, 3600); assert.equal(board.pendingHint(payload(), 'valid'), 120); });
+test('hour range and loader scope', async () => { assert.equal(board.hourAllowed({ start_date: '2026-09-23', end_date: '2026-09-29' }), true); assert.equal(board.hourAllowed({ start_date: '2026-09-22', end_date: '2026-09-29' }), false); const state = {}; const requests = []; const loader = board.createLoader({ getCollectionDashboardData: (params) => new Promise((resolve) => requests.push({ params, resolve })) }, state); const first = loader.load({ workspace_id: 1 }); loader.load({ workspace_id: 2 }); requests[1].resolve({ workspace_id: 2 }); await new Promise((resolve) => setImmediate(resolve)); requests[0].resolve({ workspace_id: 1 }); await first; assert.equal(state.data.workspace_id, 2); });

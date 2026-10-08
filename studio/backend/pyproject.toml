@@ -1,0 +1,114 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "quicstudio-backend"
+dynamic = ["version"]
+description = "QuicData robotics data platform backend"
+requires-python = ">=3.10"
+dependencies = [
+  "fastapi>=0.109.0",
+  "uvicorn[standard]>=0.27.0",
+  "gunicorn>=21.2,<24",
+  "sqlalchemy>=2.0.25",
+  "alembic>=1.13,<2",
+  "loguru>=0.7,<1",
+  "psycopg[binary]>=3.1.18",
+  "pydantic>=2.5.0",
+  "pydantic-settings>=2.1.0",
+  "python-multipart>=0.0.6",
+  "python-jose[cryptography]>=3.3.0",
+  "passlib[bcrypt]>=1.7.4",
+  "redis>=5.0.0",
+  "celery>=5.3.0",
+  "python-socketio>=5.16,<6",
+  "aiofiles>=23.2.1",
+  "requests>=2.31,<3",
+  "mcap>=1.2,<2",
+  "protobuf>=6.33.5,<7",
+  "numpy>=1.24,<3",
+  "Pillow>=10.0,<13",
+  "imageio>=2.33,<3",
+  "imageio-ffmpeg>=0.4,<1",
+  "av>=14,<17",
+  "pyarrow>=14.0,<25",
+  "rosbags>=0.11,<0.12",
+  "mcap-ros2-support>=0.5,<1",
+  "opencv-python-headless>=4.8,<5",
+  "filelock>=3.12,<4",
+  "PyYAML>=6.0,<7",
+  "oss2>=2.18,<3",
+  "boto3>=1.34,<2",
+  "argon2-cffi>=23.1.0",
+]
+
+[dependency-groups]
+test = [
+  "pytest>=8,<10",
+  "httpx2>=2,<3",
+  "jsonschema>=4.23,<5",
+]
+dev = [
+  { include-group = "test" },
+  "ruff>=0.8,<1",
+  "pre-commit>=4,<5",
+]
+
+[tool.uv]
+default-groups = ["dev"]
+
+[tool.setuptools.packages.find]
+where = [".", "train/src"]
+include = ["data*", "train*", "scripts*", "quictrain*"]
+exclude = ["train.tests*"]
+
+[tool.setuptools.dynamic]
+version = { attr = "data.version.__version__" }
+
+[tool.setuptools.package-data]
+"data.integrations.qrdf" = ["sdk_provenance.json"]
+
+[project.optional-dependencies]
+train = [
+  "httpx==0.28.1",
+  "alibabacloud-pai-dlc20201203==1.9.1",
+  "alibabacloud-pai-dsw20220101==2.0.1",
+  "alibabacloud-oss-v2==1.1.1",
+  "mlflow-skinny==3.3.2",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+exclude = [
+  ".venv",
+  "backend/vendor",
+  "backend/alembic/versions",
+]
+
+[tool.ruff.lint]
+# E/W: pycodestyle, F: pyflakes, I: isort, UP: pyupgrade,
+# B: flake8-bugbear, C4: flake8-comprehensions, G: flake8-logging-format
+select = ["E", "W", "F", "I", "UP", "B", "C4", "G"]
+ignore = [
+  "E501",   # line length managed by ruff-format
+  "B008",   # FastAPI Depends() in function defaults
+  "UP007",  # X | Y union type alias (keep 3.10 annotation compat)
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Scripts manipulate sys.path before imports — E402 is intentional.
+"**/scripts/*.py" = ["E402"]
+"**/data/main.py" = ["E402"]
+"**/train/catalog_bridge.py" = ["E402"]
+"**/train/src/quictrain_api/main.py" = ["E402"]
+"**/train/tests/conftest.py" = ["E402"]
+"**/tests/conftest.py" = ["E402"]
+
+[tool.ruff.lint.pydocstyle]
+# Enforce Google-style docstrings.
+convention = "google"
+
+[tool.ruff.lint.isort]
+known-first-party = ["data", "train", "quictrain_api"]

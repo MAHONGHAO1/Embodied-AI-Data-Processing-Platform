@@ -1,0 +1,7 @@
+{
+  "registry-mirrors": [
+    "https://docker.m.daocloud.io",
+    "https://docker.1ms.run",
+    "https://docker.1panel.live"
+  ]
+}

@@ -1,0 +1,79 @@
+# QuicData local host infrastructure (PostgreSQL + Redis + MinIO).
+# Data is persisted under deploy/runtime/ and can be backed up or migrated alongside the project directory.
+# Start: make infra-up
+# Stop: make infra-down
+
+services:
+  postgres:
+    image: ${DOCKER_REGISTRY_PREFIX:-docker.m.daocloud.io/library}/postgres:16-alpine
+    container_name: quicstudio-postgres
+    environment:
+      POSTGRES_USER: quicdata
+      POSTGRES_PASSWORD: quicdata
+      POSTGRES_DB: quicdata
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - ./runtime/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U quicdata"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: ${DOCKER_REGISTRY_PREFIX:-docker.m.daocloud.io/library}/redis:7-alpine
+    container_name: quicstudio-redis
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - ./runtime/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  minio:
+    # Pin the local demo image; override MINIO_IMAGE only when mirroring it.
+    image: ${MINIO_IMAGE:-quay.io/minio/minio:RELEASE.2024-06-13T22-53-53Z}
+    container_name: quicstudio-minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-quicstudio}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-quicstudio-local-secret}
+    command: ["server", "/data", "--console-address", ":9001"]
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+    volumes:
+      - ./runtime/minio:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  minio-init:
+    # Keep bucket creation declarative and idempotent for every local checkout.
+    image: ${MINIO_MC_IMAGE:-quay.io/minio/mc:RELEASE.2024-06-12T14-34-03Z}
+    container_name: quicstudio-minio-init
+    entrypoint: /bin/sh
+    command:
+      - -ec
+      - |
+        until mc alias set local http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD"; do
+          sleep 2
+        done
+        mc mb --ignore-existing "local/$$OSS_BUCKET_RAW"
+        mc mb --ignore-existing "local/$$OSS_BUCKET_PROCESS"
+        mc mb --ignore-existing "local/$$OSS_BUCKET_EXPORT"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-quicstudio}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-quicstudio-local-secret}
+      OSS_BUCKET_RAW: ${OSS_BUCKET_RAW:-quicstudio-dev-raw}
+      OSS_BUCKET_PROCESS: ${OSS_BUCKET_PROCESS:-quicstudio-dev-process}
+      OSS_BUCKET_EXPORT: ${OSS_BUCKET_EXPORT:-quicstudio-dev-export}
+    depends_on:
+      minio:
+        condition: service_healthy

@@ -1,0 +1,61 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "quictrain"
+version = "1.0.0"
+description = "Reproducible robotics training control plane"
+requires-python = ">=3.11,<3.14"
+dependencies = [
+  "alembic==1.16.5",
+  "fastapi==0.116.1",
+  "httpx==0.28.1",
+  "pydantic==2.11.7",
+  "pydantic-settings==2.10.1",
+  "python-multipart==0.0.20",
+  "sqlalchemy==2.0.43",
+  "uvicorn[standard]==0.35.0",
+]
+
+[project.optional-dependencies]
+postgres = ["psycopg[binary]==3.2.9"]
+aliyun = [
+  "alibabacloud-pai-dlc20201203==1.9.1",
+  "alibabacloud-pai-dsw20220101==2.0.1",
+  "alibabacloud-oss-v2==1.1.1",
+]
+mlflow = ["mlflow-skinny==3.3.2"]
+dev = [
+  "pytest==8.4.1",
+  "pytest-asyncio==1.1.0",
+  "pytest-cov==6.2.1",
+  "ruff==0.12.11",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = [
+  "src/quictrain_api",
+  "src/quictrain_scheduler",
+  "src/quictrain_core",
+  "src/quictrain_config",
+  "src/quictrain_runner",
+  "src/quictrain_provider_local",
+  "src/quictrain_provider_aliyun_dlc",
+  "src/quictrain_model_specs",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = [
+  "src",
+  "runtimes/lerobot",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = ["B008"]

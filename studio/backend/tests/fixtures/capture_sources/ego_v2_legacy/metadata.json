@@ -1,0 +1,13 @@
+{
+  "qrdf_version": "0.2.0",
+  "episode_id": "fixture-ego-v2-legacy-episode",
+  "collection_task_id": "Fixture Legacy Group",
+  "data_file": "data.mcap",
+  "recording_status": "complete",
+  "integrity_status": "not_checked",
+  "capture": {
+    "mode": "iphone_ego",
+    "episode_type": "human_demonstration",
+    "app": "quic_ego"
+  }
+}

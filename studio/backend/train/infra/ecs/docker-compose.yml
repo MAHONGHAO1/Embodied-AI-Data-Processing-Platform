@@ -1,0 +1,256 @@
+name: quictrain
+
+# Shared-edge mode (default on ECS with /opt/caddy):
+# - Do NOT publish 80/443 from this stack; host Caddy owns TLS + Basic Auth.
+# - Loopback-only publishes for the shared reverse proxy:
+#     API 127.0.0.1:8001  Web 127.0.0.1:3000  MLflow 127.0.0.1:5001
+# - PostgreSQL stays on the Compose network only (never host :5432 — reserved for data platform).
+# See docs/runbooks/ecs-single-node.md and infra/ecs/Caddyfile (paste into /opt/caddy).
+
+services:
+  postgres:
+    image: postgres:16.4-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: quictrain
+      POSTGRES_USER: quictrain
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    secrets:
+      - postgres_password
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U quictrain -d quictrain"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    networks: [backend]
+
+  migrate:
+    build:
+      context: ../..
+      dockerfile: apps/api/Dockerfile
+    image: ${QUICTRAIN_API_IMAGE:-quictrain-api:local}
+    command:
+      - sh
+      - -ec
+      - |
+        export QUICTRAIN_DATABASE_URL="postgresql+psycopg://quictrain:$$(cat /run/secrets/postgres_password)@postgres:5432/quictrain"
+        exec alembic upgrade head
+    environment:
+      QUICTRAIN_ENV: production
+    secrets:
+      - postgres_password
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+    networks: [backend]
+
+  api:
+    build:
+      context: ../..
+      dockerfile: apps/api/Dockerfile
+    image: ${QUICTRAIN_API_IMAGE:-quictrain-api:local}
+    restart: unless-stopped
+    command:
+      - sh
+      - -ec
+      - |
+        export QUICTRAIN_DATABASE_URL="postgresql+psycopg://quictrain:$$(cat /run/secrets/postgres_password)@postgres:5432/quictrain"
+        if [ -f /run/secrets/bootstrap_admin_token ]; then
+          export QUICTRAIN_BOOTSTRAP_ADMIN_TOKEN="$$(cat /run/secrets/bootstrap_admin_token)"
+        fi
+        if [ -f /run/secrets/admin_password ]; then
+          export QUICTRAIN_ADMIN_PASSWORD="$$(cat /run/secrets/admin_password)"
+        fi
+        exec uvicorn quictrain_api.main:app --host 0.0.0.0 --port 8000
+    environment: &control-plane-environment
+      QUICTRAIN_ENV: production
+      QUICTRAIN_PROVIDER: aliyun_dlc
+      QUICTRAIN_EMBEDDED_SCHEDULER: "0"
+      QUICTRAIN_AUTH_MODE: ${QUICTRAIN_AUTH_MODE:-local}
+      QUICTRAIN_ADMIN_EMAIL: ${QUICTRAIN_ADMIN_EMAIL:-admin@quicrobot.com}
+      QUICTRAIN_SESSION_TTL_HOURS: ${QUICTRAIN_SESSION_TTL_HOURS:-168}
+      QUICTRAIN_POOL_RESOURCE_IDS: ${QUICTRAIN_POOL_RESOURCE_IDS:-cn-beijing-4090:quota16ktslmgp8r,cn-beijing-h20:quota1lnd98qodrh,cn-beijing-h20-8:quota1lnd98qodrh}
+      QUICTRAIN_POOL_CAPACITIES: ${QUICTRAIN_POOL_CAPACITIES:-cn-beijing-4090:32,cn-beijing-h20:40,cn-beijing-h20-8:40}
+      QUICTRAIN_CORS_ORIGINS: https://${PUBLIC_HOSTNAME}
+      QUICTRAIN_ARTIFACT_ROOT: oss://${ALIYUN_OSS_BUCKET}/quictrain/runs
+      QUICTRAIN_MATERIALIZATION_ROOT: /mnt/cpfs/quictrain/datasets
+      QUICTRAIN_EXPORT_ROOT: /mnt/cpfs/quictrain/exports
+      QUICTRAIN_EXPORT_OSS_PREFIX: oss://${ALIYUN_OSS_BUCKET}/quictrain/exports
+      # Quota4090 / ECS: bmcpfs://…/quictrain/… → {prefix}/… for DLC OSS dataset mounts.
+      QUICTRAIN_OSS_CPFS_MIRROR_PREFIX: ${QUICTRAIN_OSS_CPFS_MIRROR_PREFIX:-oss://${ALIYUN_OSS_BUCKET}/quictrain}
+      QUICTRAIN_CPFS_DATA_SOURCE_ID: ${QUICTRAIN_CPFS_DATA_SOURCE_ID}
+      QUICTRAIN_CPFS_VPC_DATA_SOURCE_ID: ${QUICTRAIN_CPFS_VPC_DATA_SOURCE_ID:-}
+      QUICTRAIN_CPFS_VPC_MOUNT_TARGET: ${QUICTRAIN_CPFS_VPC_MOUNT_TARGET:-}
+      QUICTRAIN_DLC_USER_VPC_JSON: ${QUICTRAIN_DLC_USER_VPC_JSON:-}
+      QUICTRAIN_CPFS_ROOT_URI: ${QUICTRAIN_CPFS_ROOT_URI}
+      QUICTRAIN_CPFS_MOUNT_PATH: /mnt/cpfs
+      QUICTRAIN_CPFS_WORKSPACE_DIR: quictrain
+      QUICTRAIN_CPFS_PI05_PRETRAINED_DIR: models/pi05/lerobot-pi05-base
+      QUICTRAIN_MLFLOW_TRACKING_URI: http://mlflow:5000
+      QUICTRAIN_PUBLIC_MLFLOW_URL: https://${PUBLIC_HOSTNAME}/mlflow/
+      QUICTRAIN_SCHEDULER_POLL_SECONDS: "5"
+      QUICTRAIN_ALERTS_WEBHOOK_URL: ${QUICTRAIN_ALERTS_WEBHOOK_URL:-}
+      ALIYUN_REGION_ID: cn-beijing
+      ALIYUN_DLC_WORKSPACE_ID: ${ALIYUN_DLC_WORKSPACE_ID}
+      ALIYUN_DLC_RESOURCE_ID: ${ALIYUN_DLC_RESOURCE_ID}
+      ALIYUN_DLC_JOB_MAX_RUNNING_TIME_MINUTES: "180"
+      ALIYUN_DLC_PRIORITY: "1"
+      ALIYUN_DLC_ACCESSIBILITY: PUBLIC
+      ALIYUN_DLC_ENDPOINT: pai-dlc-vpc.cn-beijing.aliyuncs.com
+      ALIYUN_OSS_BUCKET: ${ALIYUN_OSS_BUCKET}
+      ALIYUN_OSS_ENDPOINT: https://oss-cn-beijing-internal.aliyuncs.com
+      # Optional explicit AK for DLC/OSS when the ECS instance role lacks
+      # paidataset:GetDataset (required for Quota4090 VPC DataSource mounts).
+      ALIBABA_CLOUD_ACCESS_KEY_ID: ${ALIBABA_CLOUD_ACCESS_KEY_ID:-}
+      ALIBABA_CLOUD_ACCESS_KEY_SECRET: ${ALIBABA_CLOUD_ACCESS_KEY_SECRET:-}
+    secrets:
+      - postgres_password
+      - bootstrap_admin_token
+      - admin_password
+    volumes:
+      - /mnt/cpfs:/mnt/cpfs
+    ports:
+      - "127.0.0.1:8001:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      mlflow:
+        condition: service_started
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks: [backend]
+
+  scheduler:
+    build:
+      context: ../..
+      dockerfile: services/scheduler/Dockerfile
+    image: ${QUICTRAIN_SCHEDULER_IMAGE:-quictrain-scheduler:local}
+    restart: unless-stopped
+    command:
+      - sh
+      - -ec
+      - |
+        export QUICTRAIN_DATABASE_URL="postgresql+psycopg://quictrain:$$(cat /run/secrets/postgres_password)@postgres:5432/quictrain"
+        if [ -f /run/secrets/bootstrap_admin_token ]; then
+          export QUICTRAIN_BOOTSTRAP_ADMIN_TOKEN="$$(cat /run/secrets/bootstrap_admin_token)"
+        fi
+        exec python -m quictrain_scheduler.main
+    environment: *control-plane-environment
+    secrets:
+      - postgres_password
+      - bootstrap_admin_token
+    volumes:
+      - /mnt/cpfs:/mnt/cpfs
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import pathlib; raise SystemExit(0 if pathlib.Path('/proc/1/cmdline').read_bytes() else 1)",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks: [backend]
+
+  mlflow:
+    build:
+      context: ../..
+      dockerfile: infra/mlflow/Dockerfile
+    image: ${QUICTRAIN_MLFLOW_IMAGE:-quictrain-mlflow:local}
+    restart: unless-stopped
+    command:
+      - sh
+      - -ec
+      - |
+        export MLFLOW_BACKEND_STORE_URI="postgresql+psycopg://quictrain:$$(cat /run/secrets/postgres_password)@postgres:5432/mlflow"
+        exec mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri "$$MLFLOW_BACKEND_STORE_URI"
+    secrets:
+      - postgres_password
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - mlflow-artifacts:/mlflow/artifacts
+    ports:
+      - "127.0.0.1:5001:5000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/', timeout=3)",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks: [backend]
+
+  web:
+    build:
+      context: ../..
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ""
+        NEXT_PUBLIC_ALLOW_DEMO_MODE: "false"
+        NEXT_PUBLIC_AUTH_TOKEN: ${NEXT_PUBLIC_AUTH_TOKEN:-}
+        NEXT_PUBLIC_QUIC_PROJECT: ${NEXT_PUBLIC_QUIC_PROJECT:-}
+        NEXT_PUBLIC_QUIC_ACTOR: ${NEXT_PUBLIC_QUIC_ACTOR:-}
+    image: ${QUICTRAIN_WEB_IMAGE:-quictrain-web:local}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    networks: [backend]
+
+secrets:
+  postgres_password:
+    file: ./secrets/postgres_password
+  # Optional: empty file keeps auth_mode without bootstrap token.
+  bootstrap_admin_token:
+    file: ./secrets/bootstrap_admin_token
+  # Required when QUICTRAIN_AUTH_MODE=local (multi-user email/password).
+  admin_password:
+    file: ./secrets/admin_password
+
+volumes:
+  postgres-data:
+  mlflow-artifacts:
+
+networks:
+  backend:
+    internal: false

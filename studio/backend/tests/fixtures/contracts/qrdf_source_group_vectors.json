@@ -1,0 +1,49 @@
+[
+  {
+    "description": "ASCII",
+    "name": "Warehouse A",
+    "normalized_name": "Warehouse A",
+    "key": "sg1_047c3c27d12d0a810b2b2caf03d2dbfee8b7e2c2355b43ad36d3606e02d07fef"
+  },
+  {
+    "description": "Chinese",
+    "name": "北京 采集组",
+    "normalized_name": "北京 采集组",
+    "key": "sg1_52360cf378da8e9f4df5decbc495d48cd9b0fd3a1e51ce3f04e145a2671fa163"
+  },
+  {
+    "description": "NFC composition",
+    "name": "Café",
+    "normalized_name": "Café",
+    "key": "sg1_73473dcc12b763085904a5279d048c4d5b3b008c46f1f32443b99de04aa83a14"
+  },
+  {
+    "description": "Unicode whitespace",
+    "name": "   Field  Team  ",
+    "normalized_name": "Field Team",
+    "key": "sg1_1989e6a097a1e39a0b0b1010cb25001b4bd129939ff0016b2defaf86c7c7f9e3"
+  },
+  {
+    "description": "Scalar whitespace folding preserves a following combining mark",
+    "name": "a ́b",
+    "normalized_name": "a ́b",
+    "key": "sg1_e10a05ca9298971d9e9f1432d1d43d911f1f83c9bb0dae47e784262de8ace5d3"
+  },
+  {
+    "description": "Uppercase differs from lowercase",
+    "name": "Alpha",
+    "normalized_name": "Alpha",
+    "key": "sg1_b1a96dd646bccaa24cef7a3db22a6f995f05658f4f1c3272913e258c03e6fb24"
+  },
+  {
+    "description": "Lowercase differs from uppercase",
+    "name": "alpha",
+    "normalized_name": "alpha",
+    "key": "sg1_8ed3f6ad685b959ead7022518e1af76cd816f8e8ec7ccdda1ed4018e8f2223f8"
+  },
+  {
+    "description": "C0 file separator must not be erased during whitespace folding",
+    "name": "team\u001cone",
+    "valid": "false"
+  }
+]

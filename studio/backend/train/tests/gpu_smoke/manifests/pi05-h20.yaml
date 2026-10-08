@@ -1,0 +1,10 @@
+id: G-002
+model: pi05
+resource: 1x H20
+steps: 20
+assertions:
+  - preflight_passes
+  - forward_backward_passes
+  - peak_vram_recorded
+  - checkpoint_loadable
+  - mlflow_run_linked

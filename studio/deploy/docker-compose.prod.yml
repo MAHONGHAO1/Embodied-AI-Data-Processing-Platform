@@ -1,0 +1,492 @@
+services:
+  postgres:
+    image: ${DOCKER_REGISTRY_PREFIX:-docker.m.daocloud.io/library}/postgres:16-alpine
+    environment:
+      POSTGRES_USER: quicdata
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_DB: quicdata
+    secrets:
+      - postgres_password
+    volumes:
+      - ${DEPLOY_RUNTIME_DIR:-./runtime}/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U quicdata"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  redis-state:
+    image: ${DOCKER_REGISTRY_PREFIX:-docker.m.daocloud.io/library}/redis:7-alpine
+    command:
+      - sh
+      - -ec
+      - |
+        umask 077
+        printf 'appendonly yes\nappendfsync everysec\nauto-aof-rewrite-percentage 100\nauto-aof-rewrite-min-size 64mb\nmaxmemory-policy noeviction\nrequirepass %s\n' "$$(cat /run/secrets/redis_password)" > /tmp/redis.conf
+        exec redis-server /tmp/redis.conf
+    secrets:
+      - redis_password
+    volumes:
+      - ${DEPLOY_RUNTIME_DIR:-./runtime}/redis-state:/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "REDISCLI_AUTH=$$(cat /run/secrets/redis_password) redis-cli ping",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+
+  redis-broker:
+    image: ${DOCKER_REGISTRY_PREFIX:-docker.m.daocloud.io/library}/redis:7-alpine
+    command:
+      - sh
+      - -ec
+      - |
+        umask 077
+        printf 'appendonly yes\nappendfsync everysec\nauto-aof-rewrite-percentage 100\nauto-aof-rewrite-min-size 64mb\nmaxmemory-policy noeviction\nrequirepass %s\n' "$$(cat /run/secrets/redis_password)" > /tmp/redis.conf
+        exec redis-server /tmp/redis.conf
+    secrets:
+      - redis_password
+    volumes:
+      - ${DEPLOY_RUNTIME_DIR:-./runtime}/redis-broker:/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "REDISCLI_AUTH=$$(cat /run/secrets/redis_password) redis-cli ping",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+
+  migrate:
+    build: &app_build
+      context: ..
+      dockerfile: deploy/Dockerfile
+      args:
+        DOCKER_REGISTRY_PREFIX: ${DOCKER_REGISTRY_PREFIX:?DOCKER_REGISTRY_PREFIX is required}
+        APT_MIRROR_URL: ${APT_MIRROR_URL:?APT_MIRROR_URL is required}
+        APT_SECURITY_MIRROR_URL: ${APT_SECURITY_MIRROR_URL:?APT_SECURITY_MIRROR_URL is required}
+        PYPI_INDEX_URL: ${PYPI_INDEX_URL:?PYPI_INDEX_URL is required}
+    image: quicstudio-api:${QUICSTUDIO_IMAGE_TAG:-v0.2}
+    environment: &app_environment
+      ENVIRONMENT: production
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-true}
+      HSTS_ENABLED: ${HSTS_ENABLED:-true}
+      SCRATCH_ROOT: /runtime/scratch
+      CORS_ORIGINS: ${CORS_ORIGINS:?CORS_ORIGINS is required}
+      PYPI_INDEX_URL: ${PYPI_INDEX_URL:?PYPI_INDEX_URL is required}
+      DOCKER_REGISTRY_PREFIX: ${DOCKER_REGISTRY_PREFIX:?DOCKER_REGISTRY_PREFIX is required}
+      APT_MIRROR_URL: ${APT_MIRROR_URL:?APT_MIRROR_URL is required}
+      NPM_REGISTRY_URL: ${NPM_REGISTRY_URL:?NPM_REGISTRY_URL is required}
+      PUBLICATION_SOURCE_CACHE_TTL_SECONDS: ${PUBLICATION_SOURCE_CACHE_TTL_SECONDS:-86400}
+      PUBLICATION_SOURCE_CACHE_MAX_BYTES: ${PUBLICATION_SOURCE_CACHE_MAX_BYTES:-21474836480}
+      STORAGE_PROVIDER: ${STORAGE_PROVIDER:-minio}
+      STORAGE_ENDPOINT: ${STORAGE_ENDPOINT:?STORAGE_ENDPOINT is required}
+      # Credentials are injected by run-with-secrets.sh from Docker secrets.
+      STORAGE_ACCESS_KEY_ID: ${STORAGE_ACCESS_KEY_ID:-}
+      STORAGE_SECRET_ACCESS_KEY: ${STORAGE_SECRET_ACCESS_KEY:-}
+      OSS_BUCKET_RAW: ${OSS_BUCKET_RAW:-quicstudio-prod-raw}
+      OSS_BUCKET_PROCESS: ${OSS_BUCKET_PROCESS:-quicstudio-prod-process}
+      OSS_BUCKET_EXPORT: ${OSS_BUCKET_EXPORT:-quicstudio-prod-export}
+      SOURCE_OSS_MULTIPART_COPY_ENABLED: ${SOURCE_OSS_MULTIPART_COPY_ENABLED:-}
+      EGO_SOURCE_OSS_MULTIPART_COPY_ENABLED: ${EGO_SOURCE_OSS_MULTIPART_COPY_ENABLED:-false}
+      IMPORT_MAX_UPLOAD_GB: ${IMPORT_MAX_UPLOAD_GB:-100}
+      IMPORT_API_UPLOAD_MAX_MB: ${IMPORT_API_UPLOAD_MAX_MB:-256}
+      IMPORT_DIRECT_UPLOAD_PART_MB: ${IMPORT_DIRECT_UPLOAD_PART_MB:-64}
+      IMPORT_DIRECT_UPLOAD_EXPIRE_HOURS: ${IMPORT_DIRECT_UPLOAD_EXPIRE_HOURS:-24}
+      IMPORT_DIRECT_UPLOAD_CONCURRENCY: ${IMPORT_DIRECT_UPLOAD_CONCURRENCY:-4}
+      RUNTIME_REALTIME_EVENT_RETENTION_DAYS: ${RUNTIME_REALTIME_EVENT_RETENTION_DAYS:-7}
+      RUNTIME_JOB_RETENTION_DAYS: ${RUNTIME_JOB_RETENTION_DAYS:-30}
+      RUNTIME_IMPORT_SESSION_RETENTION_DAYS: ${RUNTIME_IMPORT_SESSION_RETENTION_DAYS:-30}
+      RUNTIME_RETENTION_BATCH_SIZE: ${RUNTIME_RETENTION_BATCH_SIZE:-500}
+      NATIVE_LEROBOT_BUNDLE_MAX_GB: ${NATIVE_LEROBOT_BUNDLE_MAX_GB:-100}
+      NATIVE_LEROBOT_BUNDLE_RETENTION_DAYS: ${NATIVE_LEROBOT_BUNDLE_RETENTION_DAYS:-7}
+      REALTIME_DISPATCHER_IN_API: ${REALTIME_DISPATCHER_IN_API:-false}
+      REALTIME_DISPATCH_INTERVAL_SECONDS: ${REALTIME_DISPATCH_INTERVAL_SECONDS:-5}
+      CELERY_INSPECT_CACHE_SECONDS: ${CELERY_INSPECT_CACHE_SECONDS:-5}
+      JOB_QUEUE_SLOTS_CONTROL: ${CONTROL_WORKER_CONCURRENCY:-1}
+      JOB_QUEUE_SLOTS_INGEST: ${INGEST_WORKER_CONCURRENCY:-2}
+      JOB_QUEUE_SLOTS_MEDIA: ${MEDIA_WORKER_CONCURRENCY:-4}
+      JOB_QUEUE_SLOTS_PUBLISH: ${PUBLISH_WORKER_CONCURRENCY:-1}
+      JOB_QUEUE_SLOTS_EXPORT: ${EXPORT_WORKER_CONCURRENCY:-1}
+      JOB_QUEUE_SLOTS_ANALYTICS: ${ANALYTICS_WORKER_CONCURRENCY:-1}
+      JOB_QUEUE_SLOTS_AI: ${AI_WORKER_CONCURRENCY:-1}
+      # Browser reads and exact raw multipart writes use a separate public OSS
+      # endpoint. Credentials remain Docker secrets; raw reads are never signed.
+      OSS_BROWSER_DIRECT_ENABLED: ${OSS_BROWSER_DIRECT_ENABLED:-false}
+      OSS_BROWSER_ENDPOINT: ${OSS_BROWSER_ENDPOINT:-}
+      STORAGE_BROWSER_ENDPOINT: ${STORAGE_BROWSER_ENDPOINT:-${OSS_BROWSER_ENDPOINT:-}}
+      OSS_BROWSER_URL_TTL_SECONDS: ${OSS_BROWSER_URL_TTL_SECONDS:-900}
+    entrypoint: &app_entrypoint ["/app/deploy/run-with-secrets.sh"]
+    command: ["python", "-m", "scripts.migrate"]
+    secrets: &app_secrets
+      - app_secret_key
+      - postgres_password
+      - redis_password
+      - storage_access_key_id
+      - storage_secret_access_key
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis-state:
+        condition: service_healthy
+      redis-broker:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    image: quicstudio-api:${QUICSTUDIO_IMAGE_TAG:-v0.2}
+    environment: *app_environment
+    entrypoint: *app_entrypoint
+    command:
+      [
+        "gunicorn",
+        "data.main:app",
+        "--worker-class",
+        "uvicorn.workers.UvicornWorker",
+        "--workers",
+        "${WEB_CONCURRENCY:-1}",
+        "--bind",
+        "0.0.0.0:8000",
+        "--timeout",
+        "${GUNICORN_TIMEOUT:-300}",
+      ]
+    secrets: *app_secrets
+    ports:
+      - "${API_BIND_HOST:-127.0.0.1}:${API_PORT:-8000}:8000"
+    volumes:
+      - ${DEPLOY_RUNTIME_DIR:-./runtime}/scratch:/runtime/scratch
+      - ${DEPLOY_RUNTIME_DIR:-./runtime}/backups:/runtime/backups
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis-state:
+        condition: service_healthy
+      redis-broker:
+        condition: service_healthy
+    restart: unless-stopped
+
+  realtime-dispatcher:
+    image: quicstudio-api:${QUICSTUDIO_IMAGE_TAG:-v0.2}
+    environment: *app_environment
+    entrypoint: *app_entrypoint
+    command: ["python", "-m", "scripts.run_realtime_dispatcher"]
+    secrets: *app_secrets
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis-state:
+        condition: service_healthy
+    restart: unless-stopped
+
+  worker-ingest:
+    image: quicstudio-api:${QUICSTUDIO_IMAGE_TAG:-v0.2}
+    mem_limit: ${WORKER_MEMORY_LIMIT:-12g}
+    memswap_limit: ${WORKER_MEMORY_LIMIT:-12g}
+    environment: *app_environment
+    entrypoint: *app_entrypoint
+    command:
+      [
+        "celery",
+        "-A",
+        "data.celery_app:celery_app",
+        "worker",
+        "--loglevel=INFO",
+        "--queues=ingest",
+        "--concurrency=${INGEST_WORKER_CONCURRENCY:-2}",
+        "--max-tasks-per-child=${INGEST_MAX_TASKS_PER_CHILD:-20}",
+        "--max-memory-per-child=${INGEST_MAX_MEMORY_PER_CHILD_KB:-2097152}",
+        "--hostname=worker-ingest@%h",
+      ]
+    secrets: *app_secrets
+    volumes:
+      - ${DEPLOY_RUNTIME_DIR:-./runtime}/scratch:/runtime/scratch
+      - ${DEPLOY_RUNTIME_DIR:-./runtime}/backups:/runtime/backups
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis-state:
+        condition: service_healthy
+      redis-broker:
+        condition: service_healthy
+    restart: unless-stopped
+
+  worker-media:
+    image: quicstudio-api:${QUICSTUDIO_IMAGE_TAG:-v0.2}
+    mem_limit: ${WORKER_MEMORY_LIMIT:-12g}
+    memswap_limit: ${WORKER_MEMORY_LIMIT:-12g}
+    environment: *app_environment
+    entrypoint: *app_entrypoint
+    command:
+      [
+        "celery",
+        "-A",
+        "data.celery_app:celery_app",
+        "worker",
+        "--loglevel=INFO",
+        "--queues=media",
+        "--concurrency=${MEDIA_WORKER_CONCURRENCY:-4}",
+        "--max-tasks-per-child=${MEDIA_MAX_TASKS_PER_CHILD:-10}",
+        "--max-memory-per-child=${MEDIA_MAX_MEMORY_PER_CHILD_KB:-3145728}",
+        "--hostname=worker-media@%h",
+      ]
+    secrets: *app_secrets
+    volumes:
+      - ${DEPLOY_RUNTIME_DIR:-./runtime}/scratch:/runtime/scratch
+      - ${DEPLOY_RUNTIME_DIR:-./runtime}/backups:/runtime/backups
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis-state:
+        condition: service_healthy
+      redis-broker:
+        condition: service_healthy
+    restart: unless-stopped
+
+  worker-ai:
+    profiles: ["ai"]
+    image: quicstudio-api:${QUICSTUDIO_IMAGE_TAG:-v0.2}
+    mem_limit: ${WORKER_MEMORY_LIMIT:-12g}
+    memswap_limit: ${WORKER_MEMORY_LIMIT:-12g}
+    environment:
+      <<: *app_environment
+      EMBODIED_VL_SDK_DIR: /opt/quicstudio/external-deps/embodied-vl
+      EMBODIED_VL_CHECKSUMS_FILE: /app/deploy/external-deps/checksums.sha256
+    entrypoint: *app_entrypoint
+    command:
+      - sh
+      - -ec
+      - |
+        cd /opt/quicstudio/external-deps
+        sha256sum --check --strict /app/deploy/external-deps/checksums.sha256
+        exec celery -A data.celery_app:celery_app worker --loglevel=INFO --queues=ai --concurrency=$${AI_WORKER_CONCURRENCY:-1} --max-tasks-per-child=$${AI_MAX_TASKS_PER_CHILD:-10} --max-memory-per-child=$${AI_MAX_MEMORY_PER_CHILD_KB:-4194304} --hostname=worker-ai@%h
+    secrets: *app_secrets
+    volumes:
+      - ${DEPLOY_RUNTIME_DIR:-./runtime}/scratch:/runtime/scratch
+      - ${DEPLOY_RUNTIME_DIR:-./runtime}/backups:/runtime/backups
+      - ./external-deps/embodied-vl:/opt/quicstudio/external-deps/embodied-vl:ro
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis-state:
+        condition: service_healthy
+      redis-broker:
+        condition: service_healthy
+    restart: unless-stopped
+
+  worker-publish:
+    image: quicstudio-api:${QUICSTUDIO_IMAGE_TAG:-v0.2}
+    mem_limit: ${WORKER_MEMORY_LIMIT:-12g}
+    memswap_limit: ${WORKER_MEMORY_LIMIT:-12g}
+    environment: *app_environment
+    entrypoint: *app_entrypoint
+    command:
+      [
+        "celery",
+        "-A",
+        "data.celery_app:celery_app",
+        "worker",
+        "--loglevel=INFO",
+        "--queues=publish",
+        "--concurrency=${PUBLISH_WORKER_CONCURRENCY:-1}",
+        "--max-tasks-per-child=${PUBLISH_MAX_TASKS_PER_CHILD:-10}",
+        "--max-memory-per-child=${PUBLISH_MAX_MEMORY_PER_CHILD_KB:-4194304}",
+        "--hostname=worker-publish@%h",
+      ]
+    secrets: *app_secrets
+    volumes:
+      - ${DEPLOY_RUNTIME_DIR:-./runtime}/scratch:/runtime/scratch
+      - ${DEPLOY_RUNTIME_DIR:-./runtime}/backups:/runtime/backups
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis-state:
+        condition: service_healthy
+      redis-broker:
+        condition: service_healthy
+    restart: unless-stopped
+
+  worker-control:
+    image: quicstudio-api:${QUICSTUDIO_IMAGE_TAG:-v0.2}
+    mem_limit: ${CONTROL_WORKER_MEMORY_LIMIT:-2g}
+    memswap_limit: ${CONTROL_WORKER_MEMORY_LIMIT:-2g}
+    environment: *app_environment
+    entrypoint: *app_entrypoint
+    command:
+      [
+        "celery",
+        "-A",
+        "data.celery_app:celery_app",
+        "worker",
+        "--loglevel=INFO",
+        "--queues=control,general",
+        "--concurrency=${CONTROL_WORKER_CONCURRENCY:-1}",
+        "--max-tasks-per-child=${CONTROL_MAX_TASKS_PER_CHILD:-500}",
+        "--max-memory-per-child=${CONTROL_MAX_MEMORY_PER_CHILD_KB:-524288}",
+        "--hostname=worker-control@%h",
+      ]
+    secrets: *app_secrets
+    volumes:
+      - ${DEPLOY_RUNTIME_DIR:-./runtime}/scratch:/runtime/scratch
+      - ${DEPLOY_RUNTIME_DIR:-./runtime}/backups:/runtime/backups
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis-state:
+        condition: service_healthy
+      redis-broker:
+        condition: service_healthy
+    restart: unless-stopped
+
+  worker-export:
+    image: quicstudio-api:${QUICSTUDIO_IMAGE_TAG:-v0.2}
+    mem_limit: ${EXPORT_WORKER_MEMORY_LIMIT:-8g}
+    memswap_limit: ${EXPORT_WORKER_MEMORY_LIMIT:-8g}
+    environment: *app_environment
+    entrypoint: *app_entrypoint
+    command:
+      [
+        "celery",
+        "-A",
+        "data.celery_app:celery_app",
+        "worker",
+        "--loglevel=INFO",
+        "--queues=export",
+        "--concurrency=${EXPORT_WORKER_CONCURRENCY:-1}",
+        "--max-tasks-per-child=${EXPORT_MAX_TASKS_PER_CHILD:-5}",
+        "--max-memory-per-child=${EXPORT_MAX_MEMORY_PER_CHILD_KB:-4194304}",
+        "--hostname=worker-export@%h",
+      ]
+    secrets: *app_secrets
+    volumes:
+      - ${DEPLOY_RUNTIME_DIR:-./runtime}/scratch:/runtime/scratch
+      - ${DEPLOY_RUNTIME_DIR:-./runtime}/backups:/runtime/backups
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis-state:
+        condition: service_healthy
+      redis-broker:
+        condition: service_healthy
+    restart: unless-stopped
+
+  worker-analytics:
+    image: quicstudio-api:${QUICSTUDIO_IMAGE_TAG:-v0.2}
+    mem_limit: ${ANALYTICS_WORKER_MEMORY_LIMIT:-2g}
+    memswap_limit: ${ANALYTICS_WORKER_MEMORY_LIMIT:-2g}
+    environment: *app_environment
+    entrypoint: *app_entrypoint
+    command:
+      [
+        "celery",
+        "-A",
+        "data.celery_app:celery_app",
+        "worker",
+        "--loglevel=INFO",
+        "--queues=analytics",
+        "--concurrency=${ANALYTICS_WORKER_CONCURRENCY:-1}",
+        "--max-tasks-per-child=${ANALYTICS_MAX_TASKS_PER_CHILD:-100}",
+        "--max-memory-per-child=${ANALYTICS_MAX_MEMORY_PER_CHILD_KB:-1048576}",
+        "--hostname=worker-analytics@%h",
+      ]
+    secrets: *app_secrets
+    volumes:
+      - ${DEPLOY_RUNTIME_DIR:-./runtime}/scratch:/runtime/scratch
+      - ${DEPLOY_RUNTIME_DIR:-./runtime}/backups:/runtime/backups
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis-state:
+        condition: service_healthy
+      redis-broker:
+        condition: service_healthy
+    restart: unless-stopped
+
+  worker-governance:
+    image: quicstudio-api:${QUICSTUDIO_IMAGE_TAG:-v0.2}
+    mem_limit: ${GOVERNANCE_WORKER_MEMORY_LIMIT:-2g}
+    memswap_limit: ${GOVERNANCE_WORKER_MEMORY_LIMIT:-2g}
+    environment: *app_environment
+    entrypoint: *app_entrypoint
+    command:
+      [
+        "celery",
+        "-A",
+        "data.celery_app:celery_app",
+        "worker",
+        "--loglevel=INFO",
+        "--queues=governance",
+        "--concurrency=${GOVERNANCE_WORKER_CONCURRENCY:-1}",
+        "--max-tasks-per-child=${GOVERNANCE_MAX_TASKS_PER_CHILD:-50}",
+        "--max-memory-per-child=${GOVERNANCE_MAX_MEMORY_PER_CHILD_KB:-1048576}",
+        "--hostname=worker-governance@%h",
+      ]
+    secrets: *app_secrets
+    volumes:
+      - ${DEPLOY_RUNTIME_DIR:-./runtime}/scratch:/runtime/scratch
+      - ${DEPLOY_RUNTIME_DIR:-./runtime}/backups:/runtime/backups
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis-state:
+        condition: service_healthy
+      redis-broker:
+        condition: service_healthy
+    restart: unless-stopped
+
+  celery-beat:
+    image: quicstudio-api:${QUICSTUDIO_IMAGE_TAG:-v0.2}
+    environment: *app_environment
+    entrypoint: *app_entrypoint
+    command:
+      ["celery", "-A", "data.celery_app:celery_app", "beat", "--loglevel=INFO"]
+    secrets: *app_secrets
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis-state:
+        condition: service_healthy
+      redis-broker:
+        condition: service_healthy
+    restart: unless-stopped
+
+  bootstrap-admin:
+    image: quicstudio-api:${QUICSTUDIO_IMAGE_TAG:-v0.2}
+    environment: *app_environment
+    entrypoint: *app_entrypoint
+    command: ["python", "-m", "scripts.bootstrap_admin"]
+    secrets:
+      - app_secret_key
+      - postgres_password
+      - redis_password
+      - storage_access_key_id
+      - storage_secret_access_key
+      - admin_bootstrap_password
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis-state:
+        condition: service_healthy
+      redis-broker:
+        condition: service_healthy
+    restart: "no"
+
+secrets:
+  app_secret_key:
+    file: ${DEPLOY_SECRETS_DIR:-./secrets}/app_secret_key
+  postgres_password:
+    file: ${DEPLOY_SECRETS_DIR:-./secrets}/postgres_password
+  redis_password:
+    file: ${DEPLOY_SECRETS_DIR:-./secrets}/redis_password
+  admin_bootstrap_password:
+    file: ${DEPLOY_SECRETS_DIR:-./secrets}/admin_bootstrap_password
+  storage_access_key_id:
+    file: ${DEPLOY_SECRETS_DIR:-./secrets}/storage_access_key_id
+  storage_secret_access_key:
+    file: ${DEPLOY_SECRETS_DIR:-./secrets}/storage_secret_access_key

@@ -1,0 +1,51 @@
+# Pre-commit hook configuration for quic_studio.
+# Install:  pre-commit install
+# Run all:  pre-commit run --all-files
+
+repos:
+  # General file hygiene
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: ^(deploy/|scripts/|frontend/vendor/)
+      - id: end-of-file-fixer
+        exclude: ^(deploy/|scripts/|frontend/vendor/)
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+      - id: check-json
+      - id: check-toml
+      - id: check-yaml
+        exclude: ^deploy/docker-compose\.yml
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: debug-statements
+      - id: mixed-line-ending
+        args: [--fix=lf]
+        exclude: ^(deploy/qrdf\.env|deploy/qrdf\.env\.example|backend/scripts/process_atom_segments_pipeline\.py|backend/scripts/validate_mcap_pipeline\.py|frontend/vendor/)
+
+  # Python: Ruff linter + formatter (replaces black, isort, flake8)
+  # Configured for Google Python Style via pyproject.toml or ruff.toml
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.8
+    hooks:
+      - id: ruff
+        args: [--config=backend/pyproject.toml, --fix, --exit-non-zero-on-fix]
+      - id: ruff-format
+        args: [--config=backend/pyproject.toml]
+
+  # Python security audit
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.9
+    hooks:
+      - id: bandit
+        args: [--recursive, --severity-level, medium]
+        exclude: ^(backend/tests/|backend/vendor/|backend/train/tests/)
+
+  # YAML formatting (prettier)
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v4.0.0-alpha.8
+    hooks:
+      - id: prettier
+        types: [yaml]
+        exclude: ^(\.pre-commit-config\.yaml|deploy/docker-compose\.yml)

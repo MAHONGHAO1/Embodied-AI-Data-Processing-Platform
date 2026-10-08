@@ -1,0 +1,772 @@
+/* Uploaded-package intake review workbench.  All selectors are component scoped by the root class. */
+.intake-review-workbench {
+  --ir-bg: #f3f6fb;
+  --ir-surface: #fff;
+  --ir-line: #dfe6f0;
+  --ir-text: #1d2a3a;
+  --ir-muted: #6c7b90;
+  --ir-primary: #3c70dc;
+  --ir-primary-soft: #edf3ff;
+  --ir-danger: #c7434f;
+  --ir-danger-soft: #fff0f1;
+  --ir-warning: #b87917;
+  --ir-warning-soft: #fff7e7;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  color: var(--ir-text);
+  background: var(--ir-bg);
+  font-family: inherit;
+}
+
+.intake-review-workbench button,
+.intake-review-workbench input,
+.intake-review-workbench textarea {
+  font: inherit;
+}
+
+.intake-review-workbench button:focus-visible,
+.intake-review-workbench input:focus-visible,
+.intake-review-workbench textarea:focus-visible {
+  outline: 3px solid rgba(60, 112, 220, .27);
+  outline-offset: 2px;
+}
+
+.intake-review-header {
+  min-height: 74px;
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  padding: 12px 24px;
+  background: #17243a;
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(22, 38, 64, .18);
+}
+
+.intake-review-back {
+  justify-self: start;
+  padding: 7px 9px;
+  color: #dce7fb;
+  background: transparent;
+  border: 1px solid rgba(221, 233, 255, .28);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background-color .18s ease, border-color .18s ease;
+}
+
+.intake-review-back:hover {
+  background: rgba(255, 255, 255, .1);
+  border-color: rgba(221, 233, 255, .6);
+}
+
+.intake-review-title {
+  min-width: 0;
+}
+
+.intake-review-title h1,
+.intake-review-media-heading h2,
+.intake-review-panel-heading h2 {
+  margin: 0;
+}
+
+.intake-review-title h1 {
+  overflow: hidden;
+  color: #fff;
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.intake-review-title > span {
+  display: block;
+  margin-top: 4px;
+  overflow: hidden;
+  color: #aab9d3;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.intake-review-eyebrow {
+  margin: 0 0 5px;
+  color: #7e9ce4;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+}
+
+.intake-review-header .intake-review-eyebrow {
+  color: #9bb6f1;
+}
+
+.intake-review-header-meta {
+  display: flex;
+  align-items: center;
+  justify-content: end;
+  gap: 8px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.intake-review-status,
+.intake-review-save-state,
+.decision-badge {
+  display: inline-flex;
+  min-height: 25px;
+  align-items: center;
+  padding: 0 9px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 23px;
+}
+
+.intake-review-status {
+  color: #c9d6ed;
+  background: rgba(255, 255, 255, .09);
+  border-color: rgba(255, 255, 255, .16);
+}
+
+.intake-review-status.status-pending_intake_review {
+  color: #f8d38c;
+  background: rgba(198, 137, 28, .15);
+  border-color: rgba(248, 211, 140, .26);
+}
+
+.intake-review-status.status-intake_approved,
+.intake-review-status.status-published {
+  color: #a9e4c1;
+  background: rgba(47, 155, 92, .16);
+  border-color: rgba(169, 228, 193, .26);
+}
+
+.intake-review-save-state {
+  color: #b7c5dc;
+  background: rgba(255, 255, 255, .06);
+  border-color: rgba(255, 255, 255, .12);
+}
+
+.intake-review-save-state.save-saving { color: #c1d4ff; }
+.intake-review-save-state.save-unsaved,
+.intake-review-save-state.save-failed { color: #ffd394; }
+.intake-review-save-state.save-conflict { color: #ffb2bb; }
+
+.intake-review-state-panel {
+  min-height: 390px;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 14px;
+  padding: 28px;
+  color: var(--ir-muted);
+  text-align: center;
+}
+
+.intake-review-state-panel p {
+  max-width: 520px;
+  margin: 0;
+  line-height: 1.6;
+}
+
+.intake-review-error-panel {
+  color: var(--ir-danger);
+}
+
+.intake-review-spinner {
+  width: 25px;
+  height: 25px;
+  display: inline-block;
+  border: 3px solid #d7e1f3;
+  border-top-color: var(--ir-primary);
+  border-radius: 50%;
+  animation: intake-review-spin .75s linear infinite;
+}
+
+@keyframes intake-review-spin {
+  to { transform: rotate(360deg); }
+}
+
+.intake-review-layout {
+  min-height: 0;
+  flex: 1;
+  display: grid;
+  grid-template-columns: 252px minmax(380px, 1fr) 350px;
+  gap: 14px;
+  padding: 16px;
+}
+
+.intake-review-episodes,
+.intake-review-media-column,
+.intake-review-decision-column {
+  min-width: 0;
+}
+
+.intake-review-episodes,
+.intake-review-decision-column {
+  overflow: auto;
+}
+
+.intake-review-episodes {
+  align-self: start;
+  max-height: calc(100vh - 106px);
+  padding: 14px 12px 12px;
+  background: var(--ir-surface);
+  border: 1px solid var(--ir-line);
+  border-radius: 9px;
+  box-shadow: 0 2px 8px rgba(32, 53, 85, .04);
+}
+
+.intake-review-panel-heading {
+  min-height: 37px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.intake-review-panel-heading > div {
+  min-width: 0;
+}
+
+.intake-review-panel-heading h2 {
+  overflow: hidden;
+  color: #26364d;
+  font-size: 14px;
+  font-weight: 750;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.intake-review-panel-heading > div > span {
+  display: block;
+  margin-top: 3px;
+  overflow: hidden;
+  color: var(--ir-muted);
+  font-size: 11px;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.intake-review-progress {
+  flex: 0 0 auto;
+  color: var(--ir-primary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.intake-review-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.intake-review-counts.compact {
+  margin: 10px 0;
+  padding-bottom: 11px;
+  border-bottom: 1px solid #edf0f5;
+  font-size: 10px;
+}
+
+.intake-review-counts span {
+  padding: 3px 6px;
+  border-radius: 4px;
+  font-weight: 650;
+}
+
+.count-viewed { color: #397263; background: #ecf8f2; }
+.count-rejected { color: #a6404b; background: #fff0f1; }
+.count-excluded { color: #657184; background: #f0f3f7; }
+
+.intake-review-episode-list {
+  display: grid;
+  gap: 5px;
+}
+
+.intake-review-episode {
+  width: 100%;
+  min-height: 53px;
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) 8px;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 8px;
+  color: var(--ir-text);
+  background: #fff;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color .16s ease, border-color .16s ease, box-shadow .16s ease;
+}
+
+.intake-review-episode:hover {
+  background: #f7f9fd;
+  border-color: #ccd9ef;
+}
+
+.intake-review-episode.selected {
+  background: var(--ir-primary-soft);
+  border-color: #aac0ee;
+  box-shadow: inset 3px 0 0 var(--ir-primary);
+}
+
+.episode-index {
+  color: #8b9ab0;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.episode-main {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.episode-main strong,
+.episode-main small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.episode-main strong {
+  color: #2d3a4d;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.episode-main small {
+  color: #8490a1;
+  font-size: 10px;
+}
+
+.episode-main .episode-reason {
+  color: #ad5961;
+}
+
+.episode-status-dot {
+  width: 7px;
+  height: 7px;
+  display: block;
+  border-radius: 50%;
+  background: #c2cbd7;
+}
+
+.episode-viewed .episode-status-dot { background: #42a27c; }
+.episode-rejected .episode-status-dot { background: var(--ir-danger); }
+.episode-excluded .episode-status-dot { background: #9ba6b5; }
+
+.intake-review-empty {
+  padding: 35px 12px;
+  color: var(--ir-muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.intake-review-media-column {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  background: var(--ir-surface);
+  border: 1px solid var(--ir-line);
+  border-radius: 9px;
+  box-shadow: 0 2px 8px rgba(32, 53, 85, .04);
+}
+
+.intake-review-media-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 3px 4px 12px;
+}
+
+.intake-review-media-heading h2 {
+  overflow: hidden;
+  color: #23344b;
+  font-size: 17px;
+  font-weight: 750;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.intake-review-media-meta {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 7px;
+  color: var(--ir-muted);
+  font-size: 11px;
+}
+
+.intake-review-media-meta span {
+  padding-left: 7px;
+  border-left: 1px solid var(--ir-line);
+}
+
+.intake-review-video-frame {
+  min-height: 260px;
+  flex: 1;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: #101827;
+  border-radius: 7px;
+}
+
+.intake-review-video {
+  width: 100%;
+  height: 100%;
+  min-height: 260px;
+  display: block;
+  background: #101827;
+  object-fit: contain;
+}
+
+.intake-review-video-placeholder {
+  min-height: 280px;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 12px;
+  padding: 30px;
+  color: #b6c3d7;
+  text-align: center;
+}
+
+.intake-review-video-placeholder p {
+  max-width: 300px;
+  margin: 0;
+  color: #aab8cc;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.intake-review-video-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  padding-left: 3px;
+  color: #d9e4f8;
+  border: 1px solid #41516d;
+  border-radius: 50%;
+  font-size: 16px;
+}
+
+.intake-review-stream-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 10px 2px 0;
+}
+
+.intake-review-stream-tabs button {
+  padding: 5px 8px;
+  color: var(--ir-muted);
+  background: #f7f9fc;
+  border: 1px solid var(--ir-line);
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.intake-review-stream-tabs button.active {
+  color: var(--ir-primary);
+  background: var(--ir-primary-soft);
+  border-color: #aac0ee;
+  font-weight: 700;
+}
+
+.intake-review-media-note {
+  padding: 11px 2px 0;
+  color: #8793a6;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.intake-review-decision-column {
+  align-self: start;
+  max-height: calc(100vh - 106px);
+  display: grid;
+  align-content: start;
+  gap: 12px;
+}
+
+.intake-review-card {
+  padding: 14px;
+  background: var(--ir-surface);
+  border: 1px solid var(--ir-line);
+  border-radius: 9px;
+  box-shadow: 0 2px 8px rgba(32, 53, 85, .04);
+}
+
+.decision-badge {
+  flex: 0 0 auto;
+  padding-inline: 7px;
+  font-size: 10px;
+}
+
+.badge-viewed { color: #347765; background: #edf8f2; border-color: #cdeadd; }
+.badge-rejected { color: #a73e4b; background: #fff0f1; border-color: #f2c8cd; }
+.badge-excluded { color: #677387; background: #f1f4f7; border-color: #dce2ea; }
+.badge-pending { color: #8b6a26; background: #fff8e9; border-color: #f0ddae; }
+
+.intake-review-excluded-notice,
+.intake-review-conflict,
+.intake-review-confirmation {
+  margin-top: 12px;
+  padding: 11px;
+  border-radius: 6px;
+}
+
+.intake-review-excluded-notice {
+  color: #687588;
+  background: #f5f7fa;
+  border: 1px solid #e0e5ec;
+}
+
+.intake-review-excluded-notice strong {
+  color: #4f5e71;
+  font-size: 12px;
+}
+
+.intake-review-excluded-notice p,
+.intake-review-excluded-notice small,
+.intake-review-conflict p,
+.intake-review-confirmation p {
+  display: block;
+  margin: 6px 0 0;
+  color: inherit;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.intake-review-excluded-notice small { color: #8b96a5; }
+
+.intake-review-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin-top: 13px;
+  padding: 10px;
+  background: #f8fafc;
+  border: 1px solid #e5eaf1;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.intake-review-toggle input {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  margin-top: 1px;
+  accent-color: var(--ir-danger);
+}
+
+.intake-review-toggle span {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.intake-review-toggle strong {
+  color: #39485c;
+  font-size: 12px;
+}
+
+.intake-review-toggle small {
+  color: var(--ir-muted);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.intake-review-reason-field {
+  display: grid;
+  gap: 5px;
+  margin-top: 12px;
+  color: #58677b;
+  font-size: 11px;
+}
+
+.intake-review-reason-field > span {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-weight: 650;
+}
+
+.intake-review-reason-field em {
+  color: var(--ir-danger);
+  font-style: normal;
+}
+
+.intake-review-reason-field textarea {
+  min-height: 72px;
+  resize: vertical;
+  padding: 8px;
+  color: var(--ir-text);
+  background: #fff;
+  border: 1px solid #d4dce8;
+  border-radius: 5px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.intake-review-reason-field textarea:disabled { color: #8c98a8; background: #f4f6f9; cursor: not-allowed; }
+.intake-review-reason-field > small { justify-self: end; color: #929dad; font-size: 10px; }
+
+.intake-review-summary { padding-bottom: 13px; }
+
+.intake-review-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 5px;
+  margin-top: 13px;
+}
+
+.intake-review-summary-grid > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+  padding: 8px 5px;
+  background: #f5f7fb;
+  border-radius: 5px;
+  text-align: center;
+}
+
+.intake-review-summary-grid strong {
+  color: #334257;
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.intake-review-summary-grid span { overflow: hidden; color: #768398; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.intake-review-summary-grid .danger strong { color: var(--ir-danger); }
+.intake-review-summary-grid .muted strong { color: #778395; }
+.intake-review-summary-grid .warning strong { color: var(--ir-warning); }
+
+.intake-review-progress-bar {
+  height: 5px;
+  margin-top: 14px;
+  overflow: hidden;
+  background: #e7ecf3;
+  border-radius: 999px;
+}
+
+.intake-review-progress-bar span { display: block; height: 100%; background: var(--ir-primary); border-radius: inherit; transition: width .2s ease; }
+.intake-review-progress-label { margin: 6px 0 0; color: #8a95a5; font-size: 10px; text-align: right; }
+
+.intake-review-disabled-reason {
+  margin: 10px 0 0;
+  padding: 8px 9px;
+  color: #8b671c;
+  background: var(--ir-warning-soft);
+  border: 1px solid #f1dfb5;
+  border-radius: 5px;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.intake-review-inline-error {
+  margin-top: 10px;
+  padding: 8px 9px;
+  color: #a23f49;
+  background: var(--ir-danger-soft);
+  border: 1px solid #f0c8cd;
+  border-radius: 5px;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.intake-review-conflict {
+  color: #974049;
+  background: var(--ir-danger-soft);
+  border: 1px solid #f0c8cd;
+}
+
+.intake-review-conflict strong,
+.intake-review-confirmation strong {
+  font-size: 12px;
+}
+
+.intake-review-confirmation {
+  color: #4a596d;
+  background: #f5f8fd;
+  border: 1px solid #d7e2f5;
+}
+
+.intake-review-confirm-actions,
+.intake-review-final-actions {
+  display: flex;
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.intake-review-final-actions .intake-review-button { flex: 1; }
+
+.intake-review-button {
+  min-height: 31px;
+  padding: 0 11px;
+  color: #526177;
+  background: #fff;
+  border: 1px solid #cbd5e3;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 650;
+  transition: background-color .16s ease, border-color .16s ease, color .16s ease, opacity .16s ease;
+}
+
+.intake-review-button:hover:not(:disabled) { background: #f5f8fc; border-color: #aebdd1; }
+.intake-review-button:disabled { cursor: not-allowed; opacity: .5; }
+.intake-review-button.primary { color: #fff; background: var(--ir-primary); border-color: var(--ir-primary); }
+.intake-review-button.primary:hover:not(:disabled) { background: #2f60c4; border-color: #2f60c4; }
+.intake-review-button.danger { color: #fff; background: var(--ir-danger); border-color: var(--ir-danger); }
+.intake-review-button.danger:hover:not(:disabled) { background: #ad3946; border-color: #ad3946; }
+.intake-review-button.secondary { background: #f7f9fc; }
+.intake-review-button.subtle { width: 100%; margin-top: 12px; color: var(--ir-primary); background: var(--ir-primary-soft); border-color: #cad9f5; }
+
+.is-readonly .intake-review-episode:not(.selected) { opacity: .88; }
+.is-finalized .intake-review-final-actions { opacity: .7; }
+
+@media (max-width: 1230px) {
+  .intake-review-layout { grid-template-columns: 220px minmax(320px, 1fr) 315px; gap: 10px; padding: 10px; }
+  .intake-review-header { grid-template-columns: 180px minmax(0, 1fr) auto; padding-inline: 16px; }
+}
+
+@media (max-width: 980px) {
+  .intake-review-header { grid-template-columns: auto minmax(0, 1fr); }
+  .intake-review-header-meta { grid-column: 2; justify-content: start; margin-top: -10px; }
+  .intake-review-layout { grid-template-columns: 210px minmax(0, 1fr); }
+  .intake-review-decision-column { grid-column: 1 / -1; max-height: none; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .final-review-card { grid-column: 1 / -1; }
+  .intake-review-episodes { max-height: calc(100vh - 130px); }
+}
+
+@media (max-width: 680px) {
+  .intake-review-header { gap: 10px; padding: 10px 12px; }
+  .intake-review-back { grid-column: 1 / -1; }
+  .intake-review-header-meta { grid-column: 1 / -1; margin-top: 0; }
+  .intake-review-layout { display: flex; flex-direction: column; padding: 8px; }
+  .intake-review-episodes,
+  .intake-review-decision-column { max-height: none; }
+  .intake-review-episodes { order: 1; }
+  .intake-review-media-column { order: 2; min-height: 400px; }
+  .intake-review-decision-column { order: 3; display: grid; grid-template-columns: 1fr; }
+  .final-review-card { grid-column: auto; }
+  .intake-review-video-frame { min-height: 230px; }
+  .intake-review-video { min-height: 230px; }
+}

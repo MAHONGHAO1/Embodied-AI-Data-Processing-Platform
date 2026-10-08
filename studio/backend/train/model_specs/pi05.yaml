@@ -1,0 +1,18 @@
+api_version: quictrain.io/v1alpha1
+kind: ModelManifest
+metadata:
+  model_id: pi05
+  model_version: 1.0.0
+  display_name: Pi 0.5
+  maturity: beta
+spec:
+  backend: lerobot
+  selectable: true
+  upstream:
+    repository: https://github.com/huggingface/lerobot
+    ref: 1396b9fab7aecddd10006c33c47a487ffdcb54b4
+  adapter_version: 0.3.0
+  image:
+    uri: quic-robot-registry-vpc.cn-beijing.cr.aliyuncs.com/quicrobot/quictrain-lerobot-runtime
+    digest: sha256:385f4e8b44269ebb01b71408087beb4709a09c47988859ffce2089e80b922b08
+  recipes: [fine_tune]

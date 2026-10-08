@@ -1,0 +1,135 @@
+name: quictrain
+
+services:
+  postgres:
+    image: postgres:16.4-bookworm
+    environment:
+      POSTGRES_DB: quictrain
+      POSTGRES_USER: quictrain
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ../ecs/initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U quictrain"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  migrate:
+    build:
+      context: ../..
+      dockerfile: apps/api/Dockerfile
+    command:
+      - sh
+      - -ec
+      - |
+        export QUICTRAIN_DATABASE_URL="postgresql+psycopg://quictrain@postgres:5432/quictrain"
+        exec alembic upgrade head
+    environment:
+      QUICTRAIN_ENV: development
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  mlflow:
+    build:
+      context: ../..
+      dockerfile: infra/mlflow/Dockerfile
+    command:
+      - sh
+      - -ec
+      - |
+        exec mlflow server --host 0.0.0.0 --port 5000 \
+          --backend-store-uri postgresql+psycopg://quictrain@postgres:5432/mlflow \
+          --allowed-hosts=mlflow,localhost,127.0.0.1
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  api:
+    build:
+      context: ../..
+      dockerfile: apps/api/Dockerfile
+    environment:
+      QUICTRAIN_DATABASE_URL: postgresql+psycopg://quictrain@postgres:5432/quictrain
+      QUICTRAIN_PROVIDER: fake
+      QUICTRAIN_EMBEDDED_SCHEDULER: "0"
+      QUICTRAIN_AUTH_MODE: open
+      QUICTRAIN_MLFLOW_TRACKING_URI: http://mlflow:5000
+      QUICTRAIN_PUBLIC_MLFLOW_URL: http://localhost:8080/mlflow
+      QUICTRAIN_CORS_ORIGINS: http://localhost:3000,http://localhost:8080
+      QUICTRAIN_ARTIFACT_ROOT: /mnt/cpfs/quictrain/runs
+      QUICTRAIN_MATERIALIZATION_ROOT: /mnt/cpfs/quictrain/datasets
+      QUICTRAIN_EXPORT_ROOT: /mnt/cpfs/quictrain/exports
+      QUICTRAIN_CPFS_MOUNT_PATH: /mnt/cpfs
+      QUICTRAIN_CPFS_WORKSPACE_DIR: quictrain
+    volumes:
+      - local-artifacts:/mnt/cpfs/quictrain
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      mlflow:
+        condition: service_started
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    ports:
+      - "8000:8000"
+
+  scheduler:
+    build:
+      context: ../..
+      dockerfile: services/scheduler/Dockerfile
+    environment:
+      QUICTRAIN_DATABASE_URL: postgresql+psycopg://quictrain@postgres:5432/quictrain
+      QUICTRAIN_PROVIDER: fake
+      QUICTRAIN_EMBEDDED_SCHEDULER: "0"
+      QUICTRAIN_AUTH_MODE: open
+      QUICTRAIN_ARTIFACT_ROOT: /mnt/cpfs/quictrain/runs
+      QUICTRAIN_MATERIALIZATION_ROOT: /mnt/cpfs/quictrain/datasets
+      QUICTRAIN_EXPORT_ROOT: /mnt/cpfs/quictrain/exports
+      QUICTRAIN_CPFS_MOUNT_PATH: /mnt/cpfs
+      QUICTRAIN_CPFS_WORKSPACE_DIR: quictrain
+      QUICTRAIN_MLFLOW_TRACKING_URI: http://mlflow:5000
+    volumes:
+      - local-artifacts:/mnt/cpfs/quictrain
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  web:
+    build:
+      context: ../..
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+        NEXT_PUBLIC_ALLOW_DEMO_MODE: "false"
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+
+  nginx:
+    image: nginx:1.27.2-alpine
+    volumes:
+      - ../nginx/quictrain.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on: [api, web, mlflow]
+    ports:
+      - "8080:80"
+
+volumes:
+  postgres-data:
+  local-artifacts:

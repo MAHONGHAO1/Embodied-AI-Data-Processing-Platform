@@ -1,0 +1,17 @@
+{
+  "project_id": "prj_robot_arm",
+  "dataset_version_id": "dsv_kitchen_v17",
+  "model_version_id": "mv_pi05_20260716",
+  "recipe_id": "fine_tune",
+  "config_overrides": {
+    "training.steps": 30000,
+    "training.batch_size": 1,
+    "optimizer.learning_rate": 0.00005
+  },
+  "resource_selection": {
+    "mode": "AUTO",
+    "profile": "pi05-h20-standard"
+  },
+  "client_request_id": "manual-p0-verification-1",
+  "display_name": "pi05-kitchen-v17-p0-verification"
+}

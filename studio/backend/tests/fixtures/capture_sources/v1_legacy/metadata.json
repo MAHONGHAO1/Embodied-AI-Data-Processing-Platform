@@ -1,0 +1,11 @@
+{
+  "qrdf_version": "0.2.0",
+  "episode_id": "fixture-v1-legacy-episode",
+  "data_file": "data.mcap",
+  "recording_status": "complete",
+  "integrity_status": "not_checked",
+  "capture": {
+    "mode": "ego",
+    "episode_type": "human_ego_demo"
+  }
+}
