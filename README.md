@@ -6,9 +6,9 @@
 
 | 流程总览：八节点链路与批次状态 | 数据质检：独立规则与逐条证据定位 |
 | :---: | :---: |
-| ![流程总览](docs/assets/v04/01_overview.png) | ![数据质检](docs/assets/v04/07_quality.png) |
+| ![流程总览](https://mahonghao1.github.io/assets/rwb/v04/01_overview.png) | ![数据质检](https://mahonghao1.github.io/assets/rwb/v04/07_quality.png) |
 | **格式转换**：官方 LeRobot v3.0 写入 | **打包交付**：独立解包与官方离线加载 |
-| ![格式转换](docs/assets/v04/08_convert.png) | ![打包交付](docs/assets/v04/09_deliver.png) |
+| ![格式转换](https://mahonghao1.github.io/assets/rwb/v04/08_convert.png) | ![打包交付](https://mahonghao1.github.io/assets/rwb/v04/09_deliver.png) |
 
 > 全部界面截图已内嵌在本文后续章节，无需跳转；截图来自 2026-09-11 真实运行。
 
@@ -82,22 +82,22 @@ SO-100 浏览与故障演示另需执行 `uv run robodata fetch-sample`，下载
 
 | ① 上传／导入 | ② 数据清洗 |
 | :---: | :---: |
-| ![上传／导入](docs/assets/v04/02_import.png) | ![数据清洗](docs/assets/v04/03_clean.png) |
+| ![上传／导入](https://mahonghao1.github.io/assets/rwb/v04/02_import.png) | ![数据清洗](https://mahonghao1.github.io/assets/rwb/v04/03_clean.png) |
 | 选择固定 HDF5 文件上传或本机路径、SO-100 目录，建立管理副本并核验来源。 | 自动基础检查，异常任务隔离；保留原始数值，导出无变更处理记录。 |
 
 | ③ 数据筛选 | ④ 数据标注 |
 | :---: | :---: |
-| ![数据筛选](docs/assets/v04/04_select.png) | ![数据标注](docs/assets/v04/05_annotate.png) |
+| ![数据筛选](https://mahonghao1.github.io/assets/rwb/v04/04_select.png) | ![数据标注](https://mahonghao1.github.io/assets/rwb/v04/05_annotate.png) |
 | 任务级保留／隔离／排除，填写原因、确认候选集并导出筛选清单。 | 预览原始数据，填写任务、执行结果、标签与备注，保存或提交。 |
 
 | ⑤ 标注审核 | ⑥ 数据质检 |
 | :---: | :---: |
-| ![标注审核](docs/assets/v04/06_review.png) | ![数据质检](docs/assets/v04/07_quality.png) |
+| ![标注审核](https://mahonghao1.github.io/assets/rwb/v04/06_review.png) | ![数据质检](https://mahonghao1.github.io/assets/rwb/v04/07_quality.png) |
 | 独立查看提交结果，审核通过或退回；导出审核记录。 | 审核后重新检查数据与标注，独立规则、报告和运行证据；不通过会阻止转换。 |
 
 | ⑦ 格式转换 | ⑧ 打包交付 |
 | :---: | :---: |
-| ![格式转换](docs/assets/v04/08_convert.png) | ![打包交付](docs/assets/v04/09_deliver.png) |
+| ![格式转换](https://mahonghao1.github.io/assets/rwb/v04/08_convert.png) | ![打包交付](https://mahonghao1.github.io/assets/rwb/v04/09_deliver.png) |
 | 官方写入 LeRobot v3.0，验证全量数值、官方加载与视频偏移，查看实际训练文件。 | 独立解包校验与官方加载通过后，下载当前有效 ZIP 及整包 SHA-256。 |
 
 “流程总览”展示八节点状态和批次列表。原有技术页面继续保留：**数据概览、任务浏览、质检报告、运行记录、公开样本转换**。公开样本转换使用固定三条 HDF5；业务格式转换只使用当前审核候选集，两者路由独立。
@@ -110,7 +110,7 @@ SO-100 浏览与故障演示另需执行 `uv run robodata fetch-sample`，下载
 
 | 首页：入口说明与快速开始 | 运行记录：节点状态、耗时与证据定位 |
 | :---: | :---: |
-| ![首页](docs/assets/v04/00_home.png) | ![运行记录](docs/assets/v04/10_runs.png) |
+| ![首页](https://mahonghao1.github.io/assets/rwb/v04/00_home.png) | ![运行记录](https://mahonghao1.github.io/assets/rwb/v04/10_runs.png) |
 
 侧栏为 **八个业务节点＋批次总览＋运行记录**。八个节点对应具身数据交付的标准流程：上传／导入 → 数据清洗 → 数据筛选 → 数据标注 → 标注审核 → 数据质检 → 格式转换 → 打包交付。顶部八节点进度条可直接跳转，URL 携带 `page` 与 `batch_id`，可分享和复现到具体节点页面。
 
