@@ -14,9 +14,10 @@
 
 八节点链路对应具身数据交付的标准流程：**上传／导入 → 数据清洗 → 数据筛选 → 数据标注 → 标注审核 → 数据质检 → 格式转换 → 打包交付**。每个节点独立记录输入、处理、输出、版本与日志。导入后自动执行基础清洗；人工完成筛选与审核后，最终质检、官方 LeRobot v3.0 转换与 ZIP 独立验证连续执行。
 
-> **不想安装？** 本 README 已包含全部界面截图与真实运行数据。另有一份独立的
-> [静态展示页](docs/index.html)（`docs/index.html`），需**下载仓库后离线打开**——
-> GitHub 不渲染仓库内的 HTML 文件，点开只会看到源码。
+> **不想安装？** 本 README 已包含全部界面截图与真实运行数据；也可以直接打开
+> [**在线展示页**](https://mahonghao1.github.io/Embodied-AI-Data-Processing-Platform/)，
+> 零安装浏览八节点界面。仓库内的 `docs/index.html` 是同一份页面，下载后可离线打开
+> （GitHub 不渲染仓库内的 HTML 文件，点开只会看到源码）。
 
 ## 它证明了什么
 
@@ -33,7 +34,7 @@
 
 ## 从哪里开始
 
-- **只想看效果**：[作品展示页](docs/index.html)（静态，零安装，含全部界面截图与真实运行数据）
+- **只想看效果**：[在线展示页](https://mahonghao1.github.io/Embodied-AI-Data-Processing-Platform/)（静态，零安装，含全部界面截图与真实运行数据）
 - **想跑起来**：双击根目录 `首次安装.cmd`，装完双击桌面快捷方式 —— 见[安装与启动](#安装与启动)
 - **讲给面试官**：[演示路线](docs/demo.md)
 - **查实现**：[数据字典](docs/data_dictionary.md)、[V0.4 状态](docs/STATUS_v04.md)、[导航验收](docs/VALIDATION_navigation.md)
