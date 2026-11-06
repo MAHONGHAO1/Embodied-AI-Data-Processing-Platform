@@ -28,7 +28,7 @@ from robodata.video import read_video_frame
 from robodata.ui_charts import apply_signal_layout
 
 
-st.set_page_config(page_title="RoboData Workbench v0.4.0 · 具身智能数据处理平台",
+st.set_page_config(page_title="RoboData Workbench v0.5.0 · 具身智能数据处理平台",
                    page_icon="◈", layout="wide")
 
 PAGES = (*ui_navigation.BUSINESS_ROUTES, *ui_navigation.TECHNICAL_ROUTES, "运行记录")
