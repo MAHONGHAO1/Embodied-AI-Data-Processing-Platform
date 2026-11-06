@@ -1,6 +1,6 @@
 # RoboData Workbench · 具身智能数据处理平台
 
-**V0.4.0 · Windows / Python 3.12 / CPU · 本地单用户**
+**V0.5.0 · Windows / Python 3.12 / CPU · 本地单用户**
 
 把一批机器人演示数据，变成**可检查、可追溯、可读取**的训练样本。
 
@@ -30,14 +30,14 @@
 | 运行可追溯 | 每次运行保存 `request/state/events.jsonl` 与逐节点日志，14 个节点全程 29.3 秒 |
 | 范围可扩展且已验证 | 全量 demo_0–9（531 帧）跑通八节点闭环：输入质检 100/100、输出质检 110/110、官方离线加载 531 帧数值与 30 个采样位置比对一致、交付包 10 条独立验证通过 |
 
-一次真实完整链路：**14 个节点全部完成，源任务 0、2 → 输出 2 条／116 帧，端到端 29.26 秒**。明细见 [V0.4 验收](docs/VALIDATION_v04.md)。
+历史 HDF5 验收：14 个节点全部完成，源任务 0、2 → 输出 2 条／116 帧，端到端 29.26 秒，见 [V0.4 验收](docs/VALIDATION_v04.md)。SO-100 本轮的 UI 开通、5 条／3,562 帧转换及交付证据记录在 [V0.5 验收](docs/VALIDATION_v05.md)，测试证据不代替真实数据运行结果。
 
 ## 从哪里开始
 
 - **只想看效果**：[在线展示页](https://mahonghao1.github.io/Embodied-AI-Data-Processing-Platform/)（静态，零安装，含全部界面截图与真实运行数据）
 - **想跑起来**：双击根目录 `首次安装.cmd`，装完双击桌面快捷方式 —— 见[安装与启动](#安装与启动)
 - **讲给面试官**：[演示路线](docs/demo.md)
-- **查实现**：[数据字典](docs/data_dictionary.md)、[V0.4 状态](docs/STATUS_v04.md)、[导航验收](docs/VALIDATION_navigation.md)
+- **查实现**：[数据字典](docs/data_dictionary.md)、[V0.5 状态](docs/STATUS_v05.md)、[导航验收](docs/VALIDATION_navigation.md)
 - **查操作**：[标准操作 SOP](docs/SOP.md)，[HTML 手册](docs/SOP.html) 可离线打开
 
 默认服务地址为 [http://127.0.0.1:8501/](http://127.0.0.1:8501/)，仅指向运行程序的本机。访问源码仓库不会自动启动工作台，GitHub Pages 也不提供该 Python 服务。本地验收与远程发布分别进行。
@@ -123,7 +123,7 @@ SO-100 浏览与故障演示另需执行 `uv run robodata fetch-sample`，下载
 
 | 来源 | 固定范围 | 字段与处理范围 |
 | --- | --- | --- |
-| [jmrog/so100_sweet_pick](https://huggingface.co/datasets/jmrog/so100_sweet_pick) | revision `54141acb0bd6bcb868e34b4eb328f26481d333b2`；硬盘已备 Episode 0–49（32,068 帧），默认启用 Episode 0–4（3,562 帧）。 | LeRobot v2.0 真机数据，状态／动作各 6 维，laptop 单相机 640×480、30 Hz、AV1 编码；支持导入、预览、质检、标注、转换与交付。 |
+| [jmrog/so100_sweet_pick](https://huggingface.co/datasets/jmrog/so100_sweet_pick) | revision `54141acb0bd6bcb868e34b4eb328f26481d333b2`；默认启用 Episode 0–4（3,562 帧）。 | LeRobot v2.0 真机数据，状态／动作各 6 维，laptop 单相机 640×480、30 Hz、AV1 编码；支持 UI 导入、筛选、标注审核、最终质检、v3.0 转换和打包验包。 |
 | [robomimic/robomimic_datasets](https://huggingface.co/datasets/robomimic/robomimic_datasets) | revision `74fa018461f479cd9fd15b924a16103012096203`；`test/test.hdf5` 共 demo_0–9（531 帧），默认启用 demo_0–2（174 帧）。 | Panda / Lift 仿真测试片段，状态 9 维、动作 7 维、agentview 84×84 RGB；业务候选子集可转换和打包。 |
 
 HDF5 本地上传仍受固定配置约束，不是通用 HDF5 导入器。测试副本必须显式标记；标记不会让结构或质量检查自动通过。
@@ -175,7 +175,7 @@ $env:ROBODATA_SO100_EPISODES = "0-9"    # 前 10 条
 .\启动工作台.cmd
 ```
 
-**SO-100 已通过端到端验收**（2026-09-13，证据见 `work/so100-acceptance.json`，
+**SO-100 历史命令行验收**（2026-09-13，证据见 `work/so100-acceptance.json`，
 由 `scripts/verify_so100.py` 生成）：默认 5 条 / 3,562 帧走完导入 → 质检 → 筛选确认
 → 标注审核 → 最终质检 → 格式转换 → 打包交付 → 独立验证，输入质检 55/55 项、
 输出质检 55/55 项、0 数据问题，官方库离线加载并对 3,562 帧数值与 15 个采样位置
