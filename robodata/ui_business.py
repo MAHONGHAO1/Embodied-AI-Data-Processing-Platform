@@ -443,15 +443,12 @@ def review_annotation(batch_id: str, ep_id: int, revision: int, approve: bool, r
             reason=st.session_state.get(reason_key, ""), expected_revision=revision)
         kept = [ep for ep in updated["episodes"] if ep["disposition"] == "keep"]
         if approve and kept and all(ep["review"]["status"] == "approved" for ep in kept):
-            if updated["source"].get("kind") == "hdf5":
-                try:
-                    run_id = service().start_final_quality(batch_id, updated["revision"], auto_continue=True)
-                    notice("全部保留任务已审核，后台将执行最终质检，通过后自动转换并验证交付包。")
-                    open_run(run_id)
-                except Exception as exc:
-                    notice(f"审核已保存，自动处理未能启动：{explain_error(exc)}。请在数据质检页重新启动。", error=True)
-            else:
-                notice("审核已保存。当前 SO-100 配置可继续最终质检；转换与交付暂只支持 HDF5。")
+            try:
+                run_id = service().start_final_quality(batch_id, updated["revision"], auto_continue=True)
+                notice("全部保留任务已审核，后台将执行最终质检、格式转换、打包与独立验包。")
+                open_run(run_id)
+            except Exception as exc:
+                notice(f"审核已保存，自动处理未能启动：{explain_error(exc)}。请在数据质检页重新启动。", error=True)
         else:
             notice("审核通过，等待其余保留任务审核。" if approve else "已退回，请到数据标注页修改后重新提交。")
     except Exception as exc:
@@ -537,7 +534,7 @@ def render_reviews(batch: dict):
         st.button("退回修改", type="secondary", disabled=not can_review or not st.session_state.get(reason_key, "").strip(), on_click=review_annotation, args=(batch["batch_id"], ep["episode_index"], batch["revision"], False, reason_key))
         if can_review and not st.session_state.get(reason_key, "").strip():
             st.caption("退回前请填写具体原因。")
-        st.caption("最后一条保留任务审核通过后，HDF5 批次自动继续最终质检 → 转换 → 打包验证。")
+        st.caption("最后一条保留任务审核通过后，HDF5 与 SO-100 批次自动继续最终质检 → 转换 → 打包验证。")
     with preview:
         render_preview(batch, ep)
 
@@ -552,8 +549,6 @@ def render_conversion(batch: dict, *, final_quality_passed=False, current_output
         blocked.append(f"还有 {pending} 条保留任务未完成审核，请先完成标注审核。")
     if not final_quality_passed:
         blocked.append("当前内容版本尚未通过最终数据质检，请先完成数据质检节点。")
-    if batch["source"].get("kind") != "hdf5":
-        blocked.append("当前业务转换仅支持已验证的 HDF5 配置；SO-100 可导入、预览、质检和标注。")
     try:
         spec = service().get_store().conversion_spec(batch["batch_id"])
     except Exception as exc:
@@ -566,14 +561,11 @@ def render_conversion(batch: dict, *, final_quality_passed=False, current_output
               args=(service().start_batch_conversion, batch["batch_id"], batch["revision"]))
     if blocked:
         # 区分两类原因：批次类型不在转换范围内（设计边界）与前置条件未满足（可推进）。
-        scope_notes = [m for m in blocked if "仅支持已验证的 HDF5" in m]
+        scope_notes = []
         prerequisites = [m for m in blocked if m not in scope_notes]
         if scope_notes:
             st.info(
-                "**当前批次类型不在格式转换范围内**（这是设计边界，不是故障）。\n\n"
-                f"{scope_notes[0]}\n\n"
-                "SO-100 本身就是 LeRobot v2.0 数据集，已经是官方格式，本节点无需再写入；"
-                "要看本平台的转换链路，请在左侧「当前批次」切换到 HDF5 批次（Panda / Lift）。"
+                "**当前批次类型不在格式转换范围内**（这是设计边界，不是故障）。"
             )
         if prerequisites:
             st.warning("**转换前置条件未满足：**\n\n"

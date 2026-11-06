@@ -16,7 +16,7 @@ from .source import SAMPLE_FILES, MANIFEST_NAME, DEMO_MANIFEST_NAME, file_sha256
 
 HDF5_RULES = ('required_fields','row_count','vector_shape','numeric_finite','frame_index',
                'timestamp_monotonic','timestamp_interval','image_shape','image_frame_count','image_read')
-PROFILE = {'profile_version':'0.4.0','hdf5_episodes':list(HDF5_EPISODES), 'state_fields':
+PROFILE = {'profile_version':'0.5.0','hdf5_episodes':list(HDF5_EPISODES), 'state_fields':
            ['obs/robot0_eef_pos','obs/robot0_eef_quat','obs/robot0_gripper_qpos'],
            'action':'actions','image':'obs/agentview_image','fps':20,'timestamp':'derived_frame_index/fps'}
 

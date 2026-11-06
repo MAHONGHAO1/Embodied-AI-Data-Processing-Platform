@@ -1,6 +1,6 @@
 [project]
 name = "robodata-workbench"
-version = "0.4.0"
+version = "0.5.0"
 description = "具身数据质检工作台：公开机器人演示数据的可追溯检查与浏览"
 requires-python = ">=3.12,<3.13"
 dependencies = [
