@@ -28,7 +28,7 @@ from robodata.video import read_video_frame
 from robodata.ui_charts import apply_signal_layout
 
 
-st.set_page_config(page_title="RoboData Workbench v0.5.0 · 具身智能数据处理平台",
+st.set_page_config(page_title=f"RoboData Workbench v{APP_VERSION} · 具身智能数据处理平台",
                    page_icon="◈", layout="wide")
 
 PAGES = (*ui_navigation.BUSINESS_ROUTES, *ui_navigation.TECHNICAL_ROUTES, "运行记录")
@@ -389,7 +389,10 @@ def show_overview(root: Path, fingerprint: str, metadata: dict, report: dict | N
     columns = st.columns(4)
     columns[0].metric("可读取任务", f"{len(loaded)} / {len(indices)}")
     columns[1].metric("实际记录帧数", f"{sum(len(ep.table) for ep in loaded):,}")
-    columns[2].metric("主相机可用任务", f"{sum(ep.video_path.is_file() for ep in loaded)} / {len(indices)}")
+    camera_total = sum(len(ep.camera_paths or {"default": ep.video_path}) for ep in loaded)
+    camera_available = sum(path.is_file() for ep in loaded
+                           for path in (ep.camera_paths or {"default": ep.video_path}).values())
+    columns[2].metric("可用相机视频", f"{camera_available} / {camera_total}")
     columns[3].metric("来源采样频率", f"{metadata.get('info', {}).get('fps', '—')} Hz")
     st.write("")
     left, right = st.columns([1.7, 1])
@@ -418,8 +421,9 @@ def show_overview(root: Path, fingerprint: str, metadata: dict, report: dict | N
         st.subheader("这份样本包含什么")
         state_shape = info.get("features", {}).get("observation.state", {}).get("shape", ["—"])
         action_shape = info.get("features", {}).get("action", {}).get("shape", ["—"])
-        camera = source.get("camera", "observation.images.laptop").split(".")[-1]
-        st.markdown(f"**主相机图像** · {camera}\n\n**状态** · {state_shape[0]} 维\n\n**动作** · {action_shape[0]} 维\n\n**任务索引与时间** · 按 episode 组织")
+        cameras = source.get("cameras") or [source.get("camera", "observation.images.laptop")]
+        camera_labels = "、".join(camera.split(".")[-1] for camera in cameras)
+        st.markdown(f"**相机图像** · {camera_labels}\n\n**状态** · {state_shape[0]} 维\n\n**动作** · {action_shape[0]} 维\n\n**任务索引与时间** · 按 episode 组织")
         st.caption(source.get("timestamp_semantics", "来源未完整说明单位及控制含义，保留原值；时间检查不代表硬件同步验证。"))
         if source.get("format_version") == "v3.0":
             st.caption("状态由指定来源字段顺序拼接；动作沿用源数组，未进行坐标变换或重新定义控制语义。")
@@ -474,16 +478,26 @@ def show_browser(root: Path, fingerprint: str, report: dict | None):
     row = int(st.session_state["selected_row"])
     record = ep.table.iloc[row]
     timestamp = record.get("timestamp")
+    camera_paths = ep.camera_paths or {ep.source.get("camera", "camera"): ep.video_path}
+    camera_names = list(camera_paths)
+    camera_key = f"selected_camera_{ep_id}"
+    if st.session_state.get(camera_key) not in camera_names:
+        st.session_state[camera_key] = camera_names[0]
+    selected_camera = st.selectbox(
+        "查看相机", camera_names, key=camera_key,
+        format_func=lambda value: value.split(".")[-1],
+    )
     left, right = st.columns([1.75, 1])
     with left, st.container(border=True):
-        camera_name = ep.source.get("camera", "observation.images.laptop").split(".")[-1]
+        camera_name = selected_camera.split(".")[-1]
         st.subheader(f"主相机 · {camera_name}")
         try:
             timestamp = float(timestamp)
             if not np.isfinite(timestamp) or timestamp < 0:
                 raise ValueError("当前记录的时间无效")
-            video_start = float(getattr(ep, "video_start_time", 0.0))
-            frame = cached_frame(str(ep.video_path), timestamp + video_start, fingerprint)
+            camera_segment = (ep.camera_segments or {}).get(selected_camera, {})
+            video_start = float(camera_segment.get("from_timestamp", getattr(ep, "video_start_time", 0.0)) or 0.0)
+            frame = cached_frame(str(camera_paths[selected_camera]), timestamp + video_start, fingerprint)
             st.image(frame["image"], width="stretch")
             error = float(frame["timestamp_error"])
             st.caption(f"任务时间 {timestamp:.6f} s · 文件偏移 {video_start:.6f} s · 视频 PTS {float(frame['pts_time']):.6f} s · 差值 {error * 1000:+.3f} ms")

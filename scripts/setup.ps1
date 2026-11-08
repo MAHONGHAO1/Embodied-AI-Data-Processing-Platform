@@ -23,6 +23,17 @@ Write-Host '  本向导会准备好运行环境，并在桌面创建启动快捷
 Write-Host '  需要联网。主环境约 400 MB；完整转换链路另需约 2.2 GB（可选）。' -ForegroundColor Gray
 Write-Host '  ------------------------------------------------------------------' -ForegroundColor DarkGray
 
+$node = Get-Command node -ErrorAction SilentlyContinue
+$nodeVersion = if ($node) { (& node --version).Trim() } else { '' }
+if ($nodeVersion -notmatch '^v24\.') {
+    $shownNodeVersion = if ($nodeVersion) { $nodeVersion } else { '未安装' }
+    Write-Bad "当前工作台需要 Node.js 24 LTS；当前版本：$shownNodeVersion"
+    Write-Note '请安装 Node.js 24 LTS：https://nodejs.org/en/download'
+    Read-Host '安装完成后重新运行本向导。按回车退出'
+    exit 1
+}
+Write-Ok "Node.js 前端运行环境就绪：$nodeVersion"
+
 $total = 5
 
 # ---------- 1) uv ----------
@@ -111,7 +122,7 @@ try {
 Write-Host ''
 Write-Host '  ------------------------------------------------------------------' -ForegroundColor DarkGray
 Write-Host '  安装完成。' -ForegroundColor Green
-Write-Host '  双击桌面上的「RoboData 工作台」即可启动，浏览器会自动打开。' -ForegroundColor White
+Write-Host '  双击桌面上的「RoboData 工作台」即可启动；请在浏览器打开 http://127.0.0.1:8765。' -ForegroundColor White
 Write-Host '  ------------------------------------------------------------------' -ForegroundColor DarkGray
 Write-Host ''
 Write-Host '  可选：需要完整 HDF5 转换链路（约 2.2 GB，含 CPU 版 PyTorch）时执行：' -ForegroundColor Gray

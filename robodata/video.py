@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import bisect
 import math
+from dataclasses import replace
 from functools import lru_cache
 from pathlib import Path
 
@@ -55,6 +56,25 @@ def episode_video_segment(decoded: dict, episode) -> dict:
 
 def inspect_episode_video(episode) -> dict:
     return episode_video_segment(inspect_video(episode.video_path), episode)
+
+
+def episode_camera(episode, camera_name: str):
+    """Return an episode view bound to one declared camera stream."""
+    paths = episode.camera_paths or {episode.source.get('camera', 'camera'): episode.video_path}
+    if camera_name not in paths:
+        raise KeyError(f"episode 未声明相机 {camera_name}")
+    segment = (episode.camera_segments or {}).get(camera_name, {})
+    return replace(
+        episode,
+        video_path=paths[camera_name],
+        video_start_time=float(segment.get('from_timestamp', 0.0) or 0.0),
+        video_end_time=segment.get('to_timestamp'),
+    )
+
+
+def inspect_episode_camera(episode, camera_name: str) -> dict:
+    selected = episode_camera(episode, camera_name)
+    return episode_video_segment(inspect_video(selected.video_path), selected)
 
 
 def _decode_target(path: Path, target: float, seek: bool):

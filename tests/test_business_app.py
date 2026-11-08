@@ -344,7 +344,7 @@ def test_all_eight_nodes_remain_visible_without_inputs(business_ui):
         assert app.radio(key="main_navigation").options == [ui_navigation.main_label(p) for p in ui_navigation.MAIN_OPTIONS]
         assert any("尚无可用批次" in item.value for item in app.info)
     navigate(app, "import")
-    assert len(app.selectbox(key="import_method").options) == 3
+    assert len(app.selectbox(key="import_method").options) == 4
 
 
 def test_nodes_have_distinct_controls_and_current_record_exports(business_ui):

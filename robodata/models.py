@@ -18,6 +18,8 @@ class Episode:
     expected_length: int
     video_start_time: float = 0.0
     video_end_time: float | None = None
+    camera_paths: dict[str, Path] | None = None
+    camera_segments: dict[str, dict[str, float | None]] | None = None
 
     def names_for(self, field: str) -> list[str]:
         feature = self.metadata.get('info', {}).get('features', {}).get(field, {})

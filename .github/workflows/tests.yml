@@ -2,26 +2,45 @@ name: tests
 
 on:
   push:
-    branches: [main]
   pull_request:
+  workflow_dispatch:
 
 jobs:
-  pytest:
-    # 与开发环境保持一致：Windows + Python 3.12。
-    # 部分用例验证 Windows Job Object 的父进程退出保证，仅在 Windows 上执行。
-    # 转换相关用例需要 tools/conversion 独立环境与已下载的固定样本；
-    # 缺失时用例自身会 skip，因此本工作流只同步主环境。
+  frontend-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+      - name: Run frontend unit tests and production build
+        working-directory: frontend
+        run: |
+          npm test
+          npm run build
+      - name: Install Chromium for browser tests
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+      - name: Run browser tests
+        working-directory: frontend
+        run: npm run test:e2e
+
+  python-tests:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: 设置 uv
-        uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
-
-      - name: 同步主环境
-        run: uv sync --frozen
-
-      - name: 运行测试
-        run: uv run pytest -q
+          cache-dependency-glob: uv.lock
+      - name: Set up Python 3.12
+        run: uv python install 3.12
+      - name: Install locked dependencies
+        run: uv sync --locked
+      - name: Run tests
+        run: uv run --locked python -m pytest -q

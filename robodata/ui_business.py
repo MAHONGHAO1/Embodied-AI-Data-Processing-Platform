@@ -134,6 +134,10 @@ def start_import():
                 raise ValueError("请先选择需要导入的 HDF5 文件")
             path = save_upload(upload.getvalue(), upload.name)
             kind = "hdf5"
+        elif method == "ALOHA Coffee 固定公开样例":
+            from .aloha import ALOHA_REPO_ID, ALOHA_REVISION
+            path = f"pinned://{ALOHA_REPO_ID}@{ALOHA_REVISION}"
+            kind = "aloha"
         else:
             path = clean_input_path(st.session_state.get("import_path", ""))
             if not path:
@@ -153,10 +157,15 @@ def start_import():
 
 def render_import():
     with st.expander("导入一个本地批次", expanded=True):
-        method = st.selectbox("导入方式", ("本机 HDF5 路径", "上传 HDF5 文件", "SO-100 数据目录"), key="import_method")
+        method = st.selectbox("导入方式", ("本机 HDF5 路径", "上传 HDF5 文件", "SO-100 数据目录",
+                                          "ALOHA Coffee 固定公开样例"), key="import_method")
         st.text_input("批次名称", key="import_label", placeholder="例如：抓取演示 · 第一批")
         if method == "上传 HDF5 文件":
             st.file_uploader("选择 HDF5 文件", type=["hdf5", "h5"], key="import_upload")
+        elif method == "ALOHA Coffee 固定公开样例":
+            from .aloha import ALOHA_CAMERAS, ALOHA_REPO_ID, ALOHA_REVISION
+            st.caption(f"固定来源 {ALOHA_REPO_ID}@{ALOHA_REVISION} · MIT · 50 FPS · 默认导入 Episode 0–4")
+            st.caption("首次导入会下载校验所需的共享表格和四路视频；下载文件及来源校验清单会记录在运行证据中。")
         else:
             st.text_input("本机输入路径", key="import_path", placeholder="填写完整文件或数据目录路径")
         with st.expander("故障副本标记（仅测试输入填写）"):
@@ -325,13 +334,27 @@ def render_preview(batch: dict, ep: dict):
         st.slider("任务内记录位置", min_value=0, max_value=max(1, maximum), key=row_key, disabled=maximum == 0)
         row = int(st.session_state[row_key])
         try:
-            preview = preview_batch(batch, ep["episode_index"], row)
+            source = batch.get("source", {})
+            cameras = source.get("cameras") or [source.get("camera", "camera")]
+            camera_key = f"{row_key}_camera"
+            camera = cameras[0]
+            if len(cameras) > 1:
+                camera = st.selectbox("查看相机", cameras, key=camera_key,
+                                      format_func=lambda value: value.rsplit(".", 1)[-1])
+            # Keep the legacy single-camera helper signature for existing
+            # integrations and UI fixtures; multi-camera sources opt into the
+            # explicit camera selector argument.
+            preview = (preview_batch(batch, ep["episode_index"], row, camera=camera)
+                       if len(cameras) > 1 else preview_batch(batch, ep["episode_index"], row))
             left, right = st.columns([1.3, 1])
             if preview.get("image") is not None:
                 left.image(preview["image"], width="stretch")
             else:
                 left.warning("此记录暂无可读取图像；请查看质量问题与文件证据。")
             right.write(f"**源任务 {ep['episode_index']} · 记录 {row + 1} / {ep['row_count']}**")
+            if preview.get("camera"):
+                camera_info = preview.get("camera_metadata", {}).get(preview["camera"], {})
+                right.caption(f"相机 {preview['camera']} · {camera_info.get('fps', preview.get('fps'))} FPS · 分辨率 {camera_info.get('resolution', '来源特征声明')}")
             right.caption("导入后的原始预览不代表训练格式转换已经完成。")
             table = preview.get("table")
             if isinstance(table, pd.DataFrame) and len(table):

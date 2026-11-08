@@ -1,6 +1,12 @@
-# 数据字典与语义边界：V0.3 数据配置、V0.4 业务映射
+# 数据字典与语义边界：V0.3 数据配置、V0.4 业务映射、V0.6 多相机适配
 
-本文覆盖两个固定数据配置及 V0.4 新增的批次、筛选、标注审核和交付字段。SO-100 LeRobot v2.0 浏览子集与固定 robomimic HDF5 → LeRobot v3.0 转换已有 V0.3 验收；V0.4 业务流程仍在开发，见 [版本状态](STATUS_v04.md)。格式版本、来源版本、应用版本、规则版本分别记录。
+本文覆盖固定 HDF5、SO-100 和 v0.6.0 新增的固定 ALOHA Coffee 配置，以及批次、筛选、标注审核和交付字段。HDF5 与 SO-100 的实测范围分别见历史验收记录；ALOHA Episode 0–4 的真实样例验收范围见 [v0.6.0 状态](STATUS_v0.6.0.md) 与 [验收记录](VALIDATION_v0.6.0.md)。格式版本、来源版本、应用版本、规则版本分别记录。
+
+## ALOHA Coffee 固定配置（Episode 0–4 已验收）
+
+来源：[lerobot/aloha_static_coffee](https://huggingface.co/datasets/lerobot/aloha_static_coffee)，固定 revision `b144896feb1f37398a862927b22cd3abdf005a6b`。上游数据集页面声明 MIT；固定 revision 的 [LeRobot `meta/info.json`](https://huggingface.co/datasets/lerobot/aloha_static_coffee/resolve/b144896feb1f37398a862927b22cd3abdf005a6b/meta/info.json) 声明 v3.0、全量 50 条／55,000 帧和 50 FPS。适配范围限制在 Episode 0–4 和四个已声明的视频特征；源清单下载器逐文件校验上游对象哈希和字节数。来源文件不能作为被改写的工作数据，业务工作流只对管理副本操作。
+
+转换保留支持范围内的数值字段及四路相机特征。每路视频单独验证文件、解码帧数和表格时间映射；结果记录相机字段名、帧率、分辨率和来源。逐路映射通过不表示相机具备硬件同步。未知 revision、结构或相机配置应明确失败，不做自动格式推断。Episode 0–4 共 5,500 帧已完成来源哈希核对、官方离线加载、数值检查、输出质量检查与独立验包；证据见 v0.6.0 验收记录。
 
 ## SO-100 原始公开样本
 

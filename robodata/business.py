@@ -20,8 +20,10 @@ BUSINESS_STAGES = {
     "quality": ("quality", "registration"),
     "conversion": ("source_verify", "final_quality", "final_registration", "file_validation", "hdf5_validation", "field_mapping", "format_write", "official_verify", "output_quality", "registration"),
     "conversion_so100": ("source_verify", "final_quality", "final_registration", "file_validation", "metadata_upgrade", "field_mapping", "format_write", "official_verify", "output_quality", "registration"),
+    "conversion_aloha": ("source_verify", "final_quality", "final_registration", "file_validation", "field_mapping", "format_write", "official_verify", "output_quality", "registration"),
     "final_quality": ("source_verify", "final_quality", "final_registration", "file_validation", "hdf5_validation", "field_mapping", "format_write", "official_verify", "output_quality", "conversion_registration", "package", "verify", "archive_verify", "registration"),
     "final_quality_so100": ("source_verify", "final_quality", "final_registration", "file_validation", "metadata_upgrade", "field_mapping", "format_write", "official_verify", "output_quality", "conversion_registration", "package", "verify", "archive_verify", "registration"),
+    "final_quality_aloha": ("source_verify", "final_quality", "final_registration", "file_validation", "field_mapping", "format_write", "official_verify", "output_quality", "conversion_registration", "package", "verify", "archive_verify", "registration"),
     "delivery": ("source_verify", "package", "verify", "archive_verify", "registration"),
     "verify_delivery": ("verify", "archive_verify"),
 }
@@ -38,12 +40,21 @@ BUSINESS_TIMEOUTS = {"preview": 120, "quality": 300, "format_write": 240,
                      "metadata_upgrade": 240, "final_quality": 300,
                      "official_verify": 120, "output_quality": 120, "archive_verify": 120,
                      "package": 120, "verify": 120}
+ALOHA_TIMEOUTS = {"preview": 900, "quality": 1800, "final_quality": 1800,
+                  "format_write": 7200, "official_verify": 1800,
+                  "output_quality": 1800, "package": 1800,
+                  "verify": 1800, "archive_verify": 1800}
 from .conversion import CONVERSION_TOOL_ROOT  # noqa: E402  必须在 SO100_WORKER 之前
 SO100_WORKER = CONVERSION_TOOL_ROOT / "so100_worker.py"
+ALOHA_WORKER = CONVERSION_TOOL_ROOT / "aloha_worker.py"
 
 
 def _so100_worker_path() -> Path:
     return SO100_WORKER
+
+
+def _aloha_worker_path() -> Path:
+    return ALOHA_WORKER
 
 
 def get_store(root=None) -> BatchStore:
@@ -60,10 +71,10 @@ FINAL_RULES = ("candidate_nonempty", "selection_confirmed", "basic_coverage", "b
 
 
 def business_stages(operation, request=None):
-    if operation == "conversion" and request and request.get("source_kind") == "so100":
-        stages = BUSINESS_STAGES["conversion_so100"]
-    elif operation == "final_quality" and request and request.get("source_kind") == "so100":
-        stages = BUSINESS_STAGES["final_quality_so100"]
+    if operation == "conversion" and request and request.get("source_kind") in {"so100", "aloha"}:
+        stages = BUSINESS_STAGES[f"conversion_{request['source_kind']}"]
+    elif operation == "final_quality" and request and request.get("source_kind") in {"so100", "aloha"}:
+        stages = BUSINESS_STAGES[f"final_quality_{request['source_kind']}"]
     else:
         stages = BUSINESS_STAGES[operation]
     if operation in {"conversion", "final_quality"} and request and not request.get("auto_continue", True):
@@ -81,14 +92,18 @@ def _snapshot_digest(value):
 
 
 def _base(operation, business_root=None, **options):
+    timeouts = {**BUSINESS_TIMEOUTS}
+    if options.get("source_kind") == "aloha":
+        timeouts.update(ALOHA_TIMEOUTS)
+    timeouts.update(options.pop("timeouts", {}))
     return {"kind": "business", "operation": operation, "business_root": str(get_store(business_root).root),
-            "timeouts": {**BUSINESS_TIMEOUTS, **options.pop("timeouts", {})}, **options}
+            "timeouts": timeouts, **options}
 
 
 def start_import(path, source_kind, label, test_label=None, *, runs_root=None, business_root=None, **options):
     from .runtime import start_run
-    if source_kind not in {"hdf5", "so100"}:
-        raise WorkflowError("本版本仅支持固定 HDF5 和 SO-100 配置")
+    if source_kind not in {"hdf5", "so100", "aloha"}:
+        raise WorkflowError("本版本仅支持固定 HDF5、SO-100 和 ALOHA Coffee 配置")
     if not isinstance(label, str) or not label.strip():
         raise WorkflowError("请填写批次名称")
     if test_label is not None and (not isinstance(test_label, str) or not test_label.strip()):
@@ -121,14 +136,12 @@ def start_batch_quality(batch_id, expected_revision, *, runs_root=None, business
 def start_batch_conversion(batch_id, expected_revision, *, runs_root=None, business_root=None, **options):
     from .runtime import start_run
     request = _batch_request("conversion", batch_id, expected_revision, business_root, **options)
-    if request["source_kind"] not in {"hdf5", "so100"}:
-        raise WorkflowError("当前审核候选集转换仅支持固定 HDF5 与 SO-100 配置")
+    if request["source_kind"] not in {"hdf5", "so100", "aloha"}:
+        raise WorkflowError("当前审核候选集转换仅支持固定 HDF5、SO-100 与 ALOHA Coffee 配置")
     request["snapshot"] = get_store(business_root).conversion_spec(batch_id)
     request["batch_snapshot"] = get_store(business_root).get_batch(batch_id)
-    if request["source_kind"] == "hdf5":
-        request["input_path"] = request["source"]["hdf5_path"]
-    else:
-        request["input_path"] = request["source"]["data_root"]
+    request["input_path"] = (request["source"]["hdf5_path"] if request["source_kind"] == "hdf5"
+                              else request["source"]["data_root"])
     return start_run(request, runs_root)
 
 
@@ -400,12 +413,15 @@ def _validated_output(directory, request):
         if details.get("output_numeric_frames_checked") != expected_rows:
             raise WorkflowError("SO-100 官方验证未核对全量数值帧数")
         # 把来源版本与 manifest 哈希补进 details，便于后续交付包沿用。
+        if source_kind == "aloha" and details.get("camera_features") != request["source"].get("cameras"):
+            raise WorkflowError("ALOHA official verification must cover every declared camera feature")
         details = {**details, "manifest_sha256": file_sha256(Path(request["output_path"]) / "source_manifest.json"),
                    "source_repo": details.get("source_repo") or request["source"].get("repo_id"),
                    "source_revision": details.get("source_revision") or request["source"].get("revision")}
         _atomic_json(directory / "steps" / "official_verify.json", {**official, "details": details})
     quality = _read_step(directory, "output_quality")["details"]
-    if quality.get("workbench_official_frames_matched") != expected_episodes * 3:
+    camera_count = len(request["source"].get("cameras") or [request["source"].get("camera", "camera")])
+    if quality.get("workbench_official_frames_matched") != expected_episodes * 3 * camera_count:
         raise WorkflowError("工作台与官方加载器的任务视频偏移交叉验证不完整")
     report_path = Path(quality["report_path"])
     report = _read_json(report_path)
@@ -600,19 +616,21 @@ def coordinate_business(directory, state):
                 command = [sys.executable, "-m", "robodata.delivery", "--stage", stage, "--run-dir", str(directory)]
             elif stage == "archive_verify":
                 unpacked = _read_step(directory, "verify")["details"]["dataset_path"]
-                worker = _so100_worker_path() if request.get("source_kind") == "so100" else CONVERSION_WORKER
+                worker = (_so100_worker_path() if request.get("source_kind") == "so100" else
+                          _aloha_worker_path() if request.get("source_kind") == "aloha" else CONVERSION_WORKER)
                 command = [str(CONVERSION_PYTHON), str(worker), "--stage", stage,
                            "--output", unpacked, "--artifacts", str(directory)]
             else:
                 _assert_frozen_batch(request)
                 _require_final_quality(directory, request)
-                worker = _so100_worker_path() if request.get("source_kind") == "so100" else CONVERSION_WORKER
+                worker = (_so100_worker_path() if request.get("source_kind") == "so100" else
+                          _aloha_worker_path() if request.get("source_kind") == "aloha" else CONVERSION_WORKER)
                 command = [str(CONVERSION_PYTHON), str(worker), "--stage", stage,
                            "--input", request["input_path"], "--output", request["output_path"],
                            "--artifacts", str(directory), "--spec", str(directory / "conversion_spec.json")]
                 if request["source"].get("test_label"):
                     command.extend(["--test-mode", request["source"]["test_label"]])
-                if stage in {"metadata_upgrade", "format_write"}:
+                if stage in {"metadata_upgrade", "format_write"} and request.get("source_kind") == "so100":
                     # SO-100 worker 两个阶段都需要 v2.1 中间副本目录
                     command.extend(["--work", request["v21_work_path"]])
             success = run_command_step(directory, state, stage, command,
@@ -717,15 +735,20 @@ def _output_quality(directory, request):
         raise WorkflowError("输出质检未完整通过，不能登记为验证通过的产物")
     official = _read_step(directory, "official_verify")["details"]
     samples = official.get("samples", [])
-    expected_positions = {(e["output_episode_index"], row) for e in expected for row in (0, e["row_count"] // 2, e["row_count"] - 1)}
-    if {(s["episode"], s["row"]) for s in samples} != expected_positions:
+    cameras = request["source"].get("cameras") or [request["source"].get("camera", "camera")]
+    expected_positions = {(e["output_episode_index"], row, camera) for e in expected
+                          for row in (0, e["row_count"] // 2, e["row_count"] - 1) for camera in cameras}
+    if {(s["episode"], s["row"], s.get("camera", cameras[0])) for s in samples} != expected_positions:
         raise WorkflowError("官方视频抽查未覆盖候选集中每条任务的首、中、末位置")
     for sample in samples:
         episode = load_episode(Path(request["output_path"]), sample["episode"])
         row = episode.table.iloc[sample["row"]]
-        frame = read_video_frame(episode.video_path, float(row["timestamp"]) + episode.video_start_time)
+        camera = sample.get("camera", cameras[0])
+        from .video import episode_camera
+        selected = episode_camera(episode, camera)
+        frame = read_video_frame(selected.video_path, float(row["timestamp"]) + selected.video_start_time)
         if int(row["index"]) != sample["global_index"] or hashlib.sha256(frame["image"].tobytes()).hexdigest() != sample["decoded_image_sha256"]:
-            raise WorkflowError(f"任务 {sample['episode']} 行 {sample['row']} 的工作台与官方图像或索引不同，请检查共享视频偏移")
+            raise WorkflowError(f"Episode {sample['episode']} row {sample['row']} camera {camera}: workbench and official image/index differ")
     return {"report_path": str(paths["json"]), "fingerprint": report["input_fingerprint"], "summary": summary,
             "workbench_official_frames_matched": len(samples)}
 

@@ -1,0 +1,30 @@
+name: ALOHA Coffee integration
+
+on:
+  workflow_dispatch:
+
+jobs:
+  aloha-episodes-0-4:
+    runs-on: windows-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - name: Set up Python 3.12
+        run: uv python install 3.12
+      - name: Install locked dependencies
+        run: uv sync --locked
+      - name: Install locked LeRobot conversion environment
+        run: uv sync --project tools/conversion --locked
+      - name: Run the workbench flow on pinned ALOHA Episodes 0-4
+        run: uv run --locked python scripts/verify_aloha.py --work-root work/aloha-integration --artifacts artifacts/aloha --timeout-seconds 7200
+      - name: Upload acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aloha-coffee-episode-0-4-evidence
+          path: artifacts/aloha/
+          if-no-files-found: warn
