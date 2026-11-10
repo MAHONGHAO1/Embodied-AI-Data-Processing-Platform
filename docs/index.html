@@ -62,11 +62,11 @@ a{color:#1c4f91}
 <h1 data-page-node-id="1vJpDgwHkaUph4n6QaXlh8">RoboData Workbench</h1>
 <div class="tagline" data-page-node-id="M4UDCv23MxQQqSDf0Z6eZ6">具身智能数据处理平台 · 把一批机器人演示数据变成可检查、可追溯、可读取的训练样本</div>
 <div class="badges" data-page-node-id="Pie6KxABSaz1MT3XsJF9Lw">
-<span class="badge" data-page-node-id="JVilBHoxA6MK0cgfxLnN38">应用版本 0.4.0</span>
+<span class="badge" data-page-node-id="JVilBHoxA6MK0cgfxLnN38">应用版本 0.6.0</span>
 <span class="badge" data-page-node-id="2EmYaW48ACC2tQRtpT3Eee">LeRobot 格式 v3.0</span>
-<span class="badge" data-page-node-id="cLOmQmBImdTR2l9Q5EE5gh">Python 3.12 · Windows / CPU</span>
-<span class="badge" data-page-node-id="jG615RPUBFP9V8QU13hu1N">14 节点自动链</span>
-<span class="badge" data-page-node-id="SnZFdXthKtoGWCIHCVLjK9">116 帧真实转换验证</span>
+<span class="badge" data-page-node-id="cLOmQmBImdTR2l9Q5EE5gh">Python 3.12 · Node.js 24 · Windows / CPU</span>
+<span class="badge" data-page-node-id="jG615RPUBFP9V8QU13hu1N">13 阶段交付链</span>
+<span class="badge" data-page-node-id="SnZFdXthKtoGWCIHCVLjK9">5,500 帧 ALOHA 多相机验证</span>
 </div>
 </div></header>
 
@@ -96,12 +96,13 @@ a{color:#1c4f91}
 <tr data-page-node-id="Rc24lzFoaCqCBGAfTVJxUX"><th data-page-node-id="Jovp5sheGPukeRJfH7IUE0">来源</th><th data-page-node-id="Hf57ldHOUZr2p6v0H7oXdo">范围</th><th data-page-node-id="IQomX7nFXqV9ME8m5RkPik">维度</th><th data-page-node-id="adSJOrXT0nDPamwKqJlCKo">用途</th></tr>
 <tr data-page-node-id="7ii4Ephnslx9Jcuj788dUQ"><td data-page-node-id="oIh3NQLGQVAHIjbRHCFywF">jmrog/so100_sweet_pick</td><td data-page-node-id="qhAe3dNwcjKC8AranO4JaO">Episode 0–4，3,562 帧</td><td data-page-node-id="yFI52rF4eHZUecUYkPD3vR">状态 6 / 动作 6，单相机 30Hz</td><td data-page-node-id="P7Ugk71E25sIMymTZ5CAcg">导入、预览、质检、标注</td></tr>
 <tr data-page-node-id="Mmpf3avNlXGzYEC3mLGYiA"><td data-page-node-id="dRLlURMIQVCJEcLoD3ug1v">robomimic/robomimic_datasets（Panda / Lift）</td><td data-page-node-id="Fc9451GPDzHeI2zW4VhRsJ">demo_0–2，174 帧</td><td data-page-node-id="BVn1b14o9ydKeGxx2N5PTD">状态 9 / 动作 7，84×84 RGB</td><td data-page-node-id="2ouYwbx0QxPpLuWTF8rsEV">候选集转换与打包交付</td></tr>
+<tr><td>lerobot/aloha_static_coffee@b144896f</td><td>Episode 0–4，5,500 帧</td><td>四路相机 640×480 · 50 FPS</td><td>多相机质检、LeRobot v3.0 转换与独立验包</td></tr>
 </table>
 </section>
 
 <section data-page-node-id="r0MAZVCEY3e765SFVXx90z">
 <h2 data-page-node-id="og0rK1Q6IoubAodijivzTM">一次真实运行的证据</h2>
-<div class="sub" data-page-node-id="FeGr4oOJYGKOm2hGiwsckG">运行 20260910T173026_631fc1c917c8，源任务 []，内容版本 25。</div>
+<div class="sub" data-page-node-id="FeGr4oOJYGKOm2hGiwsckG">v0.4.0 历史运行 20260910T173026_631fc1c917c8，源任务 []，内容版本 25；v0.6.0 验收证据见仓库 docs/VALIDATION_v0.6.0.md。</div>
 <div class="stats" data-page-node-id="SmV6MjMR5OEM3BqHyTYYqp">
 <div class="stat" data-page-node-id="eQ9tidLWpFfpQ3dkHaLMQN"><div class="v" data-page-node-id="VLzTm7nDVlU6MQSRFFm6By">14</div><div class="k" data-page-node-id="FFunpY4iMmKOAL3rSnVrgn">节点全部完成</div></div>
 <div class="stat" data-page-node-id="7a7cCbEu9hdFvLE9tbs3L9"><div class="v" data-page-node-id="gIqx59hsHG4RtM6OZwyQwi">116</div><div class="k" data-page-node-id="CmZYlM7zTEN7ZBJ2DxYm3b">输出帧数</div></div>
@@ -136,7 +137,8 @@ a{color:#1c4f91}
 
 <section data-page-node-id="N7m1iAnpKmnxBJ80Kuo7Ev">
 <h2 data-page-node-id="XALqC9ggzGsEyXu3hqy4cQ">界面</h2>
-<div class="sub" data-page-node-id="M2d70y4PxdlFC50AUITBUB">2026-09-11 本机实测截图，侧栏为八个业务节点＋批次总览＋运行记录。</div>
+<div class="sub" data-page-node-id="M2d70y4PxdlFC50AUITBUB">上方为 v0.6.0 真实 ALOHA 批次工作台截图；下方逐节点截图为 v0.4.0 历史画面。</div>
+<div class="shots"><figure><img src="assets/workbench-v0.6.0-aloha.png" alt="v0.6.0 工作台：真实 ALOHA Coffee Episode 0 的四路相机与逐路质检" loading="lazy"><figcaption>v0.6.0 工作台 · 四路相机与逐路质检</figcaption></figure></div>
 <div class="shots" data-page-node-id="rMjG0YENCL1i9ZeogcoAsM"><figure data-page-node-id="Mxf4BwszxlLCIoqfssAROO"><img src="assets/v04/01_overview.png" alt="批次总览" loading="lazy" data-page-node-id="TBmFJhwFZHyCMc6MCZ45EA"><figcaption data-page-node-id="HYO9rVWBKAHg1vIwnbt4kZ">批次总览</figcaption></figure><figure data-page-node-id="g6bYWn2wQcSbBXIWdU7IH1"><img src="assets/v04/02_import.png" alt="上传／导入" loading="lazy" data-page-node-id="7W9pZeyXlHmRLQ6chr9bd5"><figcaption data-page-node-id="fV7IW1FjDv0V5HsX8uq0vt">上传／导入</figcaption></figure><figure data-page-node-id="xKbHe7Py6nX9ihwEwnQsVT"><img src="assets/v04/03_clean.png" alt="数据清洗" loading="lazy" data-page-node-id="rijw8rvMIGVl0jtF92wUlu"><figcaption data-page-node-id="crqyIK4Sx24BzTqy0K0b7u">数据清洗</figcaption></figure><figure data-page-node-id="DjoB5Mb1kSQVKkNWas8DX5"><img src="assets/v04/04_select.png" alt="数据筛选" loading="lazy" data-page-node-id="Nb6B8W9nFT4b93fxTqsuT0"><figcaption data-page-node-id="P1eHUbcqSheDF2GV5M7tAc">数据筛选</figcaption></figure><figure data-page-node-id="lXb5CiGZ5Gbb9DFnsw5yry"><img src="assets/v04/05_annotate.png" alt="数据标注" loading="lazy" data-page-node-id="jwGESBVDfRxQEP5xcTVGSa"><figcaption data-page-node-id="DurY9nYR4QOqJJEKUdxDtE">数据标注</figcaption></figure><figure data-page-node-id="2hCRwFxD3i1HOvCn002tWp"><img src="assets/v04/06_review.png" alt="标注审核" loading="lazy" data-page-node-id="8ogcJF1mhaGZNBzbOkFhhJ"><figcaption data-page-node-id="FAfE94bL4N0WGfbfTNk7ao">标注审核</figcaption></figure><figure data-page-node-id="Qv2GDVxjfyYHpyABgRsMor"><img src="assets/v04/07_quality.png" alt="数据质检" loading="lazy" data-page-node-id="AdGPpj5UP1tAoRxDbDWqZy"><figcaption data-page-node-id="rtN2tGXerTnyj3j1T7j57w">数据质检</figcaption></figure><figure data-page-node-id="glNdiwHpZzW9fglQE0pMNg"><img src="assets/v04/08_convert.png" alt="格式转换" loading="lazy" data-page-node-id="tyruXnoMaFDX3yFJPdsWF2"><figcaption data-page-node-id="mAgZgfnHxi8aZ5y9L6l2J3">格式转换</figcaption></figure><figure data-page-node-id="v0YSjYraOFWwAaJtpTIBfn"><img src="assets/v04/09_deliver.png" alt="打包交付" loading="lazy" data-page-node-id="JMzWStOvV3u2IBhCDhwokr"><figcaption data-page-node-id="BQiRX1ptZWDNuwtDKx2gJ5">打包交付</figcaption></figure><figure data-page-node-id="hn9Egi9cerE9BDXKAz2dP7"><img src="assets/v04/10_runs.png" alt="运行记录" loading="lazy" data-page-node-id="SKFBLHEBk9fqCBcGRXvPts"><figcaption data-page-node-id="7iStBnSsqgKXlNli7PjDSD">运行记录</figcaption></figure></div>
 </section>
 
@@ -144,7 +146,7 @@ a{color:#1c4f91}
 <h2 data-page-node-id="dB6I5NHPrZE1MuXgUMTt4O">技术栈</h2>
 <table data-page-node-id="DjKcCvVKXH9673o9Wp0JmM">
 <tr data-page-node-id="8qBGKFFzCvI9ATJXgWUHGz"><th data-page-node-id="T4ZDXxiFigOol8lteEMy2V">层</th><th data-page-node-id="E4ovxrVqomTyRBnGpsrb94">选用</th></tr>
-<tr data-page-node-id="SOGDZnMcZC27QmSgZYW1JJ"><td data-page-node-id="neCFm889fA5Dy2NJlS6Dxi">页面交互</td><td data-page-node-id="CZchhCqqBui5tLUa3Sd4tx">Streamlit</td></tr>
+<tr data-page-node-id="SOGDZnMcZC27QmSgZYW1JJ"><td data-page-node-id="neCFm889fA5Dy2NJlS6Dxi">页面交互</td><td data-page-node-id="CZchhCqqBui5tLUa3Sd4tx">React + TypeScript（Vite）· FastAPI 本地服务；Streamlit 保留为回退入口</td></tr>
 <tr data-page-node-id="ZHJ2j2M1gHQvuESM9Dey5r"><td data-page-node-id="iXRCAVxhuHZEATiI9BGlDU">业务判断</td><td data-page-node-id="OZGzyG1RIp8ncr81y9FiYu">批次 / 任务状态机，人工审核与修订号</td></tr>
 <tr data-page-node-id="gx3zqu4sizDdUJnZnUguvD"><td data-page-node-id="1rLFSroQc8lejO9sENDyZn">后台执行</td><td data-page-node-id="XST2Uw1Rm7E0Vs0Krsn0Dd">独立 Python 工作进程，JSONL 事件流</td></tr>
 <tr data-page-node-id="pn1Le2AotJpkfo6AKn8ylH"><td data-page-node-id="HDnLOsOanDWXhoSfcsqTyL">数据处理</td><td data-page-node-id="wU68TwNFgBmAYk1AbQB1mf">Pandas、NumPy、PyArrow、PyAV、h5py</td></tr>
@@ -155,18 +157,20 @@ a{color:#1c4f91}
 
 <section data-page-node-id="9BjMRtMDMaLVLzrvZ3htLB">
 <h2 data-page-node-id="BQk62XKYq0SzkU61HKEM6J">快速开始</h2>
-<pre data-page-node-id="cXjdY0PQ72L1LVeEfw233n"><code data-page-node-id="SlIBRkhLL6UHyjh0xCRT8N"># 主环境
-uv sync --frozen
+<pre data-page-node-id="cXjdY0PQ72L1LVeEfw233n"><code data-page-node-id="SlIBRkhLL6UHyjh0xCRT8N"># Python 3.12 + Node.js 24 LTS + uv
+uv sync --locked
+cd frontend
+npm ci
+npm run build
+cd ..
 
-# HDF5 全流程需要独立转换环境
-uv sync --project tools/conversion --frozen
-uv run robodata fetch-hdf5
-
-# 启动本地工作台
+# 启动 v0.6.0 工作台（React + FastAPI）
 .\启动工作台.cmd
-# 浏览器打开 http://127.0.0.1:8501/</code></pre>
+# 浏览器打开 http://127.0.0.1:8765/
+
+# 旧版 Streamlit 回退入口：启动Streamlit旧版.cmd（8501）</code></pre>
 <p style="font-size:13px;color:#6b7383;margin-top:10px" data-page-node-id="7xTab24yzxuT5fVlUlceeD">
-需要 Python 3.12 与 uv。SO-100 样本另需 <code data-page-node-id="NnuQCqrLYgpzMmYMZf97sr">uv run robodata fetch-sample</code>（约 53 MB）。
+需要 Python 3.12、Node.js 24 与 uv。首次安装可直接双击 <code>首次安装.cmd</code>。SO-100 样本另需 <code>uv run robodata fetch-sample</code>（约 53 MB）；ALOHA 固定样例由手动集成工作流下载（约 1.57 GB）。
 </p>
 </section>
 
@@ -175,17 +179,18 @@ uv run robodata fetch-hdf5
 <div class="sub" data-page-node-id="ghRdZJyvkPB17TbXC7XGdY">以下均未在本次交付中实现，不宣称具备。</div>
 <ul class="plain" data-page-node-id="W49kM3BYsVthx6BdowHHes">
 <li data-page-node-id="XEMPenDQngrcpWbFA5efc2">不训练模型：验证了“数据能被官方库正确加载”，未验证训练效果</li>
-<li data-page-node-id="o3ZXh9AkzdDHmIdDYfSJ9P">不支持通用 HDF5 / MCAP 自动接入，仅固定配置的两个公开数据源</li>
-<li data-page-node-id="ZAhQaHHpZDRCCUadOvE8kB">未做多相机硬件同步、自动轨迹修复、逐帧标注</li>
+<li data-page-node-id="o3ZXh9AkzdDHmIdDYfSJ9P">仅承诺 SO-100 / HDF5 固定配置与 ALOHA Coffee 固定 revision；不支持通用 HDF5 / MCAP / ROS 2 自动接入</li>
+<li data-page-node-id="ZAhQaHHpZDRCCUadOvE8kB">已支持四路相机逐路质检，但未验证硬件同步，未做自动轨迹修复、逐帧标注</li>
 <li data-page-node-id="sGGrRuRKtd1b5UzagCggZK">未做大规模吞吐压测，当前为单机单用户、CPU</li>
-<li data-page-node-id="EeacVdNONcQ5vqzp0HQK3Y">SO-100 暂无业务转换交付适配器</li>
+<li data-page-node-id="EeacVdNONcQ5vqzp0HQK3Y">SO-100 与 ALOHA 已有审核后转换与交付适配器；适配范围限于上述固定来源</li>
 <li data-page-node-id="ychismnZnY8P2J5Kd4WSXz">公开样本图片为 H.264 有损，float32 映射非 float64 无损</li>
 </ul>
 </section>
 
 <footer data-page-node-id="5Zv2RPU7Kj4s1ELlBbCuOS">
 <a href="https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform" data-page-node-id="3mw1UNtba0rWK8o4T8cCB6">GitHub 仓库</a>
-· 页面生成于 2026-09-11 · 证据取自本机真实运行
+· <a href="https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/releases/tag/v0.6.0">v0.6.0 Release</a>
+· 页面更新于 2026-11-10 · 版本与验收信息对应 v0.6.0；逐节点截图为 v0.4.0 历史画面
 </footer>
 </div>
 </body>
