@@ -95,7 +95,7 @@ def test_missing_video_continues_and_cannot_be_counted_as_pass(original_sample, 
     report = quality.run_batch(target)
     assert [item["status"] for item in report["episodes"]] == ["incomplete", "passed", "passed", "passed", "passed"]
     assert report["summary"]["load_failure_count"] == 1
-    assert report["summary"]["not_checked_count"] == 2
+    assert report["summary"]["not_checked_count"] == 3
     assert report["summary"]["coverage_performed"] == 52
     assert report["summary"]["passed_episode_count"] == 4
     assert json.loads(report_json(report))["summary"] == report["summary"]

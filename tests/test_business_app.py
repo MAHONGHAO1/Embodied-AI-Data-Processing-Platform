@@ -172,6 +172,32 @@ def test_review_return_revise_resubmit_approve_and_whole_batch_gate(business_ui)
     assert table["输出任务"].tolist() == [0, 1]
 
 
+def test_so100_batch_can_start_conversion_after_review_and_final_quality(business_ui, monkeypatch):
+    store, calls = business_ui
+    source = {"kind": "so100", "input_fingerprint": "synthetic-so100-ui-fixture", "test_label": "合成 UI 测试"}
+    state = make_batch(store, source=source)
+    state = store.confirm_cleaning(state["batch_id"], expected_revision=state["revision"])
+    for index in (0, 2):
+        state = store.save_annotation(state["batch_id"], index, task=f"合成任务 {index}", outcome="success",
+            expected_revision=state["revision"])
+        state = store.submit_annotation(state["batch_id"], index, expected_revision=state["revision"])
+        state = store.review_annotation(state["batch_id"], index, approve=True,
+            reason="合成 UI 审核通过", expected_revision=state["revision"])
+
+    from robodata import ui_flow
+    flow = ui_flow.empty_flow()
+    for node in flow["nodes"]:
+        node.update(status="completed", outcome="passed", reason="合成流程测试")
+    next(node for node in flow["nodes"] if node["node_id"] == "convert").update(status="ready", outcome=None)
+    monkeypatch.setattr(ui_flow, "flow_for", lambda batch: flow)
+    app = app_for(state["batch_id"], "convert")
+    button = next(item for item in app.button if item.label == "转换并验证候选集")
+    assert not button.disabled
+    assert not any("SO-100" in item.value and "转换范围" in item.value for item in app.info)
+    button.click().run()
+    assert calls[-1] == ("conversion", (state["batch_id"], state["revision"]), {})
+
+
 def test_old_page_rejects_conflict_without_overwriting_new_annotation(business_ui):
     store, _ = business_ui
     state = make_batch(store)
@@ -318,7 +344,7 @@ def test_all_eight_nodes_remain_visible_without_inputs(business_ui):
         assert app.radio(key="main_navigation").options == [ui_navigation.main_label(p) for p in ui_navigation.MAIN_OPTIONS]
         assert any("尚无可用批次" in item.value for item in app.info)
     navigate(app, "import")
-    assert len(app.selectbox(key="import_method").options) == 3
+    assert len(app.selectbox(key="import_method").options) == 4
 
 
 def test_nodes_have_distinct_controls_and_current_record_exports(business_ui):

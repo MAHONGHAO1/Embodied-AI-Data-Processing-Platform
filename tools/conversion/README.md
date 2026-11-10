@@ -1,6 +1,6 @@
 # 独立转换与官方加载环境
 
-本文同时包含 V0.3 的历史实测与 V0.4 开发中的预览、候选转换及交付验证接口。当前状态见 [V0.4 说明](../../docs/STATUS_v04.md)，完整页面操作见 [SOP](../../docs/SOP.md)。
+本文说明独立转换环境、已验收的固定 HDF5 流程以及 v0.6.0 固定 ALOHA 适配目标。ALOHA 的当前状态见 [v0.6.0 说明](../../docs/STATUS_v0.6.0.md) 和 [验收记录](../../docs/VALIDATION_v0.6.0.md)，完整页面操作见 [SOP](../../docs/SOP.md)。
 
 本目录为 Windows x64、Python 3.12 CPU 环境。依赖装入 `tools/conversion/.venv`，不会向工作台主环境添加 PyTorch。锁定 LeRobot 0.4.4 输出的 LeRobotDataset v3.0；这里没有使用模型训练、CUDA 或机器人硬件。
 
@@ -9,7 +9,7 @@
 在代码库根目录运行：
 
 ```powershell
-uv sync --project tools/conversion --frozen
+uv sync --project tools/conversion --locked
 ```
 
 `uv.lock` 锁定完整依赖。PyTorch 两个包从官方 CPU 源安装，其余包从 PyPI 安装。代理如有需要只通过当前进程环境变量配置，不写进此目录。

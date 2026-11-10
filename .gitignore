@@ -4,9 +4,15 @@ __pycache__/
 *.pyc
 data/
 reports/
+artifacts/
 .env
 .env.*
 *.local.*
 work/
+frontend/node_modules/
+frontend/dist/
+frontend/test-results/
+frontend/playwright-report/
+frontend/tsconfig.tsbuildinfo
 dist/
 *.log

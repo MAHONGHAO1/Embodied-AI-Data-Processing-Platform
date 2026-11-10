@@ -137,7 +137,21 @@ def package(request: dict, run: Path) -> dict:
     source_revision = source.get('revision', '74fa018461f479cd9fd15b924a16103012096203')
     source_license = source.get('license', 'MIT (upstream dataset card declaration)')
     source_robot = source.get('robot', 'Panda / Lift 仿真测试数据')
-    if source_kind == 'so100':
+    if source_kind == 'aloha':
+        cameras = source.get('cameras', [])
+        camera_summary = ', '.join(cameras)
+        dataset_summary = (f'ALOHA Coffee 审核子集；保留 {len(cameras)} 路来源相机特征（{camera_summary}），'
+                           f"{source.get('fps', 50)} FPS；视频按 LeRobot 官方 writer 转码，未验证硬件同步。")
+        camera_lines = '\n'.join(
+            f"{name}: {details.get('fps', source.get('fps', 50))} FPS, resolution={details.get('resolution', [])}"
+            for name, details in source.get('camera_metadata', {}).items())
+        license_block = (
+            f'Source: {source_repo}\nRevision: {source_revision}\n'
+            f'License: {source_license}\n'
+            f'https://huggingface.co/datasets/{source_repo}/tree/{source_revision}\n'
+            f'{source_robot}. Camera features:\n{camera_lines}\n'
+            'Video mapping is checked per stream; hardware synchronization is not claimed.\n')
+    elif source_kind == 'so100':
         dataset_summary = ('SO-100 真机遥操作子集；状态与动作均为 6 维关节值，保留来源顺序与原始数值；'
                            '相机为 640×480 AV1，remux 无重编码；时间按 30 Hz 派生。')
         license_block = (

@@ -134,6 +134,10 @@ def start_import():
                 raise ValueError("请先选择需要导入的 HDF5 文件")
             path = save_upload(upload.getvalue(), upload.name)
             kind = "hdf5"
+        elif method == "ALOHA Coffee 固定公开样例":
+            from .aloha import ALOHA_REPO_ID, ALOHA_REVISION
+            path = f"pinned://{ALOHA_REPO_ID}@{ALOHA_REVISION}"
+            kind = "aloha"
         else:
             path = clean_input_path(st.session_state.get("import_path", ""))
             if not path:
@@ -153,10 +157,15 @@ def start_import():
 
 def render_import():
     with st.expander("导入一个本地批次", expanded=True):
-        method = st.selectbox("导入方式", ("本机 HDF5 路径", "上传 HDF5 文件", "SO-100 数据目录"), key="import_method")
+        method = st.selectbox("导入方式", ("本机 HDF5 路径", "上传 HDF5 文件", "SO-100 数据目录",
+                                          "ALOHA Coffee 固定公开样例"), key="import_method")
         st.text_input("批次名称", key="import_label", placeholder="例如：抓取演示 · 第一批")
         if method == "上传 HDF5 文件":
             st.file_uploader("选择 HDF5 文件", type=["hdf5", "h5"], key="import_upload")
+        elif method == "ALOHA Coffee 固定公开样例":
+            from .aloha import ALOHA_CAMERAS, ALOHA_REPO_ID, ALOHA_REVISION
+            st.caption(f"固定来源 {ALOHA_REPO_ID}@{ALOHA_REVISION} · MIT · 50 FPS · 默认导入 Episode 0–4")
+            st.caption("首次导入会下载校验所需的共享表格和四路视频；下载文件及来源校验清单会记录在运行证据中。")
         else:
             st.text_input("本机输入路径", key="import_path", placeholder="填写完整文件或数据目录路径")
         with st.expander("故障副本标记（仅测试输入填写）"):
@@ -325,13 +334,27 @@ def render_preview(batch: dict, ep: dict):
         st.slider("任务内记录位置", min_value=0, max_value=max(1, maximum), key=row_key, disabled=maximum == 0)
         row = int(st.session_state[row_key])
         try:
-            preview = preview_batch(batch, ep["episode_index"], row)
+            source = batch.get("source", {})
+            cameras = source.get("cameras") or [source.get("camera", "camera")]
+            camera_key = f"{row_key}_camera"
+            camera = cameras[0]
+            if len(cameras) > 1:
+                camera = st.selectbox("查看相机", cameras, key=camera_key,
+                                      format_func=lambda value: value.rsplit(".", 1)[-1])
+            # Keep the legacy single-camera helper signature for existing
+            # integrations and UI fixtures; multi-camera sources opt into the
+            # explicit camera selector argument.
+            preview = (preview_batch(batch, ep["episode_index"], row, camera=camera)
+                       if len(cameras) > 1 else preview_batch(batch, ep["episode_index"], row))
             left, right = st.columns([1.3, 1])
             if preview.get("image") is not None:
                 left.image(preview["image"], width="stretch")
             else:
                 left.warning("此记录暂无可读取图像；请查看质量问题与文件证据。")
             right.write(f"**源任务 {ep['episode_index']} · 记录 {row + 1} / {ep['row_count']}**")
+            if preview.get("camera"):
+                camera_info = preview.get("camera_metadata", {}).get(preview["camera"], {})
+                right.caption(f"相机 {preview['camera']} · {camera_info.get('fps', preview.get('fps'))} FPS · 分辨率 {camera_info.get('resolution', '来源特征声明')}")
             right.caption("导入后的原始预览不代表训练格式转换已经完成。")
             table = preview.get("table")
             if isinstance(table, pd.DataFrame) and len(table):
@@ -443,15 +466,12 @@ def review_annotation(batch_id: str, ep_id: int, revision: int, approve: bool, r
             reason=st.session_state.get(reason_key, ""), expected_revision=revision)
         kept = [ep for ep in updated["episodes"] if ep["disposition"] == "keep"]
         if approve and kept and all(ep["review"]["status"] == "approved" for ep in kept):
-            if updated["source"].get("kind") == "hdf5":
-                try:
-                    run_id = service().start_final_quality(batch_id, updated["revision"], auto_continue=True)
-                    notice("全部保留任务已审核，后台将执行最终质检，通过后自动转换并验证交付包。")
-                    open_run(run_id)
-                except Exception as exc:
-                    notice(f"审核已保存，自动处理未能启动：{explain_error(exc)}。请在数据质检页重新启动。", error=True)
-            else:
-                notice("审核已保存。当前 SO-100 配置可继续最终质检；转换与交付暂只支持 HDF5。")
+            try:
+                run_id = service().start_final_quality(batch_id, updated["revision"], auto_continue=True)
+                notice("全部保留任务已审核，后台将执行最终质检、格式转换、打包与独立验包。")
+                open_run(run_id)
+            except Exception as exc:
+                notice(f"审核已保存，自动处理未能启动：{explain_error(exc)}。请在数据质检页重新启动。", error=True)
         else:
             notice("审核通过，等待其余保留任务审核。" if approve else "已退回，请到数据标注页修改后重新提交。")
     except Exception as exc:
@@ -537,7 +557,7 @@ def render_reviews(batch: dict):
         st.button("退回修改", type="secondary", disabled=not can_review or not st.session_state.get(reason_key, "").strip(), on_click=review_annotation, args=(batch["batch_id"], ep["episode_index"], batch["revision"], False, reason_key))
         if can_review and not st.session_state.get(reason_key, "").strip():
             st.caption("退回前请填写具体原因。")
-        st.caption("最后一条保留任务审核通过后，HDF5 批次自动继续最终质检 → 转换 → 打包验证。")
+        st.caption("最后一条保留任务审核通过后，HDF5 与 SO-100 批次自动继续最终质检 → 转换 → 打包验证。")
     with preview:
         render_preview(batch, ep)
 
@@ -552,8 +572,6 @@ def render_conversion(batch: dict, *, final_quality_passed=False, current_output
         blocked.append(f"还有 {pending} 条保留任务未完成审核，请先完成标注审核。")
     if not final_quality_passed:
         blocked.append("当前内容版本尚未通过最终数据质检，请先完成数据质检节点。")
-    if batch["source"].get("kind") != "hdf5":
-        blocked.append("当前业务转换仅支持已验证的 HDF5 配置；SO-100 可导入、预览、质检和标注。")
     try:
         spec = service().get_store().conversion_spec(batch["batch_id"])
     except Exception as exc:
@@ -566,14 +584,11 @@ def render_conversion(batch: dict, *, final_quality_passed=False, current_output
               args=(service().start_batch_conversion, batch["batch_id"], batch["revision"]))
     if blocked:
         # 区分两类原因：批次类型不在转换范围内（设计边界）与前置条件未满足（可推进）。
-        scope_notes = [m for m in blocked if "仅支持已验证的 HDF5" in m]
+        scope_notes = []
         prerequisites = [m for m in blocked if m not in scope_notes]
         if scope_notes:
             st.info(
-                "**当前批次类型不在格式转换范围内**（这是设计边界，不是故障）。\n\n"
-                f"{scope_notes[0]}\n\n"
-                "SO-100 本身就是 LeRobot v2.0 数据集，已经是官方格式，本节点无需再写入；"
-                "要看本平台的转换链路，请在左侧「当前批次」切换到 HDF5 批次（Panda / Lift）。"
+                "**当前批次类型不在格式转换范围内**（这是设计边界，不是故障）。"
             )
         if prerequisites:
             st.warning("**转换前置条件未满足：**\n\n"

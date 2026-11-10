@@ -8,6 +8,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
+from typing import BinaryIO
 import uuid
 
 from .config import HDF5_EPISODES, PROJECT_ROOT
@@ -16,7 +17,7 @@ from .source import SAMPLE_FILES, MANIFEST_NAME, DEMO_MANIFEST_NAME, file_sha256
 
 HDF5_RULES = ('required_fields','row_count','vector_shape','numeric_finite','frame_index',
                'timestamp_monotonic','timestamp_interval','image_shape','image_frame_count','image_read')
-PROFILE = {'profile_version':'0.4.0','hdf5_episodes':list(HDF5_EPISODES), 'state_fields':
+PROFILE = {'profile_version':'0.6.0','hdf5_episodes':list(HDF5_EPISODES), 'state_fields':
            ['obs/robot0_eef_pos','obs/robot0_eef_quat','obs/robot0_gripper_qpos'],
            'action':'actions','image':'obs/agentview_image','fps':20,'timestamp':'derived_frame_index/fps'}
 
@@ -30,13 +31,22 @@ def _write(path,value):
 def _digest(value):
     return hashlib.sha256(json.dumps(value,sort_keys=True,ensure_ascii=False,separators=(',',':')).encode()).hexdigest()
 
-def save_upload(data: bytes, filename: str) -> Path:
+def save_upload(data: bytes | BinaryIO, filename: str) -> Path:
     if Path(filename).suffix.lower() not in {'.hdf5','.h5'}:
         raise ValueError('当前上传入口只接受已验证配置的 HDF5 文件')
     root = Path(os.environ.get('ROBODATA_BUSINESS_ROOT',PROJECT_ROOT/'work/business'))/'uploads'/uuid.uuid4().hex
     root.mkdir(parents=True)
     path = root/'uploaded.hdf5'
-    path.write_bytes(data)
+    try:
+        with path.open('wb') as destination:
+            if isinstance(data, bytes):
+                destination.write(data)
+            else:
+                shutil.copyfileobj(data, destination, length=1024 * 1024)
+    except Exception:
+        path.unlink(missing_ok=True)
+        root.rmdir()
+        raise
     return path
 
 def _files(root: Path, names) -> list[dict]:
@@ -82,15 +92,26 @@ def _preview_worker(raw: Path, output: Path, label=None):
 
 def _copy(request,run):
     kind=request['source_kind']
-    if kind not in {'hdf5','so100'}: raise ValueError('只支持固定 HDF5 或 SO-100 目录配置')
-    source=Path(request['input_path']).resolve()
+    if kind not in {'hdf5','so100','aloha'}: raise ValueError('只支持固定 HDF5、SO-100 或 ALOHA Coffee 配置')
     managed=Path(request['managed_dir']).resolve()
     raw=managed/'source'
     if raw.exists(): raise ValueError('本次导入暂存目录已存在，不能覆盖既有数据')
-    if source==managed or managed.is_relative_to(source):
-        raise ValueError('导入目标不能位于输入目录内')
     raw.mkdir(parents=True)
     label=request.get('test_label')
+    if kind == 'aloha':
+        if label:
+            raise ValueError('固定 ALOHA Coffee 来源不能使用故障副本标记；故障测试必须使用独立合成夹具')
+        from .aloha import ALOHA_FILES, ALOHA_REVISION, fetch_aloha_sample
+        source_manifest = fetch_aloha_sample(raw, proxy=os.environ.get('HTTPS_PROXY') or os.environ.get('https_proxy'))
+        names = [*ALOHA_FILES, 'source_manifest.json']
+        interpretation = {'profile_version': '0.6.0', 'kind': kind,
+                          'repo_id': source_manifest['source']['repo_id'],
+                          'revision': ALOHA_REVISION, 'episodes': [0, 1, 2, 3, 4],
+                          'test_label': None, 'batch_label': str(request.get('label') or '').strip()}
+    else:
+        source=Path(request['input_path']).resolve()
+        if source==managed or managed.is_relative_to(source):
+            raise ValueError('导入目标不能位于输入目录内')
     if kind=='hdf5':
         if not source.is_file(): raise FileNotFoundError('找不到待导入的 HDF5 文件')
         before=file_sha256(source)
@@ -100,7 +121,7 @@ def _copy(request,run):
         if before!=file_sha256(raw/'test.hdf5') or before!=file_sha256(source):
             raise ValueError('复制期间 HDF5 输入发生变化，未登记批次')
         names=['test.hdf5']
-    else:
+    elif kind == 'so100':
         if not source.is_dir(): raise NotADirectoryError('SO-100 导入入口需要本地数据目录')
         names=[*SAMPLE_FILES,MANIFEST_NAME]
         if (source/DEMO_MANIFEST_NAME).is_file():
@@ -124,8 +145,9 @@ def _copy(request,run):
     # 批次名参与指纹：同名视为同一批次（复用既有筛选／审核／交付记录），
     # 异名视为用户要建立独立批次，便于演示或对照实验时从零跑一遍，
     # 而不必删除或改动既有批次。文件内容与来源配置仍是硬校验。
-    interpretation={**PROFILE,'kind':kind,'test_label':label,
-                    'batch_label':str(request.get('label') or '').strip()}
+    if kind != 'aloha':
+        interpretation={**PROFILE,'kind':kind,'test_label':label,
+                        'batch_label':str(request.get('label') or '').strip()}
     fingerprint=_digest({'files':files,'interpretation':interpretation})
     _write(managed/'input_manifest.json',{'schema_version':1,'files':files,'interpretation':interpretation,
                                         'input_fingerprint':fingerprint})
@@ -160,7 +182,13 @@ def _inventory(request,run):
         from .quality import RULES
         metadata=load_metadata(managed/'source')
         source.update(metadata['source'],data_root=str(managed/'source'),required_rules=list(RULES))
-        episodes=[{'episode_index':i,'row_count':int(metadata['episodes'][i]['length'])} for i in metadata['episode_indices']]
+        indices = metadata['episode_indices']
+        if request['source_kind'] == 'aloha':
+            from .aloha import ALOHA_EPISODES
+            indices = [i for i in ALOHA_EPISODES if i in metadata['episodes']]
+            if tuple(indices) != ALOHA_EPISODES:
+                raise ValueError('固定 ALOHA Coffee Episode 0–4 不完整，拒绝创建批次')
+        episodes=[{'episode_index':i,'row_count':int(metadata['episodes'][i]['length'])} for i in indices]
     assert_input_unchanged(source)
     return {'label':request.get('label','本地导入批次'),'source':source,'episodes':episodes}
 
@@ -217,22 +245,28 @@ def _quality(request,run):
     paths=write_report(report,run/'reports')
     return {'report_path':str(paths['json']),'input_fingerprint':source['input_fingerprint'],'required_rules':source['required_rules']}
 
-def preview_batch(batch: dict, episode_index: int, row: int=0) -> dict:
+def preview_batch(batch: dict, episode_index: int, row: int=0, camera: str | None=None) -> dict:
     import numpy as np
     import pandas as pd
     source=batch['source']
     assert_input_unchanged(source)
-    if source['kind']=='so100':
+    if source['kind'] in {'so100', 'aloha'}:
         from .dataset import load_episode
-        from .video import read_video_frame
+        from .video import episode_camera, read_video_frame
         episode=load_episode(Path(source['data_root']),episode_index)
         row=max(0,min(row,len(episode.table)-1))
+        camera_names=list(episode.camera_paths or {episode.source.get('camera','camera'):episode.video_path})
+        camera = camera if camera in camera_names else camera_names[0]
+        selected=episode_camera(episode,camera)
         image=None
         issue=[]
-        try: image=read_video_frame(episode.video_path,float(episode.table.iloc[row]['timestamp']))['image']
-        except Exception as exc: issue=[{'message':str(exc),'field':'video'}]
+        try:
+            timestamp=float(episode.table.iloc[row]['timestamp'])+selected.video_start_time
+            image=read_video_frame(selected.video_path,timestamp)['image']
+        except Exception as exc: issue=[{'message':str(exc),'field':'video','camera':camera}]
         return {'image':image,'table':episode.table,'state_names':episode.state_names,'action_names':episode.action_names,
-                'fps':episode.fps,'issues':issue,'source':episode.source,'row_index':row}
+                'fps':episode.fps,'issues':issue,'source':episode.source,'row_index':row,
+                'camera':camera,'cameras':camera_names,'camera_metadata':episode.source.get('camera_metadata',{})}
     root=Path(source['preview_root'])
     expected=_json(Path(source['managed_path'])/'preview_manifest.json')['files']
     if _files(root,[e['path'] for e in expected])!=expected:

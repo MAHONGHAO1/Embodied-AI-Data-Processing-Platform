@@ -8,6 +8,13 @@
 - 固定版本：`54141acb0bd6bcb868e34b4eb328f26481d333b2`。
 - 许可：固定来源的数据集卡声明Apache-2.0；已有许可副本见 [DATA_LICENSE.txt](DATA_LICENSE.txt)，该文件不用于替代下述第二数据源的MIT声明。
 - 本项目只获取Episode0–4、laptop单相机及必要表格／元数据，共3,562帧。机器人类型、任务描述和字段名沿用来源；未知单位与控制语义不推断。
+
+## ALOHA Coffee（v0.6.0 固定来源与已验收样例）
+
+- 来源：[lerobot/aloha_static_coffee](https://huggingface.co/datasets/lerobot/aloha_static_coffee)，revision `b144896feb1f37398a862927b22cd3abdf005a6b`。
+- 上游数据集页面声明 MIT；这里记录的是来源方声明，不代表本项目提供法律意见。
+- 固定 revision 的 [LeRobot `meta/info.json`](https://huggingface.co/datasets/lerobot/aloha_static_coffee/resolve/b144896feb1f37398a862927b22cd3abdf005a6b/meta/info.json) 声明 v3.0、全量 50 条／55,000 帧、50 FPS。当前适配配置限定 Episode 0–4 和 `observation.images.cam_high`、`observation.images.cam_left_wrist`、`observation.images.cam_low`、`observation.images.cam_right_wrist` 四路相机。Episode 0–4 已完成本地端到端验收；子集帧数、固定来源文件校验、转换及交付结果见 [v0.6.0 验收记录](VALIDATION_v0.6.0.md)。完整逐文件哈希清单随本地验收产物保存，不随源码仓库发布。
+- 各相机分别检查视频文件、解码、帧数和表格时间映射；这不构成硬件时钟同步证据。输出只展示固定样例处理与格式验证，不表示机器人执行成功或模型训练效果。
 - SO-100截图与接触表由解码图像缩放、加标签而成，是衍生预览，不是未改动的原始文件。早期界面截图对应V0.1布局。
 
 ## robomimic公开仿真测试样本

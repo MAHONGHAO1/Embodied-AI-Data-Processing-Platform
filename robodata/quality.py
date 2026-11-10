@@ -19,7 +19,7 @@ import numpy as np
 from .config import APP_VERSION, CAMERA, DEFAULT_RULE_PARAMS, EPISODES, REPO_ID, REVISION, RULE_VERSION
 from .errors import error_details, explain_error
 from .models import Episode
-from .video import inspect_video, episode_video_segment
+from .video import episode_camera, episode_video_segment, inspect_video
 
 REQUIRED_FIELDS = ("episode_index", "frame_index", "timestamp", "observation.state", "action")
 RULES = (
@@ -232,53 +232,61 @@ def run_checks(episode: Episode, params: dict | None = None, check_video: bool =
         stage("video_decode", "skipped", message="此次运行未启用视频检查")
         stage("video_checks", "skipped", message="此次运行未启用视频检查")
     else:
-        stage("video_decode", "started", input_path=str(episode.video_path))
-        try:
-            if not episode.video_path.is_file():
-                raise FileNotFoundError("主相机视频文件不存在")
-            decoded = episode_video_segment(inspect_video(episode.video_path), episode)
-            video = {key: json_safe(value) for key, value in decoded.items() if key != "pts_times"}
-            video["status"] = "passed"
-            covered("video_decode", "已解码主相机视频并检查本任务对应片段")
-        except Exception as exc:
-            video = {"status": "failed", "error": explain_error(exc, "读取主相机视频"),
-                     "diagnostics": error_details(exc, include_traceback=True)}
-            issue("video_decode", video["error"],
-                  {"error": video["error"], "diagnostics": video["diagnostics"]},
-                  category="load_failure")
-            skipped("video_decode", "视频缺失或完整解码失败", report_issue=False)
-            skipped("video_frame_count", "视频读取失败，无法检查帧数")
-            skipped("video_timestamp_mapping", "视频读取失败，无法检查文件内时间对应")
-            stage("video_decode", "failed", message=video["error"], diagnostics=video["diagnostics"])
-            stage("video_checks", "skipped", message="视频读取失败，无法执行关联检查")
-        else:
-            stage("video_decode", "completed")
-            stage("video_checks", "started", input_path=str(episode.video_path))
-            covered("video_frame_count")
+        camera_paths = episode.camera_paths or {episode.source.get("camera", "camera"): episode.video_path}
+        camera_reports: dict[str, dict] = {}
+        for camera_name, camera_path in camera_paths.items():
+            camera_report = {"camera": camera_name, "path": str(camera_path)}
+            stage("video_decode", "started", input_path=str(camera_path), camera=camera_name)
+            try:
+                if not camera_path.is_file():
+                    raise FileNotFoundError(f"相机视频不存在：{camera_name}")
+                selected_episode = episode_camera(episode, camera_name)
+                decoded = episode_video_segment(
+                    inspect_video(selected_episode.video_path), selected_episode
+                )
+                camera_report.update({key: json_safe(value) for key, value in decoded.items() if key != "pts_times"})
+                camera_report["status"] = "passed"
+                camera_report["decode_check"] = "performed"
+                stage("video_decode", "completed", camera=camera_name)
+            except Exception as exc:
+                error_prefix = ("读取主相机视频失败" if len(camera_paths) == 1
+                                else f"读取相机视频失败（{camera_name}）")
+                camera_report.update(status="failed", error=f"{error_prefix}：{explain_error(exc, f'读取相机 {camera_name}')}",
+                                     diagnostics=error_details(exc, include_traceback=True))
+                issue("video_decode", camera_report["error"],
+                      {"camera": camera_name, "path": str(camera_path), "error": camera_report["error"],
+                       "diagnostics": camera_report["diagnostics"]}, category="load_failure")
+                camera_report.update(decode_check="unavailable", frame_count_check="unavailable",
+                                     timestamp_mapping_check="unavailable")
+                stage("video_decode", "failed", camera=camera_name, message=camera_report["error"],
+                      diagnostics=camera_report["diagnostics"])
+                camera_reports[camera_name] = camera_report
+                continue
+
+            stage("video_checks", "started", input_path=str(camera_path), camera=camera_name)
+            camera_report["frame_count_check"] = "performed"
             if decoded["frame_count"] != len(table):
-                issue("video_frame_count", "视频帧数与样本行数不一致",
-                      {"video_frames": decoded["frame_count"], "table_rows": len(table)})
-                video["status"] = "failed"
+                issue("video_frame_count", "相机视频帧数与样本行数不一致",
+                      {"camera": camera_name, "video_frames": decoded["frame_count"], "table_rows": len(table)})
+                camera_report["status"] = "failed"
+
             pts = _finite_vector(decoded.get("pts_times", []))
             if timestamps is None or pts is None or pts.ndim != 1 or len(pts) != len(table) or not len(table):
-                skipped("video_timestamp_mapping", "视频时间或样本时间不可用，或两者数量不一致")
+                camera_report["timestamp_mapping_check"] = "unavailable"
             elif not math.isfinite(episode.fps) or episode.fps <= 0:
-                skipped("video_timestamp_mapping", "来源未提供有效采样频率")
+                camera_report["timestamp_mapping_check"] = "unavailable"
             else:
                 tolerance = max(options["timestamp_absolute_tolerance"],
                                 options["video_timestamp_tolerance_frames"] / episode.fps)
                 errors = np.abs(pts - timestamps)
-                # Match read_video_frame's range guard, not the much larger
-                # half-frame correspondence tolerance. A close timestamp may
-                # still lie outside the range the browser can actually read.
                 range_epsilon = max(1e-5, 0.001 / (decoded.get("fps") or 30))
                 outside_range = (timestamps < pts[0] - range_epsilon) | (timestamps > pts[-1] + range_epsilon)
-                covered("video_timestamp_mapping", f"文件内对应容差 {tolerance:.8g} 秒；读取边界容差 {range_epsilon:.8g} 秒；不代表硬件同步")
-                video["mapping_max_error_seconds"] = float(errors.max())
-                video["mapping_tolerance_seconds"] = tolerance
-                video["readable_range_seconds"] = [float(pts[0]), float(pts[-1])]
-                video["readable_range_epsilon_seconds"] = range_epsilon
-                video["sample_references"] = [
+                camera_report["timestamp_mapping_check"] = "performed"
+                camera_report["mapping_max_error_seconds"] = float(errors.max())
+                camera_report["mapping_tolerance_seconds"] = tolerance
+                camera_report["readable_range_seconds"] = [float(pts[0]), float(pts[-1])]
+                camera_report["readable_range_epsilon_seconds"] = range_epsilon
+                camera_report["sample_references"] = [
                     {"row_index": row, "frame_index": _frame_at(episode, row),
                      "timestamp": float(timestamps[row]), "pts_time": float(pts[row]),
                      "error_seconds": float(errors[row])}
@@ -290,13 +298,35 @@ def run_checks(episode: Episode, params: dict | None = None, check_video: bool =
                         reasons.append("same_index_time_error")
                     if outside_range[row]:
                         reasons.append("outside_readable_video_range")
-                    issue("video_timestamp_mapping", "视频帧与样本的时间差超出容差，或样本时间超出视频可读取范围",
-                          {"timestamp": timestamps[row], "pts_time": pts[row],
+                    issue("video_timestamp_mapping", "相机视频帧与样本时间差超出容差，或样本时间超出视频可读取范围",
+                          {"camera": camera_name, "timestamp": timestamps[row], "pts_time": pts[row],
                            "error_seconds": errors[row], "tolerance_seconds": tolerance,
                            "reasons": reasons, "video_first_pts": pts[0], "video_last_pts": pts[-1],
                            "readable_range_epsilon_seconds": range_epsilon}, int(row))
-                    video["status"] = "failed"
-            stage("video_checks", "completed")
+                    camera_report["status"] = "failed"
+            camera_reports[camera_name] = camera_report
+            stage("video_checks", "completed", camera=camera_name)
+
+        camera_names = list(camera_reports)
+        for rule, status_key in (("video_decode", "decode_check"),
+                                  ("video_frame_count", "frame_count_check"),
+                                  ("video_timestamp_mapping", "timestamp_mapping_check")):
+            statuses = [item.get(status_key, "unavailable") for item in camera_reports.values()]
+            overall = "performed" if statuses and all(status == "performed" for status in statuses) else "unavailable"
+            detail = "; ".join(f"{name}: {camera_reports[name].get(status_key, 'unavailable')}"
+                                for name in camera_names)
+            coverage.append({"rule": rule, "status": overall,
+                             "detail": f"逐相机检查（{len(camera_names)} 路）：{detail}"})
+            if overall != "performed":
+                issue(rule, f"未能完成所有相机的{RULE_LABELS.get(rule, rule)}检查",
+                      {"cameras": {name: camera_reports[name].get(status_key, "unavailable")
+                                   for name in camera_names}},
+                      category="not_checked", severity="info")
+        first_report = camera_reports[camera_names[0]] if camera_names else {"status": "failed"}
+        video = {**first_report, "status": "passed" if camera_names and all(
+            item.get("status") == "passed" for item in camera_reports.values()) else "failed",
+                 "camera_count": len(camera_reports), "cameras": camera_reports,
+                 "synchronization_claim": "每路相机独立检查；文件时间对应不证明硬件同步"}
 
     return snapshot()
 

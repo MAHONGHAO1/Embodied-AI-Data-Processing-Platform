@@ -292,7 +292,7 @@ def render_quality(batch: dict, *, node: dict, active=False, conversion_passed=F
         st.warning("候选集为空，请至少保留 1 条通过检查的任务。")
     elif remaining:
         st.warning(f"还有 {remaining} 条保留任务未审核；所有保留任务审核通过后才能继续。")
-    st.caption("HDF5 通过后自动转换并验证交付包；规则未通过或执行失败会保留报告并停止下游。")
+    st.caption("HDF5 与 SO-100 通过最终质检后自动转换并验证交付包；规则未通过或执行失败会保留报告并停止下游。")
     st.dataframe(styled_status_table(ui.inventory(batch)), hide_index=True, width="stretch")
 
 
