@@ -1,6 +1,6 @@
 # v0.6.0 状态
 
-更新日期：2026-11-09。当前分支 `feature/v06-aloha-multicam`，目标版本 v0.6.0。固定公开样例 Episode 0–4 的 Windows 端到端验收已通过；GitHub Release 尚未创建，也未提交或推送本地改动。
+更新日期：2026-11-10。状态：v0.6.0 已发布，PR #1 已合并到 `main`，GitHub Release 已创建。固定公开样例 Episode 0–4 的 Windows 端到端验收已通过。
 
 ## 版本范围
 
