@@ -1,6 +1,6 @@
 # RoboData Workbench · 具身智能数据处理平台
 
-**v0.6.0 开发版 · Windows / Python 3.12 / Node.js 24 · 本地单用户**
+**v0.6.0 · Windows / Python 3.12 / Node.js 24 · 本地单用户**
 
 把机器人演示数据变成**可检查、可追溯、可验证后交付**的训练样本。新工作台由 React + TypeScript 界面和 FastAPI 本地服务组成；既有 Python 数据处理、质量检查与交付验证仍是业务权威实现。
 
