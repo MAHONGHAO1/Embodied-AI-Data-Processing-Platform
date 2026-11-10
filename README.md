@@ -2,6 +2,8 @@
 
 **v0.6.0 · Windows / Python 3.12 / Node.js 24 · 本地单用户**
 
+在线作品集展示页（无需安装即可查看两个项目的真实截图、验收证据与能力边界）：https://mahonghao1.github.io/Embodied-AI-Data-Processing-Platform/
+
 把机器人演示数据变成**可检查、可追溯、可验证后交付**的训练样本。新工作台由 React + TypeScript 界面和 FastAPI 本地服务组成；既有 Python 数据处理、质量检查与交付验证仍是业务权威实现。
 
 ![RoboData React 工作台浏览真实 ALOHA Coffee Episode 0 的四路相机、50 FPS、每条 1,100 帧及质检结果](docs/assets/workbench-v0.6.0-aloha.png)
