@@ -14,7 +14,7 @@
 
 业务链路包含**上传／导入 → 清洗 → 筛选 → 标注审核 → 质检 → 格式转换 → 打包与独立验包**。工作台分为批次总览、episode 与相机浏览、运行诊断、交付核验四类界面；每次处理保留阶段状态、日志和证据。只有通过官方 LeRobot 加载、输出质检、打包和独立验包的产物才可交付。
 
-> **本地边界：** 新工作台只监听 `127.0.0.1`，不提供公网交互服务。仓库现有的 [静态展示页](https://mahonghao1.github.io/Embodied-AI-Data-Processing-Platform/)仍展示早期八节点介绍，不是这里截图所示的新 React 界面。
+> **本地边界：** 新工作台只监听 `127.0.0.1`，不提供公网交互服务。仓库的 [在线作品集展示页](https://mahonghao1.github.io/Embodied-AI-Data-Processing-Platform/)汇总两个项目的真实截图、验收证据与能力边界；它是静态页，不提供本机的 Python 交互服务。
 
 ## 它证明了什么
 
@@ -32,11 +32,11 @@
 
 ## 从哪里开始
 
-- **只想看效果**：查看上方新界面截图和下方验证证据；既有 Pages 是早期静态介绍页
+- **只想看效果**：查看上方新界面截图，或打开[在线作品集展示页](https://mahonghao1.github.io/Embodied-AI-Data-Processing-Platform/)（无需安装即可浏览两个项目）
 - **想跑起来**：安装 Node.js 24 LTS 后，双击根目录 `首次安装.cmd`，再双击桌面快捷方式 —— 见[安装与启动](#安装与启动)
 - **讲给面试官**：[演示路线](docs/demo.md)
 - **查实现**：[数据字典](docs/data_dictionary.md)、[V0.5 状态](docs/STATUS_v05.md)、[导航验收](docs/VALIDATION_navigation.md)
-- **查当前迭代**：[v0.6.0 状态](docs/STATUS_v0.6.0.md)、[v0.6.0 验收记录](docs/VALIDATION_v0.6.0.md)、[发布说明草稿](RELEASE_NOTES_v0.6.0.md)
+- **查当前迭代**：[v0.6.0 状态](docs/STATUS_v0.6.0.md)、[v0.6.0 验收记录](docs/VALIDATION_v0.6.0.md)、[v0.6.0 发布说明](RELEASE_NOTES_v0.6.0.md)
 - **查操作**：[标准操作 SOP](docs/SOP.md)，[HTML 手册](docs/SOP.html) 可离线打开
 
 默认服务地址为 [http://127.0.0.1:8765/](http://127.0.0.1:8765/)，由 FastAPI 在本机托管构建后的 React 页面和 API。GitHub Pages 不提供该 Python 服务；旧版 Streamlit 可通过 `启动Streamlit旧版.cmd` 单独运行于 8501 端口。
@@ -115,7 +115,7 @@ flowchart LR
   OLD[旧版 Streamlit 入口] -. 回退 .-> PY
 ```
 
-旧版 Streamlit 页面仍保留作回退入口：双击 `启动Streamlit旧版.cmd`，或运行 `uv run --locked streamlit run app.py`。`docs/assets/v04/` 和早期 Pages 静态页中的逐节点截图属于旧界面，不代表当前 React 页面。
+旧版 Streamlit 页面仍保留作回退入口：双击 `启动Streamlit旧版.cmd`，或运行 `uv run --locked streamlit run app.py`。`docs/assets/v04/` 与已归档的 [v0.4.0 验收报告](docs/validation-report-v0.4.0.html)中的逐节点截图属于旧界面，不代表当前 React 页面。
 
 **问题边界：** 机器人执行失败属于任务标注；NaN、缺字段等属于数据质量问题；文件读取、编码或超时属于程序运行问题。记录失败轨迹并不等于宣称机器人成功率或模型训练效果。
 
@@ -246,4 +246,6 @@ CI 在 `windows-latest` 上执行同一组测试（[`.github/workflows/tests.yml
 
 [MIT](LICENSE)。数据来自公开数据集，来源与许可见 [DATA_NOTICE.md](docs/DATA_NOTICE.md)。
 
+## English
 
+A local robot-data workbench that turns a fixed public ALOHA Coffee dataset into a verified LeRobot v3.0 delivery. React and TypeScript UI, a loopback-only FastAPI bridge, and Python business logic. Each claim is backed by source hashes, per-camera checks, official offline loading and independent package verification. The automated validation uses an explicitly simulated review gate; it does not imply human review, robot execution or training results.

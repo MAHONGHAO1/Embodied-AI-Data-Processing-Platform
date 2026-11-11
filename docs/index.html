@@ -5,6 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>机器人数据工程 · 作品集</title>
 <meta name="description" content="两个本地可复现的工程作品：具身机器人数据处理工作台与基金组合分析工作台。附真实运行截图、验收证据与能力边界。">
+<link rel="canonical" href="https://mahonghao1.github.io/Embodied-AI-Data-Processing-Platform/">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<meta name="theme-color" content="#f6f4ee">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:url" content="https://mahonghao1.github.io/Embodied-AI-Data-Processing-Platform/">
+<meta property="og:title" content="机器人数据工程 · 作品集">
+<meta property="og:description" content="具身机器人数据工作台与基金组合分析工作台：真实运行截图、5,500 帧验收证据、能力边界与仓库入口，无需安装即可查看。">
+<meta property="og:image" content="https://mahonghao1.github.io/Embodied-AI-Data-Processing-Platform/assets/workbench-v0.6.0-aloha.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="机器人数据工程 · 作品集">
+<meta name="twitter:description" content="具身机器人数据工作台与基金组合分析工作台：真实运行截图、验收证据与能力边界。">
+<meta name="twitter:image" content="https://mahonghao1.github.io/Embodied-AI-Data-Processing-Platform/assets/workbench-v0.6.0-aloha.png">
 <style>
 :root{
   --paper:#f6f4ee; --surface:#fffefb; --ink:#1b1b18; --muted:#6d6b62;
@@ -74,7 +87,13 @@ input[type=radio]{position:absolute;width:1px;height:1px;opacity:0}
 .no li{border-color:var(--accent);color:#4a4640}
 pre{background:#ece8de;border:1px solid var(--line);padding:20px 22px;overflow-x:auto;font-family:var(--mono);font-size:12.5px;line-height:1.9;margin:0 0 16px;color:#2c2b26}
 .note{font-size:12.5px;color:var(--muted);margin:0}
-video{display:block;width:100%;margin-top:16px;border:1px solid var(--line);background:#e9e6dd}
+.demo{margin-top:16px;border-top:1px solid var(--line);padding-top:12px}
+.demo summary{cursor:pointer;font-size:12px;color:var(--muted);list-style:none}
+.demo summary::-webkit-details-marker{display:none}
+.demo summary::before{content:"+ ";color:var(--accent)}
+.demo[open] summary::before{content:"− "}
+.demo summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+video{display:block;width:100%;margin-top:12px;border:1px solid var(--line);background:#e9e6dd}
 footer{padding:40px 0 56px;font-size:12px;color:var(--muted);display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
 @media(max-width:820px){
   .hero,.grid,.bound{grid-template-columns:1fr}
@@ -130,7 +149,7 @@ footer{padding:40px 0 56px;font-size:12px;color:var(--muted);display:flex;justif
 <div class="tabs"><label for="tA">真实 ALOHA 四路相机</label><label for="tB">SO-100 批次总览</label></div>
 <div class="panes">
 <figure class="pane" id="pA"><img src="assets/workbench-v0.6.0-aloha.png" alt="工作台浏览真实 ALOHA Coffee Episode 0 的四路相机画面、状态与动作曲线、逐路质检记录" loading="lazy"><figcaption>真实 ALOHA Coffee Episode 0：四路相机逐路解码、50 FPS、每条 1,100 帧、状态与动作曲线、逐路质检记录。截图来自本机实际运行的服务。</figcaption></figure>
-<figure class="pane" id="pB"><img src="assets/workbench-v0.6.0.png" alt="工作台批次总览，展示本机已有 SO-100 五条任务批次" loading="lazy"><figcaption>SO-100 工作台批次总览。该截图只用于展示界面，不作为 ALOHA 转换证据。</figcaption></figure>
+<figure class="pane" id="pB"><img src="assets/workbench-v0.6.0.png" alt="工作台批次总览，展示本机已有 SO-100 五条任务批次"><figcaption>SO-100 工作台批次总览。该截图只用于展示界面，不作为 ALOHA 转换证据。</figcaption></figure>
 </div>
 </div>
 <div>
@@ -156,7 +175,7 @@ footer{padding:40px 0 56px;font-size:12px;color:var(--muted);display:flex;justif
 <div class="grid">
 <div>
 <figure><img src="assets/fund-v0.2.0.png" alt="基金工作台组合总览：合成组合提示、四项指标、持仓结构环形图、近一年收益不可用空状态与持仓表格" loading="lazy"><figcaption>离线演示模式：10 条虚构合成持仓。近一年收益与基准比较明确标为不可用；空值不再被画成 0.00%。</figcaption></figure>
-<video controls preload="none" poster="assets/fund-v0.2.0.png" aria-label="基金工作台 7 秒界面演示"><source src="assets/fund-demo-v0.2.0.webm" type="video/webm">浏览器不支持该视频格式，可查看上方静态截图。</video>
+<details class="demo"><summary>展开 7 秒界面演示（WebM，离线合成数据）</summary><video controls preload="none" aria-label="基金工作台 7 秒界面演示"><source src="assets/fund-demo-v0.2.0.webm" type="video/webm">浏览器不支持该视频格式，可查看上方静态截图。</video></details>
 </div>
 <div>
 <ol class="chain">

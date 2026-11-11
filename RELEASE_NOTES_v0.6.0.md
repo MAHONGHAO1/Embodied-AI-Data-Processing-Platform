@@ -6,4 +6,4 @@ v0.6.0 将固定公开 ALOHA Coffee Episode 0–4 接入工作台：支持四路
 
 本版本只支持固定来源及固定 revision。来源文件需按上游校验信息逐个验证；未知结构会被拒绝。逐相机时间映射通过不代表硬件同步。LeRobot 写入和加载检查由官方库完成，本项目实现的是固定配置的工作流集成与证据核验。
 
-固定 ALOHA Episode 0–4 已在 Windows / Python 3.12 上通过端到端验收：5,500 帧、四路相机，官方离线读取与数值检查、输出质检、独立验包及源数据哈希复核通过。自动验收模拟了标注审核门禁，不代表人工审核或机器人执行结果。逐项证据、运行编号与复现命令见 [V0.6 状态](docs/STATUS_v0.6.0.md) 和 [V0.6 验收记录](docs/VALIDATION_v0.6.0.md)。本文件仍是发布草稿，GitHub Release 尚未创建。
+固定 ALOHA Episode 0–4 已在 Windows / Python 3.12 上通过端到端验收：5,500 帧、四路相机，官方离线读取与数值检查、输出质检、独立验包及源数据哈希复核通过。自动验收模拟了标注审核门禁，不代表人工审核或机器人执行结果。逐项证据、运行编号与复现命令见 [V0.6 状态](docs/STATUS_v0.6.0.md) 和 [V0.6 验收记录](docs/VALIDATION_v0.6.0.md)。本版本已于 2026-11-10 发布为 [GitHub Release v0.6.0](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/releases/tag/v0.6.0)。
