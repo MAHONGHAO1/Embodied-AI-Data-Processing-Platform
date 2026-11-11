@@ -1,0 +1,50 @@
+{
+  "source": "work/aloha-integration-r4/runs/20261108T181145_5196ba6cceb7/unpacked/dataset/videos/",
+  "cameras": [
+    "cam_high",
+    "cam_low",
+    "cam_left_wrist",
+    "cam_right_wrist"
+  ],
+  "fps": 50.0,
+  "frames_per_video": 5500,
+  "timeline_frames": [
+    0,
+    150,
+    300,
+    450,
+    600,
+    750,
+    900,
+    1050
+  ],
+  "episode_mid_frames": [
+    550,
+    1650,
+    2750,
+    3850,
+    4950
+  ],
+  "brightness_std": {
+    "cam_high": [
+      111.0,
+      127.2,
+      44.4
+    ],
+    "cam_low": [
+      105.8,
+      140.8,
+      57.1
+    ],
+    "cam_left_wrist": [
+      98.2,
+      139.2,
+      57.3
+    ],
+    "cam_right_wrist": [
+      88.5,
+      125.7,
+      55.0
+    ]
+  }
+}

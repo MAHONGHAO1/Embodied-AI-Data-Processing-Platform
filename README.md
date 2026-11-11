@@ -1,6 +1,6 @@
 # RoboData Workbench · 具身智能数据处理平台
 
-**v0.6.0 · Windows / Python 3.12 / Node.js 24 · 本地单用户**
+**v0.7.0 · Windows / Python 3.12 / Node.js 24 · 本地单用户**
 
 在线作品集展示页（无需安装即可查看两个项目的真实截图、验收证据与能力边界）：https://mahonghao1.github.io/Embodied-AI-Data-Processing-Platform/
 
@@ -15,6 +15,30 @@
 业务链路包含**上传／导入 → 清洗 → 筛选 → 标注审核 → 质检 → 格式转换 → 打包与独立验包**。工作台分为批次总览、episode 与相机浏览、运行诊断、交付核验四类界面；每次处理保留阶段状态、日志和证据。只有通过官方 LeRobot 加载、输出质检、打包和独立验包的产物才可交付。
 
 > **本地边界：** 新工作台只监听 `127.0.0.1`，不提供公网交互服务。仓库的 [在线作品集展示页](https://mahonghao1.github.io/Embodied-AI-Data-Processing-Platform/)汇总两个项目的真实截图、验收证据与能力边界；它是静态页，不提供本机的 Python 交互服务。
+
+## 先看什么（无需安装）
+
+[在线作品集展示页](https://mahonghao1.github.io/Embodied-AI-Data-Processing-Platform/) 提供免安装的核对入口，v0.7.0 起增加三块内容：
+
+- **四路相机同步时间轴**：8 个时刻可拖动或播放，每帧从通过验收的交付包四路 H.264 视频按**相同帧索引**解码后拼接，不是录屏，也不是示意图。
+- **九个真实界面视角**：工作台、数据概览、逐帧检查、质检报告、样本抽样网格等，点击可打开原图。
+- **证据链与能力边界**：能证明什么、不能证明什么，以及面试追问时该打开哪一页。
+
+![ALOHA Coffee Episode 0 四路相机同步时间轴：8 个时刻 × 4 路相机](docs/assets/aloha-timeline-sheet.jpg)
+
+> 时间轴帧与下方逐路抽样图均来自 `work/aloha-integration-r4/.../unpacked/dataset/videos/` 中通过验收的四路交付视频（各 5,500 帧 / 50 FPS / 640×480）。采样帧为 0、150、300、450、600、750、900、1050，参数与逐路亮度／方差核验结果见 [manifest.json](docs/assets/timeline/manifest.json)。**边界**：这是静态帧序列，用于核对同一时刻四路都有画面与帧—时间映射一致，不代表相机硬件同步，也不等于工作台实时解码。
+
+![交付包逐路解码抽样：5 条 Episode × 4 路相机](docs/assets/aloha-episodes-grid.jpg)
+
+| 界面视角 | 截图 | 能核对什么 |
+| --- | --- | --- |
+| 数据概览 | [查看](docs/assets/overview.png) | 来源版本、任务清单、预期帧数与样本说明 |
+| Episode 逐帧检查 | [查看](docs/assets/episode-browser.png) | 目标时间与视频时间对齐、关节原始值、曲线游标 |
+| 质检报告 | [查看](docs/assets/quality-page.png) | 逐条检查状态、「已执行但未发现问题」结论与报告导出 |
+| 样本抽样网格 | [查看](docs/assets/sample-contact-sheet.jpg) | SO-100 四条 Episode × 三个时刻的真实解码画面 |
+| 旧版界面（历史 v0.4.0） | [查看](docs/assets/v04/01_overview.png) | 早期 Streamlit 页面，仅作迭代对照，不代表当前 React 工作台 |
+
+所有图片均为本机实际运行截图或真实视频抽帧，未补画、未修饰；历史界面单独标注版本。
 
 ## 它证明了什么
 
@@ -32,11 +56,11 @@
 
 ## 从哪里开始
 
-- **只想看效果**：查看上方新界面截图，或打开[在线作品集展示页](https://mahonghao1.github.io/Embodied-AI-Data-Processing-Platform/)（无需安装即可浏览两个项目）
+- **只想看效果**：打开[在线作品集展示页](https://mahonghao1.github.io/Embodied-AI-Data-Processing-Platform/)（无需安装），拖动四路相机同步时间轴、浏览九个界面视角，或查看上方新界面截图
 - **想跑起来**：安装 Node.js 24 LTS 后，双击根目录 `首次安装.cmd`，再双击桌面快捷方式 —— 见[安装与启动](#安装与启动)
 - **讲给面试官**：[演示路线](docs/demo.md)
 - **查实现**：[数据字典](docs/data_dictionary.md)、[V0.5 状态](docs/STATUS_v05.md)、[导航验收](docs/VALIDATION_navigation.md)
-- **查当前迭代**：[v0.6.0 状态](docs/STATUS_v0.6.0.md)、[v0.6.0 验收记录](docs/VALIDATION_v0.6.0.md)、[v0.6.0 发布说明](RELEASE_NOTES_v0.6.0.md)
+- **查当前迭代**：[v0.7.0 发布说明](RELEASE_NOTES_v0.7.0.md)、[v0.6.0 状态](docs/STATUS_v0.6.0.md)、[v0.6.0 验收记录](docs/VALIDATION_v0.6.0.md)、[变更记录](CHANGELOG.md)
 - **查操作**：[标准操作 SOP](docs/SOP.md)，[HTML 手册](docs/SOP.html) 可离线打开
 
 默认服务地址为 [http://127.0.0.1:8765/](http://127.0.0.1:8765/)，由 FastAPI 在本机托管构建后的 React 页面和 API。GitHub Pages 不提供该 Python 服务；旧版 Streamlit 可通过 `启动Streamlit旧版.cmd` 单独运行于 8501 端口。
@@ -248,4 +272,4 @@ CI 在 `windows-latest` 上执行同一组测试（[`.github/workflows/tests.yml
 
 ## English
 
-A local robot-data workbench that turns a fixed public ALOHA Coffee dataset into a verified LeRobot v3.0 delivery. React and TypeScript UI, a loopback-only FastAPI bridge, and Python business logic. Each claim is backed by source hashes, per-camera checks, official offline loading and independent package verification. The automated validation uses an explicitly simulated review gate; it does not imply human review, robot execution or training results.
+A local robot-data workbench that turns a fixed public ALOHA Coffee dataset into a verified LeRobot v3.0 delivery. React and TypeScript UI, a loopback-only FastAPI bridge, and Python business logic. Each claim is backed by source hashes, per-camera checks, official offline loading and independent package verification. The automated validation uses an explicitly simulated review gate; it does not imply human review, robot execution or training results. Since v0.7.0 the static portfolio page also includes a draggable four-camera timeline built from real decoded delivery-video frames, plus nine verified UI views; it is a static frame sequence, not live playback or hardware synchronisation.

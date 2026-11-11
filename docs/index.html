@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>机器人数据工程 · 作品集</title>
-<meta name="description" content="两个本地可复现的工程作品：具身机器人数据处理工作台与基金组合分析工作台。附真实运行截图、验收证据与能力边界。">
+<meta name="description" content="两个本地可复现的工程作品：具身机器人数据处理工作台与基金组合分析工作台。四路相机同步时间轴、真实运行截图、验收证据与能力边界。">
 <link rel="canonical" href="https://mahonghao1.github.io/Embodied-AI-Data-Processing-Platform/">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <meta name="theme-color" content="#f6f4ee">
@@ -12,12 +12,12 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:url" content="https://mahonghao1.github.io/Embodied-AI-Data-Processing-Platform/">
 <meta property="og:title" content="机器人数据工程 · 作品集">
-<meta property="og:description" content="具身机器人数据工作台与基金组合分析工作台：真实运行截图、5,500 帧验收证据、能力边界与仓库入口，无需安装即可查看。">
-<meta property="og:image" content="https://mahonghao1.github.io/Embodied-AI-Data-Processing-Platform/assets/workbench-v0.6.0-aloha.png">
+<meta property="og:description" content="具身机器人数据工作台与基金组合分析工作台：四路相机同步时间轴、真实运行截图、5,500 帧验收证据与能力边界，无需安装即可查看。">
+<meta property="og:image" content="https://mahonghao1.github.io/Embodied-AI-Data-Processing-Platform/assets/aloha-timeline-sheet.jpg">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="机器人数据工程 · 作品集">
-<meta name="twitter:description" content="具身机器人数据工作台与基金组合分析工作台：真实运行截图、验收证据与能力边界。">
-<meta name="twitter:image" content="https://mahonghao1.github.io/Embodied-AI-Data-Processing-Platform/assets/workbench-v0.6.0-aloha.png">
+<meta name="twitter:description" content="具身机器人数据工作台与基金组合分析工作台：四路相机同步时间轴、验收证据与能力边界。">
+<meta name="twitter:image" content="https://mahonghao1.github.io/Embodied-AI-Data-Processing-Platform/assets/aloha-timeline-sheet.jpg">
 <style>
 :root{
   --paper:#f6f4ee; --surface:#fffefb; --ink:#1b1b18; --muted:#6d6b62;
@@ -35,7 +35,7 @@ a:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .wrap{max-width:1080px;margin:0 auto;padding:0 clamp(20px,5vw,64px)}
 .topbar{border-bottom:1px solid var(--line);padding:18px 0;font-size:13px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;color:var(--muted)}
 .topbar b{font-weight:600;color:var(--ink);letter-spacing:.08em}
-.topbar nav{display:flex;gap:20px}
+.topbar nav{display:flex;gap:18px;flex-wrap:wrap}
 .hero{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,.65fr);gap:clamp(28px,6vw,80px);padding:clamp(56px,9vw,110px) 0 clamp(40px,6vw,72px)}
 .eyebrow{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin:0 0 24px}
 h1{font-size:clamp(34px,5.2vw,62px);line-height:1.16;letter-spacing:-.035em;font-weight:600;margin:0 0 24px}
@@ -60,10 +60,21 @@ section{padding:clamp(56px,8vw,96px) 0;border-bottom:1px solid var(--line)}
 .sec-head{display:grid;grid-template-columns:96px minmax(0,1fr);gap:24px;margin-bottom:36px}
 .num{font-family:var(--serif);font-style:italic;font-size:20px;color:var(--accent);padding-top:6px}
 h2{font-size:clamp(24px,3vw,34px);letter-spacing:-.025em;line-height:1.3;font-weight:600;margin:0 0 10px}
-.sub{color:var(--muted);font-size:14px;margin:0;max-width:46em}
+.sub{color:var(--muted);font-size:14px;margin:0;max-width:48em}
+h3{font-size:15px;font-weight:600;margin:0 0 12px}
+p{margin:0 0 16px}
+.prose{font-size:13.5px;line-height:1.85;color:#3b3a34;max-width:50em}
+.prose strong{font-weight:600;color:var(--ink)}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin:0 0 4px}
+.cards>div{padding:24px 24px 26px 0;border-right:1px solid var(--line)}
+.cards>div:last-child{border-right:0}
+.cards>div:not(:first-child){padding-left:24px}
+.cards .ci{font-size:11px;letter-spacing:.14em;color:var(--accent);text-transform:uppercase}
+.cards h3{margin:10px 0 8px}
+.cards p{font-size:12.5px;color:var(--muted);line-height:1.8;margin:0}
 .grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:clamp(28px,5vw,56px);align-items:start}
 figure{margin:0}
-figure img{display:block;width:100%;height:auto;border:1px solid var(--line);background:var(--surface)}
+figure img,a.shot img{display:block;width:100%;height:auto;border:1px solid var(--line);background:var(--surface)}
 figcaption{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.6}
 .tabs{display:flex;gap:0;margin-bottom:14px;border-bottom:1px solid var(--line)}
 .tabs label{font-size:12px;padding:8px 16px 8px 0;margin-right:18px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;transition:color .2s ease,border-color .2s ease}
@@ -79,14 +90,40 @@ input[type=radio]{position:absolute;width:1px;height:1px;opacity:0}
 .chain li span{color:var(--muted);display:block;font-size:12px}
 .links{display:flex;flex-wrap:wrap;gap:10px 24px;margin-top:26px;font-size:13px}
 .links a::after{content:" ↗";font-size:11px;color:var(--muted)}
+/* 时间轴回放 */
+.tl{border:1px solid var(--line);background:var(--surface);padding:18px}
+.tl-stage{background:#1c201e;line-height:0}
+.tl-stage img{width:100%;height:auto;display:block;margin:0 auto}
+.tl-ctrl{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:14px 2px 8px}
+.tl-ctrl button{font:inherit;font-size:12.5px;line-height:1;color:var(--surface);background:var(--teal);border:1px solid var(--teal);padding:10px 16px;cursor:pointer;min-width:88px}
+.tl-ctrl button:hover{background:#164238}
+.tl-ctrl button:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.tl-ctrl input[type=range]{position:static;width:auto;height:auto;opacity:1;flex:1 1 220px;accent-color:var(--teal);cursor:pointer}
+.tl-ctrl output{font-family:var(--mono);font-size:11.5px;color:var(--muted);white-space:nowrap}
+.tl-dots{display:flex;gap:6px;flex-wrap:wrap;padding:2px 2px 6px}
+.tl-dots button{font:inherit;font-size:11px;color:var(--muted);background:transparent;border:1px solid var(--line);padding:4px 9px;cursor:pointer}
+.tl-dots button:hover{border-color:var(--teal);color:var(--teal)}
+.tl-dots button[aria-current=true]{background:var(--teal);border-color:var(--teal);color:var(--surface)}
+.tl-dots button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.tl-note{font-size:12px;color:var(--muted);line-height:1.8;margin:8px 2px 0}
+/* 图集 */
+.gallery{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px 18px}
+.gallery figure{display:flex;flex-direction:column}
+a.shot{display:block;border:0}
+a.shot:hover{border:0}
+a.shot img{aspect-ratio:16/10;object-fit:cover;object-position:top;transition:border-color .2s ease}
+a.shot:hover img{border-color:var(--teal)}
+.gallery figcaption{font-size:11.5px;line-height:1.65;margin-top:8px}
+.gallery figcaption b{font-weight:600;color:var(--ink);display:block;font-size:12.5px}
+.badge{display:inline-block;font-size:10px;letter-spacing:.08em;color:var(--accent);border:1px solid var(--accent);padding:1px 6px;margin-left:6px;vertical-align:2px}
+.wide{margin-top:26px}
 .bound{display:grid;grid-template-columns:1fr 1fr;gap:clamp(24px,4vw,48px)}
-.bound h3{font-size:15px;font-weight:600;margin:0 0 16px}
 .bound ul{margin:0;padding-left:0;list-style:none}
 .bound li{font-size:13px;line-height:1.8;padding:9px 0 9px 16px;border-left:2px solid var(--line);margin-bottom:6px}
 .yes li{border-color:var(--teal)}
 .no li{border-color:var(--accent);color:#4a4640}
 pre{background:#ece8de;border:1px solid var(--line);padding:20px 22px;overflow-x:auto;font-family:var(--mono);font-size:12.5px;line-height:1.9;margin:0 0 16px;color:#2c2b26}
-.note{font-size:12.5px;color:var(--muted);margin:0}
+.note{font-size:12.5px;color:var(--muted);line-height:1.8;margin:0}
 .demo{margin-top:16px;border-top:1px solid var(--line);padding-top:12px}
 .demo summary{cursor:pointer;font-size:12px;color:var(--muted);list-style:none}
 .demo summary::-webkit-details-marker{display:none}
@@ -109,7 +146,13 @@ footer{padding:40px 0 56px;font-size:12px;color:var(--muted);display:flex;justif
   .strip div:not(:first-child){padding-left:0}
   .strip div:nth-child(even){padding-left:16px}
   .sec-head{grid-template-columns:1fr;gap:4px}
+  .cards{grid-template-columns:1fr}
+  .cards>div{border-right:0;border-bottom:1px solid var(--line);padding:18px 0}
+  .cards>div:last-child{border-bottom:0}
+  .cards>div:not(:first-child){padding-left:0}
+  .gallery{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+@media(max-width:480px){.gallery{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto;transition:none!important}}
 </style>
 </head>
@@ -117,7 +160,7 @@ footer{padding:40px 0 56px;font-size:12px;color:var(--muted);display:flex;justif
 <div class="wrap">
 <div class="topbar">
 <b>MAHONGHAO1 / 作品集</b>
-<nav><a href="#one">主项目</a><a href="#two">副项目</a><a href="#scope">能力边界</a><a href="#run">本地运行</a></nav>
+<nav><a href="#one">主项目</a><a href="#timeline">时间轴</a><a href="#views">界面</a><a href="#two">副项目</a><a href="#scope">能力边界</a><a href="#run">本地运行</a></nav>
 </div>
 
 <div class="hero">
@@ -125,13 +168,14 @@ footer{padding:40px 0 56px;font-size:12px;color:var(--muted);display:flex;justif
 <p class="eyebrow">具身智能 · 数据工程 · 本地可复现</p>
 <h1>把机器人数据变成<br><em>可验证</em>的交付物</h1>
 <p class="lede">两个独立完成的本地工程作品。主项目打通公开机器人数据集的多相机质检、格式转换与独立验包；副项目把数据来源与失效状态做成看得见的分析界面。两者共通的一点：每个结论都能回到可核对的证据。</p>
-<div class="tags"><span>公开数据或明确标注的合成数据</span><span>仅本机运行，无公开服务</span><span>已发布 v0.6.0 / v0.2.0</span></div>
+<p class="lede">这一页提供<strong>无需安装</strong>的入口：可拖动的四路相机同步时间轴、九个真实界面视角、五步证据链，以及明确写出的能力边界。</p>
+<div class="tags"><span>公开数据或明确标注的合成数据</span><span>仅本机运行，无公开服务</span><span>已发布 v0.7.0 / v0.2.1</span></div>
 </div>
 <aside class="meta">
 <dl>
 <dt>展示对象</dt><dd>具身智能、机器人数据工程与数据平台岗位</dd>
-<dt>技术栈</dt><dd>Python 3.12 · FastAPI 本地服务<br>React + TypeScript · Node.js 24</dd>
-<dt>验收时间</dt><dd>2026-11-09 <span>· 发布 2026-11-10</span></dd>
+<dt>技术栈</dt><dd>Python 3.12 · FastAPI 本地服务<br>React + TypeScript · Node.js 24<br>官方 LeRobot v3.0 转换与离线加载</dd>
+<dt>验收时间</dt><dd>2026-11-09 <span>· 首发 2026-11-10</span><br><span>本页更新 2026-11-11</span></dd>
 <dt>仓库</dt><dd><a href="https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform">具身数据平台 ↗</a><br><a href="https://github.com/MAHONGHAO1/AI-Fund-Management-Platform">基金助手 ↗</a></dd>
 </dl>
 </aside>
@@ -146,6 +190,14 @@ footer{padding:40px 0 56px;font-size:12px;color:var(--muted);display:flex;justif
 <div><div class="n">240</div><div class="k">主项目 Python 测试通过（另有 7 项跳过）</div></div>
 </div></div>
 
+<div class="wrap">
+<div class="cards">
+<div><div class="ci">01 / 做什么</div><h3>把数据变成可交付产物</h3><p>固定来源 → 逐路检查 → 官方格式转换 → 输出质检 → 打包与独立验包。每一步留下阶段状态、日志和文件证据。</p></div>
+<div><div class="ci">02 / 数据从哪来</div><h3>固定版本，不临时抓取</h3><p>ALOHA Coffee 锁定 revision 与 10 个文件的 SHA-256（MIT 许可）；SO-100 用固定子集。基金部分为离线合成组合，界面明确标注。</p></div>
+<div><div class="ci">03 / 凭什么信</div><h3>能回到文件的证据链</h3><p>55/55 项输出质检、官方 LeRobot 离线加载、ZIP 独立解包；失败运行不登记为交付物。不把界面通过当成数据通过。</p></div>
+</div>
+</div>
+
 <section id="one"><div class="wrap">
 <div class="sec-head"><div class="num">01</div><div><h2>RoboData Workbench · 主项目</h2><p class="sub">固定来源的公开机器人数据集，进入本地工作台后经过检查、转换、打包和独立验包。Python 负责业务与数据处理，浏览器只负责浏览与呈现。</p></div></div>
 <div class="grid">
@@ -153,7 +205,7 @@ footer{padding:40px 0 56px;font-size:12px;color:var(--muted);display:flex;justif
 <input type="radio" name="shot" id="tA" checked><input type="radio" name="shot" id="tB">
 <div class="tabs"><label for="tA">真实 ALOHA 四路相机</label><label for="tB">SO-100 批次总览</label></div>
 <div class="panes">
-<figure class="pane" id="pA"><img src="assets/workbench-v0.6.0-aloha.png" alt="工作台浏览真实 ALOHA Coffee Episode 0 的四路相机画面、状态与动作曲线、逐路质检记录" loading="lazy"><figcaption>真实 ALOHA Coffee Episode 0：四路相机逐路解码、50 FPS、每条 1,100 帧、状态与动作曲线、逐路质检记录。截图来自本机实际运行的服务。</figcaption></figure>
+<figure class="pane" id="pA"><img src="assets/workbench-v0.6.0-aloha.png" alt="工作台浏览真实 ALOHA Coffee Episode 0 的四路相机画面、状态与动作曲线、逐路质检记录"><figcaption>真实 ALOHA Coffee Episode 0：四路相机逐路解码、50 FPS、每条 1,100 帧、状态与动作曲线、逐路质检记录。截图来自本机实际运行的服务。</figcaption></figure>
 <figure class="pane" id="pB"><img src="assets/workbench-v0.6.0.png" alt="工作台批次总览，展示本机已有 SO-100 五条任务批次"><figcaption>SO-100 工作台批次总览。该截图只用于展示界面，不作为 ALOHA 转换证据。</figcaption></figure>
 </div>
 </div>
@@ -165,9 +217,10 @@ footer{padding:40px 0 56px;font-size:12px;color:var(--muted);display:flex;justif
 <li><b>4</b><div>输出质检<span>55/55 项通过，0 数据问题、0 加载失败；13 个业务阶段全部完成</span></div></li>
 <li><b>5</b><div>独立验包<span>交付 ZIP 记录 SHA-256；独立解包、清单校验与官方离线加载通过</span></div></li>
 </ol>
+<p class="prose" style="margin-top:22px"><strong>架构与职责：</strong>React + TypeScript 页面只做浏览与呈现；FastAPI 仅监听 <code>127.0.0.1:8765</code>；Python 业务层负责质检、审核门禁、转换调度与交付登记；格式读写由官方 LeRobot 库完成。转换产物、运行日志与证据留在本地，页面不提供公网服务。</p>
 <div class="links">
 <a href="https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform">仓库与 README</a>
-<a href="https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/releases/tag/v0.6.0">v0.6.0 发布说明</a>
+<a href="https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/releases/tag/v0.7.0">v0.7.0 发布说明</a>
 <a href="https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/blob/main/docs/VALIDATION_v0.6.0.md">验收记录</a>
 <a href="https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/blob/main/docs/demo.md">八分钟讲解路线</a>
 </div>
@@ -175,23 +228,62 @@ footer{padding:40px 0 56px;font-size:12px;color:var(--muted);display:flex;justif
 </div>
 </div></section>
 
+<section id="timeline"><div class="wrap">
+<div class="sec-head"><div class="num">02</div><div><h2>四路相机 · 可拖动的同步时间轴</h2><p class="sub">下面 8 帧不是录屏，也不是示意图：从通过验收的交付包四路 H.264 视频中，按同一帧索引逐路解码后拼接。拖动滑块或点播放，四路画面同时切换。</p></div></div>
+<div class="tl">
+<div class="tl-stage"><img id="tlImg" src="assets/timeline/t00.jpg" width="920" height="754" alt="ALOHA Coffee Episode 0 同一时刻的高位、低位、左腕、右腕四路相机同步画面"></div>
+<div class="tl-ctrl">
+<button type="button" id="tlPlay" aria-pressed="false">▶ 播放</button>
+<input type="range" id="tlRange" min="0" max="7" step="1" value="0" aria-label="四路相机时间轴帧位置">
+<output id="tlOut">t = 0.00 s · 帧 0 · Episode 0 · 四路同步</output>
+</div>
+<div class="tl-dots" id="tlDots" role="group" aria-label="快速跳到指定时刻"></div>
+<p class="tl-note">采样帧 0 / 150 / 300 / 450 / 600 / 750 / 900 / 1050，来源 50 FPS，对应 Episode 0 的 0–21 秒。每格标注相机名、时刻与帧号；抽帧参数与四路亮度／方差核验结果见 <a href="assets/timeline/manifest.json">manifest.json</a>。<strong>边界：</strong>这是静态帧序列，用于核对同一时刻四路都有画面与帧—时间映射一致，不代表相机硬件同步，也不等于工作台实时解码。</p>
+</div>
+<div class="grid wide">
+<figure><img src="assets/aloha-timeline-sheet.jpg" alt="八个时刻的四路相机同步画面总览"><figcaption>八个时刻的时间轴总览。可以直接比较机器人抓取动作在四路视角下的推进。</figcaption></figure>
+<figure><img src="assets/aloha-episodes-grid.jpg" alt="交付包 5 条 Episode 与 4 路相机的 20 格抽样画面"><figcaption>交付包逐路解码抽样：5 条 Episode × 4 路相机，各取中间帧。20 格均来自实际视频，无占位图。</figcaption></figure>
+</div>
+</div></section>
+
+<section id="views"><div class="wrap">
+<div class="sec-head"><div class="num">03</div><div><h2>界面一览 · 九个真实视角</h2><p class="sub">从工作台、数据概览、逐帧检查到质检报告，点击任意一张可打开原图。全部为本机实际运行或真实数据抽帧，未做补画或修饰。</p></div></div>
+<div class="gallery">
+<figure><a class="shot" href="assets/workbench-v0.6.0-aloha.png" target="_blank" rel="noopener"><img src="assets/workbench-v0.6.0-aloha.png" alt="ALOHA 四路相机工作台全页"></a><figcaption><b>ALOHA 四路相机工作台</b>Episode 0 的相机画面、状态与动作曲线、逐路质检记录。</figcaption></figure>
+<figure><a class="shot" href="assets/workbench-v0.6.0.png" target="_blank" rel="noopener"><img src="assets/workbench-v0.6.0.png" alt="SO-100 批次总览界面"></a><figcaption><b>SO-100 批次总览</b>本机已有五条任务批次，界面展示用，不作 ALOHA 证据。</figcaption></figure>
+<figure><a class="shot" href="assets/overview.png" target="_blank" rel="noopener"><img src="assets/overview.png" alt="数据概览页：可读取任务、帧数与任务清单"></a><figcaption><b>数据概览</b>来源版本、任务清单、预期帧数与样本说明，逐项可回到来源元数据。</figcaption></figure>
+<figure><a class="shot" href="assets/episode-browser.png" target="_blank" rel="noopener"><img src="assets/episode-browser.png" alt="数据浏览页：视频帧、关节状态与原始状态曲线"></a><figcaption><b>Episode 逐帧检查</b>目标时间与视频时间对齐，关节原始值并排显示，曲线竖线对应当前记录时间。</figcaption></figure>
+<figure><a class="shot" href="assets/quality-page.png" target="_blank" rel="noopener"><img src="assets/quality-report-focus.png" alt="质检报告页：逐条检查结果与报告导出"></a><figcaption><b>质检报告</b>逐条检查状态、「已执行但未发现问题」结论，以及 HTML / JSON 报告导出。缩略图为原图左上内容区的聚焦裁切，点击查看完整截图。</figcaption></figure>
+<figure><a class="shot" href="assets/sample-contact-sheet.jpg" target="_blank" rel="noopener"><img src="assets/sample-contact-sheet.jpg" alt="SO-100 四条 Episode 的起中末三帧抽样网格"></a><figcaption><b>样本抽样网格</b>SO-100 四条 Episode × 三个时刻的真实画面，用于人工核对解码内容。</figcaption></figure>
+<figure><a class="shot" href="assets/aloha-episodes-grid.jpg" target="_blank" rel="noopener"><img src="assets/aloha-episodes-grid.jpg" alt="ALOHA 交付包 5 条 Episode × 4 路相机抽样"></a><figcaption><b>交付包逐路抽样</b>转换产物的 20 格画面，可直接看出四路视角差异。</figcaption></figure>
+<figure><a class="shot" href="assets/v04/01_overview.png" target="_blank" rel="noopener"><img src="assets/v04/01_overview.png" alt="v0.4.0 旧版 Streamlit 界面"></a><figcaption><b>旧版界面<span class="badge">历史 v0.4.0</span></b>早期 Streamlit 页面，保留作迭代对照，不代表当前 React 工作台。</figcaption></figure>
+<figure><a class="shot" href="assets/fund-v0.2.0.png" target="_blank" rel="noopener"><img src="assets/fund-v0.2.0.png" alt="基金观察工作台组合总览"></a><figcaption><b>基金组合总览</b>合成组合提示、四项指标、环形图与「不可用」空状态。</figcaption></figure>
+</div>
+</div></section>
+
 <section id="two"><div class="wrap">
-<div class="sec-head"><div class="num">02</div><div><h2>基金观察工作台 · 副项目</h2><p class="sub">把净值来源、回退过程与失效指标做成界面的一部分。缺失数据明确显示「不可用」，不伪装成零收益。</p></div></div>
+<div class="sec-head"><div class="num">04</div><div><h2>基金观察工作台 · 副项目</h2><p class="sub">把净值来源、回退过程与失效指标做成界面的一部分。缺失数据明确显示「不可用」，不伪装成零收益。</p></div></div>
 <div class="grid">
 <div>
-<figure><img src="assets/fund-v0.2.0.png" alt="基金工作台组合总览：合成组合提示、四项指标、持仓结构环形图、近一年收益不可用空状态与持仓表格" loading="lazy"><figcaption>离线演示模式：10 条虚构合成持仓。近一年收益与基准比较明确标为不可用；空值不再被画成 0.00%。</figcaption></figure>
+<figure><img src="assets/fund-v0.2.0.png" alt="基金工作台组合总览：合成组合提示、四项指标、持仓结构环形图、近一年收益不可用空状态与持仓表格"><figcaption>离线演示模式：10 条虚构合成持仓。近一年收益与基准比较明确标为不可用；空值不再被画成 0.00%。</figcaption></figure>
+<div class="grid" style="grid-template-columns:1fr 1fr;gap:14px;margin-top:14px">
+<figure><img src="assets/fund-overview-v0.2.0.png" alt="基金组合总览加载完成状态：环形图与图例"><figcaption>组合总览加载完成态：持仓结构环形图与分类图例。</figcaption></figure>
+<figure><img src="assets/fund-provenance-v0.2.0.png" alt="数据来源与计算口径页：每只基金的净值来源、日期与回退状态"><figcaption>数据来源与计算口径：逐只基金记录来源、日期、回退状态与边界说明。</figcaption></figure>
+</div>
 <details class="demo"><summary>展开 7 秒界面演示（WebM，离线合成数据）</summary><video controls preload="none" aria-label="基金工作台 7 秒界面演示"><source src="assets/fund-demo-v0.2.0.webm" type="video/webm">浏览器不支持该视频格式，可查看上方静态截图。</video></details>
 </div>
 <div>
+<p class="prose"><strong>为什么单独做这个项目：</strong>验证「数据来源写进界面」这件事。真实净值、AkShare 回退、模拟净值、离线演示四条路径都在页面和报告里留痕；指标算不出来时，界面说「不可用」而不是给一个好看的数字。</p>
 <ol class="chain">
 <li><b>1</b><div>来源可追溯<span>东方财富、AkShare、合成净值与离线演示的回退路径均写入分析结果与报告</span></div></li>
 <li><b>2</b><div>不制造假结论<span>净值为模拟数据时跳过基准请求；区间不足一年时收益与图表显示不可用</span></div></li>
 <li><b>3</b><div>四处视图<span>组合总览、绩效与风险、单只基金明细、数据来源与计算口径</span></div></li>
 <li><b>4</b><div>锁定与验证<span>19 项 Python 测试、2 项前端单测、浏览器流程与生产构建通过；锁定依赖审计 0 漏洞</span></div></li>
 </ol>
+<p class="note" style="margin-top:18px">全部金额为虚构合成数据，不连接账户、不执行交易、不构成投资建议。</p>
 <div class="links">
 <a href="https://github.com/MAHONGHAO1/AI-Fund-Management-Platform">仓库与 README</a>
-<a href="https://github.com/MAHONGHAO1/AI-Fund-Management-Platform/releases/tag/v0.2.0">v0.2.0 发布说明</a>
+<a href="https://github.com/MAHONGHAO1/AI-Fund-Management-Platform/releases/tag/v0.2.1">v0.2.1 发布说明</a>
 <a href="https://github.com/MAHONGHAO1/AI-Fund-Management-Platform/blob/main/docs/STATUS_v0.2.0.md">版本状态</a>
 </div>
 </div>
@@ -199,17 +291,19 @@ footer{padding:40px 0 56px;font-size:12px;color:var(--muted);display:flex;justif
 </div></section>
 
 <section id="scope"><div class="wrap">
-<div class="sec-head"><div class="num">03</div><div><h2>能证明什么，不能证明什么</h2><p class="sub">两仓文档与发布说明都按这个口径写。把边界写清楚，比把功能说满更有用。</p></div></div>
+<div class="sec-head"><div class="num">05</div><div><h2>能证明什么，不能证明什么</h2><p class="sub">两仓文档与发布说明都按这个口径写。把边界写清楚，比把功能说满更有用。</p></div></div>
 <div class="bound">
 <div class="yes"><h3>能证明</h3><ul>
 <li>固定公开样例的逐路质检、官方格式读写与独立验包链路可复现</li>
+<li>交付包四路视频在相同帧索引下都能解码出画面，帧数与时间映射检查通过</li>
 <li>失败运行不会被登记为可交付产物，源文件哈希处理前后一致</li>
 <li>数据来源、回退原因与失效指标在界面和报告中一致呈现</li>
 <li>锁定依赖、持续集成与干净克隆安装均可复核</li>
 </ul></div>
 <div class="no"><h3>不能证明</h3><ul>
 <li>验收脚本使用明确标注的模拟审核门禁，不代表人工审核或机器人执行结果</li>
-<li>不代表模型训练效果、任务成功率、硬件相机同步或通用数据集适配</li>
+<li>时间轴是静态帧序列，不代表硬件相机同步，也不等于工作台实时播放</li>
+<li>不代表模型训练效果、任务成功率或通用数据集适配</li>
 <li>基金持仓为虚构合成组合，不连接账户、不执行交易、不提供投资建议</li>
 <li>两个服务仅监听本机地址，本页为静态展示，不提供在线交互服务</li>
 </ul></div>
@@ -219,9 +313,11 @@ footer{padding:40px 0 56px;font-size:12px;color:var(--muted);display:flex;justif
 <thead><tr><th>追问</th><th>证据入口</th></tr></thead>
 <tbody>
 <tr><th>数据来自哪里？</th><td>批次总览的固定版本、许可与来源信息；逐项校验见 v0.6.0 验收记录。</td></tr>
-<tr><th>多相机如何检查？</th><td>Episode 浏览器的逐路检查状态，以及验收记录中的视频、帧数与时间映射结果。</td></tr>
+<tr><th>多相机如何检查？</th><td>Episode 浏览器的逐路检查状态、本页四路同步时间轴，以及验收记录中的视频、帧数与时间映射结果。</td></tr>
+<tr><th>时间轴上的帧是录屏吗？</th><td>不是。来自交付包四路 H.264 视频按相同帧索引解码拼接；参数与逐路亮度核验见 timeline/manifest.json。</td></tr>
 <tr><th>转换用了官方格式吗？</th><td>交付核验的官方 LeRobot 离线加载记录与数据字典；格式读写由官方库完成。</td></tr>
 <tr><th>失败时会怎样？</th><td>运行诊断、失败用例与验收记录中的登记门禁；失败运行不会成为可交付产物。</td></tr>
+<tr><th>截图有没有修饰过？</th><td>没有。均为本机实际运行截图或真实视频抽帧，仅做拼接与标注；历史界面已单独标注版本。</td></tr>
 <tr><th>这证明机器人或模型有效吗？</th><td>不证明。验收范围是数据读取、逐路检查、格式转换与交付。</td></tr>
 </tbody>
 </table>
@@ -229,7 +325,7 @@ footer{padding:40px 0 56px;font-size:12px;color:var(--muted);display:flex;justif
 </div></section>
 
 <section id="run"><div class="wrap">
-<div class="sec-head"><div class="num">04</div><div><h2>本地运行</h2><p class="sub">界面本身需要本机启动；本页提供的是无需安装即可核对的入口与证据。</p></div></div>
+<div class="sec-head"><div class="num">06</div><div><h2>本地运行</h2><p class="sub">界面本身需要本机启动；本页提供的是无需安装即可核对的入口与证据。</p></div></div>
 <pre># 具身数据平台（Windows / Python 3.12 / Node.js 24 / uv）
 uv sync --locked
 cd frontend &amp;&amp; npm ci &amp;&amp; npm run build &amp;&amp; cd ..
@@ -239,9 +335,53 @@ cd frontend &amp;&amp; npm ci &amp;&amp; npm run build &amp;&amp; cd ..
 # 基金助手（默认离线合成演示）
 .\启动基金助手.cmd
 # http://127.0.0.1:8766/</pre>
-<p class="note">具体步骤、首次安装脚本与复现验收命令见两仓 README。旧版 Streamlit 入口保留为回退；历史逐节点截图与 v0.4.0 验收报告见 <a href="validation-report-v0.4.0.html">归档页</a>。</p>
+<p class="note">完整步骤、首次安装脚本与复现验收命令见两仓 README。旧版 Streamlit 入口保留为回退；历史逐节点截图与 v0.4.0 验收报告见 <a href="validation-report-v0.4.0.html">归档页</a>。本页新增的帧序列与图集由 <code>docs/assets/timeline/manifest.json</code> 记录来源与采样参数，可对照交付包视频复核。</p>
 </div></section>
 
-<footer class="wrap"><span>更新于 2026-11-11 · 页面内容对应已发布版本 v0.6.0 / v0.2.0</span><span>公开数据按上游许可使用 · 基金部分不构成投资建议</span></footer>
+<footer class="wrap"><span>更新于 2026-11-11 · 页面内容对应已发布版本 v0.7.0 / v0.2.1</span><span>公开数据按上游许可使用 · 基金部分不构成投资建议</span></footer>
+
+<script>
+(function(){
+  var T=[0,150,300,450,600,750,900,1050], FPS=50, N=T.length;
+  var img=document.getElementById('tlImg'),
+      range=document.getElementById('tlRange'),
+      out=document.getElementById('tlOut'),
+      btn=document.getElementById('tlPlay'),
+      dots=document.getElementById('tlDots'),
+      cur=0, timer=null, marks=[], i;
+  function pad(n){return n<10?'0'+n:''+n;}
+  function src(n){return 'assets/timeline/t'+pad(n)+'.jpg';}
+  for(i=0;i<N;i++){var pre=new Image();pre.src=src(i);}
+  for(i=0;i<N;i++){
+    var b=document.createElement('button');
+    b.type='button'; b.textContent=(T[i]/FPS).toFixed(0)+'s';
+    b.setAttribute('data-i',i);
+    b.setAttribute('aria-label','跳到 '+(T[i]/FPS).toFixed(2)+' 秒，帧 '+T[i]);
+    dots.appendChild(b); marks.push(b);
+  }
+  function show(n){
+    cur=(n%N+N)%N;
+    img.src=src(cur);
+    range.value=cur;
+    out.textContent='t = '+(T[cur]/FPS).toFixed(2)+' s · 帧 '+T[cur]+' · Episode 0 · 四路同步';
+    for(var k=0;k<N;k++){marks[k].setAttribute('aria-current',k===cur?'true':'false');}
+  }
+  function stop(){
+    if(timer){clearInterval(timer);timer=null;}
+    btn.textContent='▶ 播放'; btn.setAttribute('aria-pressed','false');
+  }
+  btn.addEventListener('click',function(){
+    if(timer){stop();return;}
+    btn.textContent='❚❚ 暂停'; btn.setAttribute('aria-pressed','true');
+    timer=setInterval(function(){show(cur+1);},650);
+  });
+  range.addEventListener('input',function(){stop();show(parseInt(range.value,10));});
+  dots.addEventListener('click',function(e){
+    var b=e.target.closest('button');
+    if(b){stop();show(parseInt(b.getAttribute('data-i'),10));}
+  });
+  show(0);
+})();
+</script>
 </body>
 </html>
