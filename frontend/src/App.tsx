@@ -85,6 +85,8 @@ function App() {
   const [annotationTags, setAnnotationTags] = useState('');
   const [annotationNotes, setAnnotationNotes] = useState('');
   const [reviewReason, setReviewReason] = useState('');
+  const [focusedCamera, setFocusedCamera] = useState<string | null>(null);
+  const [inspectorHidden, setInspectorHidden] = useState(false);
 
   const refresh = async () => {
     try {
@@ -160,8 +162,27 @@ function App() {
     }
   }, [currentFrame, episode, playing]);
 
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target && (['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName) || target.isContentEditable)) return;
+      if (event.key === 'Escape') { setFocusedCamera(null); return; }
+      if (route !== 'episodes' || !episode) return;
+      if (event.key === ' ') { event.preventDefault(); setPlaying((value) => !value); }
+      else if (event.key === 'ArrowLeft') { setPlaying(false); setCurrentFrame((value) => Math.max(0, value - 1)); }
+      else if (event.key === 'ArrowRight') { setPlaying(false); setCurrentFrame((value) => Math.min(episode.row_count - 1, value + 1)); }
+      else if (/^[1-4]$/.test(event.key)) {
+        const camera = episode.cameras[Number(event.key) - 1];
+        if (camera) setFocusedCamera((current) => current === camera.name ? null : camera.name);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [route, episode]);
+
   const go = (next: RouteKey) => {
     setRoute(next);
+    setFocusedCamera(null);
     setLocation(next, activeBatchId);
     setError('');
   };
@@ -262,24 +283,41 @@ function App() {
   const activeRuns = runs.filter((run) => run.status === 'queued' || run.status === 'running').length;
   const issueCount = batch?.episodes.reduce((total, item) => total + (item.quality?.issue_count || 0), 0) || 0;
   const keptCount = batch?.episodes.filter((item) => item.disposition === 'keep').length || 0;
+  const timelineReady = route === 'episodes' && Boolean(episode);
+  const lastFrame = Math.max(0, (episode?.row_count || 1) - 1);
+  const sampleFrames = episode ? episode.samples.map((item) => Number(item.frame_index ?? 0)) : [];
+  const cursorFrame = sampleFrames.length
+    ? sampleFrames.reduce((best, value) => Math.abs(value - currentFrame) < Math.abs(best - currentFrame) ? value : best, sampleFrames[0])
+    : 0;
 
   return (
-    <div className="workbench-shell">
+    <div className={inspectorHidden ? 'workbench-shell no-inspector' : 'workbench-shell'}>
       <header className="topbar">
         <a className="brand" href="/?view=overview" onClick={(event) => { event.preventDefault(); go('overview'); }} aria-label="RoboData 总览">
-          <span className="brand-mark"><Activity size={19} strokeWidth={2.2} /></span>
+          <span className="brand-mark"><Activity size={17} strokeWidth={2.2} /></span>
           <span><strong>RoboData</strong><small>具身数据工作台</small></span>
         </a>
+        <span className="shell-crumb">工作台 <ChevronRight size={13} /> {routeLabels[route]}</span>
+        {batch && <span className="shell-chip">{batch.label}</span>}
+        {batch && <span className="shell-chip ok">{issueCount} 个质检问题</span>}
+        <div className="topbar-actions">
+          <button className="shell-toggle" onClick={() => setInspectorHidden(!inspectorHidden)}>{inspectorHidden ? '展开检视' : '收起检视'}</button>
+          <span className="local-state"><span className="state-mark" />仅本机运行</span>
+          <button className="icon-button" aria-label="刷新数据" onClick={() => void refresh()}><RefreshCw size={17} /></button>
+        </div>
+      </header>
+
+      <aside className="sidenav">
+        <div className="nav-group">工作区</div>
         <nav className="primary-nav" aria-label="主导航">
           {(Object.keys(routeLabels) as RouteKey[]).map((key) => (
             <button className={route === key ? 'nav-link selected' : 'nav-link'} key={key} onClick={() => go(key)}>{routeLabels[key]}</button>
           ))}
         </nav>
-        <div className="topbar-actions">
-          <span className="local-state"><span className="state-mark" />仅本机运行</span>
-          <button className="icon-button" aria-label="刷新数据" onClick={() => void refresh()}><RefreshCw size={17} /></button>
-        </div>
-      </header>
+        <div className="nav-group">当前批次</div>
+        <div className="nav-meta">{batch ? <>{batch.label}<br />版本 {batch.content_version} · {batch.episodes.length} 个任务<br />{batch.total_rows?.toLocaleString() || '—'} 帧记录</> : '尚未选择批次'}</div>
+        <div className="nav-foot">固定布局 · 局部滚动<br />空格播放 · ← → 逐帧<br />1–4 切相机 · Esc 退出<br />仅本机运行，不提供公网服务</div>
+      </aside>
 
       <main className="page-wrap">
         <div className="page-heading">
@@ -359,10 +397,10 @@ function App() {
               <section className="panel video-panel">
                 <div className="panel-heading"><div><h2>多相机回放</h2><p>{batch.source.repo_id || batch.source.kind || '本机数据'} · {episode?.fps || batch.source.fps || '—'} FPS</p></div><span className="mapping-note">文件时间映射检查不等于硬件同步</span></div>
                 {episode ? <>
-                  <div className={episode.cameras.length > 1 ? 'camera-grid' : 'camera-grid single-camera'}>
+                  <div className={`camera-grid${episode.cameras.length > 1 ? '' : ' single-camera'}${focusedCamera ? ' focused' : ''}`}>
                     {episode.cameras.map((camera) => {
                       const info = cameraInfo[camera.name];
-                      return <div className="camera-frame" key={camera.name}>
+                      return <div className={`camera-frame${focusedCamera === camera.name ? ' big' : ''}`} key={camera.name} onClick={() => setFocusedCamera((current) => current === camera.name ? null : camera.name)}>
                         {camera.available ? <video ref={(element) => { videoRefs.current[camera.name] = element; }} src={camera.video_url} muted playsInline preload="metadata" onLoadedMetadata={(event) => { event.currentTarget.currentTime = camera.from_timestamp; }} onTimeUpdate={(event) => {
                           if (episode.cameras[0]?.name !== camera.name) return;
                           const frame = Math.round(Math.max(0, event.currentTarget.currentTime - camera.from_timestamp) * episode.fps);
@@ -372,12 +410,11 @@ function App() {
                       </div>;
                     })}
                   </div>
-                  <div className="video-controls"><button className="button secondary" onClick={() => setPlaying(!playing)}>{playing ? '暂停回放' : '同步播放'}</button><label className="timeline-control">帧 {currentFrame + 1} / {episode.row_count}<input type="range" min={0} max={Math.max(0, episode.row_count - 1)} value={currentFrame} onChange={(event) => setCurrentFrame(Number(event.target.value))} /></label><span className="frame-time">{(currentFrame / (episode.fps || 1)).toFixed(2)} s</span></div>
                 </> : <div className="loading-state">正在读取 episode 和相机信息…</div>}
               </section>
               {episode && <>
                 <section className="panel chart-panel"><div className="panel-heading"><div><h2>状态与动作信号</h2><p>按当前 episode 的样本帧绘制</p></div><span className="count-label">{episode.samples.length.toLocaleString()} 个采样点</span></div>
-                  <EChart height={280} option={{ tooltip: { trigger: 'axis' }, legend: { type: 'scroll', bottom: 0 }, grid: { left: 48, right: 18, top: 22, bottom: 58 }, xAxis: { type: 'category', data: episode.samples.map((item) => item.frame_index) }, yAxis: { type: 'value', scale: true }, series: [...episode.state_names.slice(0, 6).map((name, index) => ({ name: `状态 · ${name}`, type: 'line', showSymbol: false, data: episode.samples.map((item) => Array.isArray(item['observation.state']) ? (item['observation.state'] as number[])[index] : null) })), ...episode.action_names.slice(0, 6).map((name, index) => ({ name: `动作 · ${name}`, type: 'line', showSymbol: false, lineStyle: { type: 'dashed' }, data: episode.samples.map((item) => Array.isArray(item.action) ? (item.action as number[])[index] : null) }))] }} />
+                  <EChart height={200} option={{ tooltip: { trigger: 'axis' }, legend: { type: 'scroll', bottom: 0 }, grid: { left: 48, right: 18, top: 18, bottom: 48 }, xAxis: { type: 'category', data: episode.samples.map((item) => item.frame_index) }, yAxis: { type: 'value', scale: true }, series: [...episode.state_names.slice(0, 6).map((name, index) => ({ name: `状态 · ${name}`, type: 'line', showSymbol: false, data: episode.samples.map((item) => Array.isArray(item['observation.state']) ? (item['observation.state'] as number[])[index] : null) })), ...episode.action_names.slice(0, 6).map((name, index) => ({ name: `动作 · ${name}`, type: 'line', showSymbol: false, lineStyle: { type: 'dashed' }, data: episode.samples.map((item) => Array.isArray(item.action) ? (item.action as number[])[index] : null) })), { name: '当前帧', type: 'line', data: [], markLine: { silent: true, symbol: 'none', label: { show: false }, lineStyle: { color: cssToken('--color-focus', '#a85f26'), width: 1.5, type: 'solid' }, data: [{ xAxis: cursorFrame }] } }] }} />
                 </section>
                 <div className="review-grid">
                   <section className="panel form-panel"><div className="panel-heading"><div><h2>筛选与标注</h2><p>标注会进入候选集版本记录</p></div><FileCheck2 size={18} /></div>
@@ -441,6 +478,67 @@ function App() {
         </section>}
         <footer className="page-footer"><span>RoboData Workbench · 本地处理与证据追踪</span><span>原始输入只读 · 失败结果不会登记为可交付</span></footer>
       </main>
+
+      <aside className="inspector">
+        <div className="insp-h"><strong>检视面板</strong><span className="insp-chip">上下文证据</span></div>
+        <div className="insp-body">
+          <div><div className="insp-t">当前帧</div>
+            <dl className="insp-kv">
+              <dt>Episode</dt><dd>{episode ? `${episodeIndex} / ${episode.row_count.toLocaleString()} 帧` : '未加载'}</dd>
+              <dt>帧号</dt><dd>{episode ? currentFrame : '—'}</dd>
+              <dt>时间码</dt><dd>{episode ? `t = ${(currentFrame / (episode.fps || 1)).toFixed(2)} s` : '—'}</dd>
+              <dt>FPS</dt><dd>{episode?.fps ?? '—'}</dd>
+              <dt>回放</dt><dd>{playing ? '四路同步播放中' : '逐帧核对'}</dd>
+            </dl>
+          </div>
+          <div><div className="insp-t">任务列表 · {batch?.episodes.length || 0} 条</div>
+            {batch ? batch.episodes.slice(0, 6).map((item) => <div className={`insp-row${episodeIndex === item.episode_index ? ' on' : ''}`} key={item.episode_index}>
+              <span>Episode {item.episode_index}</span><span className="spacer" /><StatusTag value={item.quality.status} />
+            </div>) : <p className="insp-note">尚未选择批次。</p>}
+          </div>
+          <div><div className="insp-t">逐路检查 · {episode?.cameras.length || 0} 路</div>
+            {episode ? episode.cameras.map((camera) => {
+              const info = cameraInfo[camera.name];
+              return <div className="insp-row" key={camera.name}><span>{camera.name.split('.').at(-1)}</span><span className="spacer" /><span className="insp-v">{info ? `${Number(info.frame_count || 0).toLocaleString()} 帧` : camera.available ? '检查中' : '文件缺失'}</span></div>;
+            }) : <p className="insp-note">打开数据浏览并选择一个批次后显示逐路证据。</p>}
+          </div>
+          <div><div className="insp-t">质检与候选</div>
+            <div className="insp-row"><span>关联问题</span><span className="spacer" /><span className="insp-v">{issueCount}</span></div>
+            <div className="insp-row"><span>保留任务</span><span className="spacer" /><span className="insp-v">{keptCount} / {batch?.episodes.length || 0}</span></div>
+            <div className="insp-row"><span>当前输出</span><span className="spacer" /><span className="insp-v">{batch?.outputs?.length || 0} 项</span></div>
+            <div className="insp-bar"><i style={{ width: batch?.episodes.length ? `${Math.round(keptCount / batch.episodes.length * 100)}%` : '0%' }} /></div>
+          </div>
+          <div><div className="insp-t">来源锁定</div>
+            <dl className="insp-kv">
+              <dt>数据集</dt><dd>{batch?.source?.repo_id || batch?.source?.kind || '—'}</dd>
+              <dt>批次版本</dt><dd>{batch?.content_version ?? '—'}</dd>
+              <dt>revision</dt><dd>{batch?.revision ?? '—'}</dd>
+              <dt>输入指纹</dt><dd>{String(batch?.source?.input_fingerprint || '—').slice(0, 16)}</dd>
+            </dl>
+          </div>
+          <p className="insp-note">边界：审核门禁由脚本模拟，不代表人工审核或机器人执行结果；逐路文件时间映射检查不代表相机硬件同步。曲线与相机共用同一游标，不推断控制含义。页面仅监听 127.0.0.1。</p>
+        </div>
+      </aside>
+
+      <footer className="timeline">
+        <button className="tl-btn primary" disabled={!timelineReady} onClick={() => setPlaying(!playing)}>{playing ? '❚❚ 暂停' : '▶ 播放'}</button>
+        <button className="tl-btn" disabled={!timelineReady} onClick={() => { setPlaying(false); setCurrentFrame((value) => Math.max(0, value - 1)); }}>◀ 逐帧</button>
+        <button className="tl-btn" disabled={!timelineReady} onClick={() => { setPlaying(false); setCurrentFrame((value) => Math.min(lastFrame, value + 1)); }}>逐帧 ▶</button>
+        <div className="tl-mid">
+          <div className="tl-meta">
+            <span>{episode ? `Episode ${episodeIndex} · 帧 0–${episode.row_count.toLocaleString()} · ${episode.fps} FPS` : '打开数据浏览并选择一个批次后可回放'}</span>
+            <span>空格播放 · ← → 逐帧 · 1–4 切相机 · Esc 退出放大</span>
+          </div>
+          <input type="range" min={0} max={lastFrame} step={1} value={timelineReady ? currentFrame : 0} disabled={!timelineReady} aria-label="时间轴帧位置" onChange={(event) => { setPlaying(false); setCurrentFrame(Number(event.target.value)); }} />
+          <div className="tl-bookmarks">
+            {timelineReady && episode ? [0, 0.25, 0.5, 0.75, 1].map((point) => {
+              const frame = Math.round(point * lastFrame);
+              return <button type="button" className={currentFrame === frame ? 'on' : ''} key={point} aria-label={`跳到 ${Math.round(point * 100)}% 位置，帧 ${frame}`} onClick={() => { setPlaying(false); setCurrentFrame(frame); }}>{Math.round(point * 100)}%</button>;
+            }) : <span className="tl-idle">时间轴待命</span>}
+          </div>
+        </div>
+        <div className="tl-out">{episode ? `t = ${(currentFrame / (episode.fps || 1)).toFixed(2)} s · 帧 ${currentFrame} / ${lastFrame}` : '未加载 episode'}</div>
+      </footer>
     </div>
   );
 }

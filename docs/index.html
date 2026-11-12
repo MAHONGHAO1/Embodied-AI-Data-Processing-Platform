@@ -108,6 +108,7 @@ input[type=radio]{position:absolute;width:1px;height:1px;opacity:0}
 .tl-note{font-size:12px;color:var(--muted);line-height:1.8;margin:8px 2px 0}
 /* 图集 */
 .gallery{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px 18px}
+#ui16 .gallery{grid-template-columns:repeat(2,minmax(0,1fr))}
 .gallery figure{display:flex;flex-direction:column}
 a.shot{display:block;border:0}
 a.shot:hover{border:0}
@@ -152,7 +153,7 @@ footer{padding:40px 0 56px;font-size:12px;color:var(--muted);display:flex;justif
   .cards>div:not(:first-child){padding-left:0}
   .gallery{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
-@media(max-width:480px){.gallery{grid-template-columns:1fr}}
+@media(max-width:480px){.gallery,#ui16 .gallery{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto;transition:none!important}}
 </style>
 </head>
@@ -160,7 +161,7 @@ footer{padding:40px 0 56px;font-size:12px;color:var(--muted);display:flex;justif
 <div class="wrap">
 <div class="topbar">
 <b>MAHONGHAO1 / 作品集</b>
-<nav><a href="#one">主项目</a><a href="#timeline">时间轴</a><a href="#views">界面</a><a href="#two">副项目</a><a href="#scope">能力边界</a><a href="#run">本地运行</a></nav>
+<nav><a href="#one">主项目</a><a href="#ui16">16:9 新界面</a><a href="#timeline">时间轴</a><a href="#views">界面</a><a href="#two">副项目</a><a href="#scope">能力边界</a><a href="#run">本地运行</a></nav>
 </div>
 
 <div class="hero">
@@ -168,14 +169,14 @@ footer{padding:40px 0 56px;font-size:12px;color:var(--muted);display:flex;justif
 <p class="eyebrow">具身智能 · 数据工程 · 本地可复现</p>
 <h1>把机器人数据变成<br><em>可验证</em>的交付物</h1>
 <p class="lede">两个独立完成的本地工程作品。主项目打通公开机器人数据集的多相机质检、格式转换与独立验包；副项目把数据来源与失效状态做成看得见的分析界面。两者共通的一点：每个结论都能回到可核对的证据。</p>
-<p class="lede">这一页提供<strong>无需安装</strong>的入口：可拖动的四路相机同步时间轴、九个真实界面视角、五步证据链，以及明确写出的能力边界。</p>
-<div class="tags"><span>公开数据或明确标注的合成数据</span><span>仅本机运行，无公开服务</span><span>已发布 v0.7.0 / v0.2.1</span></div>
+<p class="lede">这一页提供<strong>无需安装</strong>的入口：四张 16:9 新工作台截图、可拖动的四路相机同步时间轴、九个真实界面视角、五步证据链，以及明确写出的能力边界。</p>
+<div class="tags"><span>公开数据或明确标注的合成数据</span><span>仅本机运行，无公开服务</span><span>已发布 v0.8.0 / v0.3.0</span></div>
 </div>
 <aside class="meta">
 <dl>
 <dt>展示对象</dt><dd>具身智能、机器人数据工程与数据平台岗位</dd>
 <dt>技术栈</dt><dd>Python 3.12 · FastAPI 本地服务<br>React + TypeScript · Node.js 24<br>官方 LeRobot v3.0 转换与离线加载</dd>
-<dt>验收时间</dt><dd>2026-11-09 <span>· 首发 2026-11-10</span><br><span>本页更新 2026-11-11</span></dd>
+<dt>验收时间</dt><dd>2026-11-09 <span>· 首发 2026-11-10</span><br><span>本页更新 2026-11-12</span></dd>
 <dt>仓库</dt><dd><a href="https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform">具身数据平台 ↗</a><br><a href="https://github.com/MAHONGHAO1/AI-Fund-Management-Platform">基金助手 ↗</a></dd>
 </dl>
 </aside>
@@ -220,7 +221,8 @@ footer{padding:40px 0 56px;font-size:12px;color:var(--muted);display:flex;justif
 <p class="prose" style="margin-top:22px"><strong>架构与职责：</strong>React + TypeScript 页面只做浏览与呈现；FastAPI 仅监听 <code>127.0.0.1:8765</code>；Python 业务层负责质检、审核门禁、转换调度与交付登记；格式读写由官方 LeRobot 库完成。转换产物、运行日志与证据留在本地，页面不提供公网服务。</p>
 <div class="links">
 <a href="https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform">仓库与 README</a>
-<a href="https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/releases/tag/v0.7.0">v0.7.0 发布说明</a>
+<a href="https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/releases/tag/v0.8.0">v0.8.0 发布说明</a>
+<a href="https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/releases/tag/v0.7.0">v0.7.0 展示升级</a>
 <a href="https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/blob/main/docs/VALIDATION_v0.6.0.md">验收记录</a>
 <a href="https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/blob/main/docs/demo.md">八分钟讲解路线</a>
 </div>
@@ -228,8 +230,29 @@ footer{padding:40px 0 56px;font-size:12px;color:var(--muted);display:flex;justif
 </div>
 </div></section>
 
+<section id="ui16"><div class="wrap">
+<div class="sec-head"><div class="num">02</div><div><h2>16:9 新工作台 · 一屏闭环</h2><p class="sub">v0.8.0 / v0.3.0 把两套应用从「窄栏长页」重做为固定工作台：48px 顶栏、216px 侧栏、自适应主区、320px 检视面板；具身侧另有 96px 全局时间轴，基金侧为 34px 口径状态条。整页不滚动，只有主区与检视面板局部滚动。</p></div></div>
+<div class="gallery">
+<figure><a class="shot" href="assets/workbench-v0.8.0.png" target="_blank" rel="noopener"><img src="assets/workbench-v0.8.0.png" alt="v0.8.0 具身工作台真实服务截图：固定 Shell、单相机真实视频、曲线游标与底部时间轴"></a><figcaption><b>具身工作台 · 真实服务</b>本机 FastAPI 同源托管构建产物，SO-100 单相机批次。时间轴跳到 8.37 s 时，真实视频 <code>currentTime</code> 同步为 8.37，曲线游标随帧移动。</figcaption></figure>
+<figure><a class="shot" href="assets/workbench-v0.8.0-aloha.png" target="_blank" rel="noopener"><img src="assets/workbench-v0.8.0-aloha.png" alt="v0.8.0 具身工作台四路相机布局验证截图"></a><figcaption><b>具身四路相机 · 布局验证<span class="badge">构造元数据</span></b>镜头画面取自已验收 ALOHA 交付包的真实帧，批次与相机元数据为界面布局验证构造数据，<strong>不作为业务状态或转换证据</strong>。</figcaption></figure>
+<figure><a class="shot" href="assets/fund-v0.3.0.png" target="_blank" rel="noopener"><img src="assets/fund-v0.3.0.png" alt="v0.3.0 基金工作台：KPI、全宽 10 行持仓表、右侧检视与底部口径状态条"></a><figcaption><b>基金组合总览 · 16:9</b>10 行持仓全部进入首屏，近一年收益保持「不可用」；点行联动右侧检视，底部状态条始终可见。</figcaption></figure>
+<figure><a class="shot" href="assets/fund-v0.3.0-analysis.png" target="_blank" rel="noopener"><img src="assets/fund-v0.3.0-analysis.png" alt="v0.3.0 基金绩效与风险视图：净值走势、数据来源与 AI 辅助说明"></a><figcaption><b>基金绩效与风险 · 16:9</b>净值走势加载完成态，不含「正在加载」占位；图表为演示用合成净值序列，界面保留来源与模拟标记。</figcaption></figure>
+</div>
+<p class="note">四张均为 1920×1080 本机实际渲染截图，点击可打开原图。<strong>边界：</strong>这一版是纯前端布局重构，API 契约、Python 业务实现、数据口径与已验收范围都没有改变；带「构造元数据」标记的截图只用于说明界面布局。面板拖拽与布局保存尚未实现。</p>
+<div class="cards" style="margin-top:26px">
+<div><div class="ci">01 / 固定 Shell</div><h3>横向空间用于多视图联动</h3><p>顶栏只留品牌、面包屑与状态；导航进侧栏。主区与检视面板各自局部滚动，KPI、时间轴、口径状态条始终留在屏内。</p></div>
+<div><div class="ci">02 / 同一条时间轴</div><h3>相机与曲线共用游标</h3><p>播放、逐帧、拖动、百分比书签统一驱动真实视频与状态／动作曲线；点击相机放大，支持空格、← →、1–4、Esc。</p></div>
+<div><div class="ci">03 / 表格铺满</div><h3>10 行持仓进入首屏</h3><p>32px 行高、固定表头、全宽列；收益不可用时给原因而不是零值。参考 Carbon DataTable 与 Ant Design Pro 的 fluid 主区。</p></div>
+</div>
+<div class="links">
+<a href="https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/releases/tag/v0.8.0">v0.8.0 发布说明</a>
+<a href="https://github.com/MAHONGHAO1/AI-Fund-Management-Platform/releases/tag/v0.3.0">v0.3.0 发布说明</a>
+<a href="https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/blob/main/README.md#设计取舍">设计取舍</a>
+</div>
+</div></section>
+
 <section id="timeline"><div class="wrap">
-<div class="sec-head"><div class="num">02</div><div><h2>四路相机 · 可拖动的同步时间轴</h2><p class="sub">下面 8 帧不是录屏，也不是示意图：从通过验收的交付包四路 H.264 视频中，按同一帧索引逐路解码后拼接。拖动滑块或点播放，四路画面同时切换。</p></div></div>
+<div class="sec-head"><div class="num">03</div><div><h2>四路相机 · 可拖动的同步时间轴</h2><p class="sub">下面 8 帧不是录屏，也不是示意图：从通过验收的交付包四路 H.264 视频中，按同一帧索引逐路解码后拼接。拖动滑块或点播放，四路画面同时切换。</p></div></div>
 <div class="tl">
 <div class="tl-stage"><img id="tlImg" src="assets/timeline/t00.jpg" width="920" height="754" alt="ALOHA Coffee Episode 0 同一时刻的高位、低位、左腕、右腕四路相机同步画面"></div>
 <div class="tl-ctrl">
@@ -247,7 +270,7 @@ footer{padding:40px 0 56px;font-size:12px;color:var(--muted);display:flex;justif
 </div></section>
 
 <section id="views"><div class="wrap">
-<div class="sec-head"><div class="num">03</div><div><h2>界面一览 · 九个真实视角</h2><p class="sub">从工作台、数据概览、逐帧检查到质检报告，点击任意一张可打开原图。全部为本机实际运行或真实数据抽帧，未做补画或修饰。</p></div></div>
+<div class="sec-head"><div class="num">04</div><div><h2>界面一览 · 九个真实视角</h2><p class="sub">从工作台、数据概览、逐帧检查到质检报告，点击任意一张可打开原图。全部为本机实际运行或真实数据抽帧，未做补画或修饰。</p></div></div>
 <div class="gallery">
 <figure><a class="shot" href="assets/workbench-v0.6.0-aloha.png" target="_blank" rel="noopener"><img src="assets/workbench-v0.6.0-aloha.png" alt="ALOHA 四路相机工作台全页"></a><figcaption><b>ALOHA 四路相机工作台</b>Episode 0 的相机画面、状态与动作曲线、逐路质检记录。</figcaption></figure>
 <figure><a class="shot" href="assets/workbench-v0.6.0.png" target="_blank" rel="noopener"><img src="assets/workbench-v0.6.0.png" alt="SO-100 批次总览界面"></a><figcaption><b>SO-100 批次总览</b>本机已有五条任务批次，界面展示用，不作 ALOHA 证据。</figcaption></figure>
@@ -262,10 +285,10 @@ footer{padding:40px 0 56px;font-size:12px;color:var(--muted);display:flex;justif
 </div></section>
 
 <section id="two"><div class="wrap">
-<div class="sec-head"><div class="num">04</div><div><h2>基金观察工作台 · 副项目</h2><p class="sub">把净值来源、回退过程与失效指标做成界面的一部分。缺失数据明确显示「不可用」，不伪装成零收益。</p></div></div>
+<div class="sec-head"><div class="num">05</div><div><h2>基金观察工作台 · 副项目</h2><p class="sub">把净值来源、回退过程与失效指标做成界面的一部分。缺失数据明确显示「不可用」，不伪装成零收益。</p></div></div>
 <div class="grid">
 <div>
-<figure><img src="assets/fund-v0.2.0.png" alt="基金工作台组合总览：合成组合提示、四项指标、持仓结构环形图、近一年收益不可用空状态与持仓表格"><figcaption>离线演示模式：10 条虚构合成持仓。近一年收益与基准比较明确标为不可用；空值不再被画成 0.00%。</figcaption></figure>
+<figure><img src="assets/fund-v0.3.0.png" alt="v0.3.0 基金工作台 16:9 界面：KPI、全宽持仓表、右侧检视与底部口径状态条"><figcaption>当前 v0.3.0 界面（1920×1080）：离线演示模式下 10 条虚构合成持仓同屏可见。近一年收益与基准比较明确标为不可用；空值不再被画成 0.00%。下方两张为 v0.2.x 历史界面细节。</figcaption></figure>
 <div class="grid" style="grid-template-columns:1fr 1fr;gap:14px;margin-top:14px">
 <figure><img src="assets/fund-overview-v0.2.0.png" alt="基金组合总览加载完成状态：环形图与图例"><figcaption>组合总览加载完成态：持仓结构环形图与分类图例。</figcaption></figure>
 <figure><img src="assets/fund-provenance-v0.2.0.png" alt="数据来源与计算口径页：每只基金的净值来源、日期与回退状态"><figcaption>数据来源与计算口径：逐只基金记录来源、日期、回退状态与边界说明。</figcaption></figure>
@@ -283,7 +306,8 @@ footer{padding:40px 0 56px;font-size:12px;color:var(--muted);display:flex;justif
 <p class="note" style="margin-top:18px">全部金额为虚构合成数据，不连接账户、不执行交易、不构成投资建议。</p>
 <div class="links">
 <a href="https://github.com/MAHONGHAO1/AI-Fund-Management-Platform">仓库与 README</a>
-<a href="https://github.com/MAHONGHAO1/AI-Fund-Management-Platform/releases/tag/v0.2.1">v0.2.1 发布说明</a>
+<a href="https://github.com/MAHONGHAO1/AI-Fund-Management-Platform/releases/tag/v0.3.0">v0.3.0 发布说明</a>
+<a href="https://github.com/MAHONGHAO1/AI-Fund-Management-Platform/releases/tag/v0.2.1">v0.2.1 展示补充</a>
 <a href="https://github.com/MAHONGHAO1/AI-Fund-Management-Platform/blob/main/docs/STATUS_v0.2.0.md">版本状态</a>
 </div>
 </div>
@@ -291,7 +315,7 @@ footer{padding:40px 0 56px;font-size:12px;color:var(--muted);display:flex;justif
 </div></section>
 
 <section id="scope"><div class="wrap">
-<div class="sec-head"><div class="num">05</div><div><h2>能证明什么，不能证明什么</h2><p class="sub">两仓文档与发布说明都按这个口径写。把边界写清楚，比把功能说满更有用。</p></div></div>
+<div class="sec-head"><div class="num">06</div><div><h2>能证明什么，不能证明什么</h2><p class="sub">两仓文档与发布说明都按这个口径写。把边界写清楚，比把功能说满更有用。</p></div></div>
 <div class="bound">
 <div class="yes"><h3>能证明</h3><ul>
 <li>固定公开样例的逐路质检、官方格式读写与独立验包链路可复现</li>
@@ -305,6 +329,7 @@ footer{padding:40px 0 56px;font-size:12px;color:var(--muted);display:flex;justif
 <li>时间轴是静态帧序列，不代表硬件相机同步，也不等于工作台实时播放</li>
 <li>不代表模型训练效果、任务成功率或通用数据集适配</li>
 <li>基金持仓为虚构合成组合，不连接账户、不执行交易、不提供投资建议</li>
+<li>16:9 新工作台是布局重构，不改变数据验收范围；带「构造元数据」标记的四相机截图不作为业务状态证据</li>
 <li>两个服务仅监听本机地址，本页为静态展示，不提供在线交互服务</li>
 </ul></div>
 </div>
@@ -315,6 +340,9 @@ footer{padding:40px 0 56px;font-size:12px;color:var(--muted);display:flex;justif
 <tr><th>数据来自哪里？</th><td>批次总览的固定版本、许可与来源信息；逐项校验见 v0.6.0 验收记录。</td></tr>
 <tr><th>多相机如何检查？</th><td>Episode 浏览器的逐路检查状态、本页四路同步时间轴，以及验收记录中的视频、帧数与时间映射结果。</td></tr>
 <tr><th>时间轴上的帧是录屏吗？</th><td>不是。来自交付包四路 H.264 视频按相同帧索引解码拼接；参数与逐路亮度核验见 timeline/manifest.json。</td></tr>
+<tr><th>16:9 新界面改了什么？</th><td>固定 Shell、局部滚动、四路相机与曲线共用一条时间轴、全宽 32px 表格与行检视联动；两仓 v0.8.0 / v0.3.0 发布说明列出完整改动与验证。</td></tr>
+<tr><th>新界面截图都是真实业务状态吗？</th><td>不是。带「构造元数据」标记的四相机布局验证图使用真实交付帧 + 构造的批次元数据；其余三张来自本机真实 FastAPI 服务，README 逐张注明来源。</td></tr>
+<tr><th>工作台能在线打开吗？</th><td>不能。两个服务只监听 127.0.0.1；本页是静态展示，不提供公网交互实例，也不改变「仅本机运行」口径。</td></tr>
 <tr><th>转换用了官方格式吗？</th><td>交付核验的官方 LeRobot 离线加载记录与数据字典；格式读写由官方库完成。</td></tr>
 <tr><th>失败时会怎样？</th><td>运行诊断、失败用例与验收记录中的登记门禁；失败运行不会成为可交付产物。</td></tr>
 <tr><th>截图有没有修饰过？</th><td>没有。均为本机实际运行截图或真实视频抽帧，仅做拼接与标注；历史界面已单独标注版本。</td></tr>
@@ -325,7 +353,7 @@ footer{padding:40px 0 56px;font-size:12px;color:var(--muted);display:flex;justif
 </div></section>
 
 <section id="run"><div class="wrap">
-<div class="sec-head"><div class="num">06</div><div><h2>本地运行</h2><p class="sub">界面本身需要本机启动；本页提供的是无需安装即可核对的入口与证据。</p></div></div>
+<div class="sec-head"><div class="num">07</div><div><h2>本地运行</h2><p class="sub">界面本身需要本机启动；本页提供的是无需安装即可核对的入口与证据。</p></div></div>
 <pre># 具身数据平台（Windows / Python 3.12 / Node.js 24 / uv）
 uv sync --locked
 cd frontend &amp;&amp; npm ci &amp;&amp; npm run build &amp;&amp; cd ..
@@ -335,10 +363,10 @@ cd frontend &amp;&amp; npm ci &amp;&amp; npm run build &amp;&amp; cd ..
 # 基金助手（默认离线合成演示）
 .\启动基金助手.cmd
 # http://127.0.0.1:8766/</pre>
-<p class="note">完整步骤、首次安装脚本与复现验收命令见两仓 README。旧版 Streamlit 入口保留为回退；历史逐节点截图与 v0.4.0 验收报告见 <a href="validation-report-v0.4.0.html">归档页</a>。本页新增的帧序列与图集由 <code>docs/assets/timeline/manifest.json</code> 记录来源与采样参数，可对照交付包视频复核。</p>
+<p class="note">完整步骤、首次安装脚本与复现验收命令见两仓 README。旧版 Streamlit 入口保留为回退；历史逐节点截图与 v0.4.0 验收报告见 <a href="validation-report-v0.4.0.html">归档页</a>。本页的帧序列与图集由 <code>docs/assets/timeline/manifest.json</code> 记录来源与采样参数，可对照交付包视频复核；v0.8.0 / v0.3.0 的四张 16:9 界面截图及构造元数据标记见两仓发布说明。</p>
 </div></section>
 
-<footer class="wrap"><span>更新于 2026-11-11 · 页面内容对应已发布版本 v0.7.0 / v0.2.1</span><span>公开数据按上游许可使用 · 基金部分不构成投资建议</span></footer>
+<footer class="wrap"><span>更新于 2026-11-12 · 页面内容对应已发布版本 v0.8.0 / v0.3.0</span><span>公开数据按上游许可使用 · 基金部分不构成投资建议</span></footer>
 
 <script>
 (function(){

@@ -1,6 +1,6 @@
 # RoboData Workbench · 具身智能数据处理平台
 
-**v0.7.0 · Windows / Python 3.12 / Node.js 24 · 本地单用户**
+**v0.8.0 · Windows / Python 3.12 / Node.js 24 · 本地单用户**
 
 在线作品集展示页（无需安装即可查看两个项目的真实截图、验收证据与能力边界）：https://mahonghao1.github.io/Embodied-AI-Data-Processing-Platform/
 
@@ -10,7 +10,36 @@
 
 > 截图于 2026-11-09 从本机 FastAPI 服务生成，展示固定 revision 的真实 ALOHA Coffee Episode 0。Episode 0–4 已完成本地转换与交付验收；标注审核门禁由脚本模拟，未声称人工审核或机器人执行效果。逐路文件时间映射检查不代表硬件同步。详见 [v0.6.0 状态](docs/STATUS_v0.6.0.md) 与 [验收记录](docs/VALIDATION_v0.6.0.md)。
 
-当前展示以通过核验的真实 ALOHA 多相机截图和 SO-100 工作台截图为准；旧录屏含加载或空状态，不作为公开演示素材。
+上方为 v0.6.0 的历史首屏截图，保留作真实 ALOHA 数据浏览的证据；**当前界面见下方「v0.8.0 · 16:9 固定工作台」**。旧录屏含加载或空状态，不作为公开演示素材。
+
+## v0.8.0 · 16:9 固定工作台
+
+v0.8.0 把两套界面从「窄栏长页」重做为**一屏闭环的固定工作台**：顶栏 48px、侧栏 216px、主区自适应、检视面板 320px、具身底部时间轴 96px（基金为 34px 状态条）。整页不再滚动，只有主区与检视面板局部滚动。
+
+![v0.8.0 具身工作台：固定 Shell、四路相机与曲线共用时间轴、右侧检视面板](docs/assets/workbench-v0.8.0-aloha.png)
+
+> 四路相机视图为界面布局验证截图：镜头画面取自已验收 ALOHA Coffee 交付包的真实帧，批次与相机元数据为演示构造数据，用于核对 16:9 布局与时间轴联动。下方 SO-100 截图来自本机真实 FastAPI 服务。
+
+![v0.8.0 具身工作台真实服务截图：SO-100 单相机批次、曲线游标与底部时间轴](docs/assets/workbench-v0.8.0.png)
+
+> 2026-11-11 从本机 FastAPI 服务（同源托管构建后的 `frontend/dist`）生成，当前业务状态登记的是 SO-100 单相机批次。真实视频可播放：时间轴跳到 8.37 s 时视频 `currentTime` 同步为 8.37，曲线游标随帧移动。
+
+| 改动 | 效果 |
+| --- | --- |
+| 统一 Shell | 导航从顶栏迁入侧栏；顶栏只放品牌、面包屑、状态与检视开关 |
+| 局部滚动 | 主区与检视面板各自滚动，KPI、时间轴、状态条始终可见 |
+| 时间轴联动 | 播放／逐帧／5 个百分比书签控制真实视频；曲线增加当前帧游标；空格、← →、1–4、Esc 快捷键 |
+| 检视面板 | 当前帧、任务列表、逐路检查、质检与候选、来源锁定集中在一列 |
+| 相机聚焦 | 点击任一相机放大，退出后 2×2 顺序不变；检视面板可收起 |
+| 基金侧 | 全宽表格 32px 行高 + 固定表头，10 行同屏；点行更新右侧检视，不跳页 |
+
+基金侧同样换成固定 Shell，行高与信息密度按 IBM Carbon DataTable 的 32px 档设置：
+
+![v0.3.0 基金工作台：全宽持仓表、右侧检视与底部口径状态条](docs/assets/fund-v0.3.0.png)
+
+> 从本机 FastAPI 离线演示服务生成。近一年收益保持「不可用」，不以零值替代；右侧显示来源回退状态与计算口径。
+
+**边界**：本次是纯前端布局重构，API 契约、后端、数据口径与验收范围均未改变；仅本机运行，不提供公网交互实例。面板拖拽与布局保存（P2）未实现。
 
 业务链路包含**上传／导入 → 清洗 → 筛选 → 标注审核 → 质检 → 格式转换 → 打包与独立验包**。工作台分为批次总览、episode 与相机浏览、运行诊断、交付核验四类界面；每次处理保留阶段状态、日志和证据。只有通过官方 LeRobot 加载、输出质检、打包和独立验包的产物才可交付。
 
@@ -18,10 +47,11 @@
 
 ## 先看什么（无需安装）
 
-[在线作品集展示页](https://mahonghao1.github.io/Embodied-AI-Data-Processing-Platform/) 提供免安装的核对入口，v0.7.0 起增加三块内容：
+[在线作品集展示页](https://mahonghao1.github.io/Embodied-AI-Data-Processing-Platform/) 提供免安装的核对入口：
 
 - **四路相机同步时间轴**：8 个时刻可拖动或播放，每帧从通过验收的交付包四路 H.264 视频按**相同帧索引**解码后拼接，不是录屏，也不是示意图。
-- **九个真实界面视角**：工作台、数据概览、逐帧检查、质检报告、样本抽样网格等，点击可打开原图。
+- **v0.8.0 的 16:9 新工作台**：4 张 1920×1080 截图，固定 Shell、四路相机与曲线共用时间轴、全宽表格与右侧检视；其中具身四相机视图为布局验证截图，批次与相机元数据为构造数据，已单独标注。
+- **九个历史与当前界面视角**：工作台、数据概览、逐帧检查、质检报告、样本抽样网格等，点击可打开原图。
 - **证据链与能力边界**：能证明什么、不能证明什么，以及面试追问时该打开哪一页。
 
 ![ALOHA Coffee Episode 0 四路相机同步时间轴：8 个时刻 × 4 路相机](docs/assets/aloha-timeline-sheet.jpg)
@@ -60,7 +90,7 @@
 - **想跑起来**：安装 Node.js 24 LTS 后，双击根目录 `首次安装.cmd`，再双击桌面快捷方式 —— 见[安装与启动](#安装与启动)
 - **讲给面试官**：[演示路线](docs/demo.md)
 - **查实现**：[数据字典](docs/data_dictionary.md)、[V0.5 状态](docs/STATUS_v05.md)、[导航验收](docs/VALIDATION_navigation.md)
-- **查当前迭代**：[v0.7.0 发布说明](RELEASE_NOTES_v0.7.0.md)、[v0.6.0 状态](docs/STATUS_v0.6.0.md)、[v0.6.0 验收记录](docs/VALIDATION_v0.6.0.md)、[变更记录](CHANGELOG.md)
+- **查当前迭代**：[v0.8.0 发布说明](RELEASE_NOTES_v0.8.0.md)、[v0.7.0 发布说明](RELEASE_NOTES_v0.7.0.md)、[v0.6.0 状态](docs/STATUS_v0.6.0.md)、[v0.6.0 验收记录](docs/VALIDATION_v0.6.0.md)、[变更记录](CHANGELOG.md)
 - **查操作**：[标准操作 SOP](docs/SOP.md)，[HTML 手册](docs/SOP.html) 可离线打开
 
 默认服务地址为 [http://127.0.0.1:8765/](http://127.0.0.1:8765/)，由 FastAPI 在本机托管构建后的 React 页面和 API。GitHub Pages 不提供该 Python 服务；旧版 Streamlit 可通过 `启动Streamlit旧版.cmd` 单独运行于 8501 端口。
@@ -250,7 +280,7 @@ CI 在 `windows-latest` 上执行同一组测试（[`.github/workflows/tests.yml
 
 原始数据、管理副本、运行日志、报告和交付 ZIP 默认保存在被 Git 忽略的 `data/`、`work/`、`reports/`。历史证据中引用的本地产物需自行复现，不随源码自动下载。
 
-首屏截图 `docs/assets/workbench-v0.6.0-aloha.png` 来自通过验收的真实 ALOHA Episode 0 四路相机浏览；`docs/assets/workbench-v0.6.0.png` 展示 SO-100 工作台界面，不把它描述为 ALOHA 转换证据。
+历史首屏截图 `docs/assets/workbench-v0.6.0-aloha.png` 来自通过验收的真实 ALOHA Episode 0 四路相机浏览；`docs/assets/workbench-v0.6.0.png` 展示 SO-100 工作台界面，不把它描述为 ALOHA 转换证据。v0.8.0 的 `workbench-v0.8.0.png` 与 `fund-v0.3.0.png` 来自本机真实 FastAPI 服务；`workbench-v0.8.0-aloha.png` 是 16:9 布局验证截图，镜头画面取自真实交付帧但批次元数据为构造数据，不作为 ALOHA 转换或业务状态证据。
 
 ## 设计取舍
 
@@ -272,4 +302,4 @@ CI 在 `windows-latest` 上执行同一组测试（[`.github/workflows/tests.yml
 
 ## English
 
-A local robot-data workbench that turns a fixed public ALOHA Coffee dataset into a verified LeRobot v3.0 delivery. React and TypeScript UI, a loopback-only FastAPI bridge, and Python business logic. Each claim is backed by source hashes, per-camera checks, official offline loading and independent package verification. The automated validation uses an explicitly simulated review gate; it does not imply human review, robot execution or training results. Since v0.7.0 the static portfolio page also includes a draggable four-camera timeline built from real decoded delivery-video frames, plus nine verified UI views; it is a static frame sequence, not live playback or hardware synchronisation.
+A local robot-data workbench that turns a fixed public ALOHA Coffee dataset into a verified LeRobot v3.0 delivery. React and TypeScript UI, a loopback-only FastAPI bridge, and Python business logic. Each claim is backed by source hashes, per-camera checks, official offline loading and independent package verification. The automated validation uses an explicitly simulated review gate; it does not imply human review, robot execution or training results. Since v0.7.0 the static portfolio page also includes a draggable four-camera timeline built from real decoded delivery-video frames, plus nine verified UI views; it is a static frame sequence, not live playback or hardware synchronisation. v0.8.0 rebuilds both application UIs as fixed 16:9 workbenches (48px header, 216px sidebar, fluid main area, 320px inspector, 96px timeline), with one shared playback cursor driving real video and charts, and a full-width 32px table with row-linked inspection on the fund side. This is a layout-only refactor: API contracts, Python business logic, data provenance and the validated scope are unchanged.

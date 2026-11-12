@@ -11,7 +11,7 @@ describe('RoboData workbench shell', () => {
       const url = String(input);
       const body = url.endsWith('/api/batches') ? { batches: [], errors: [] }
         : url.endsWith('/api/runs') ? { runs: [] }
-          : { status: 'ok', version: '0.6.0' };
+          : { status: 'ok', version: '0.8.0' };
       return new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } });
     }));
     render(<App />);
