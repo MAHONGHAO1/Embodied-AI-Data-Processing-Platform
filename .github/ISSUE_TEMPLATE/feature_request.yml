@@ -1,0 +1,24 @@
+name: 改进建议
+description: 提出功能、文档或展示页的改进建议
+title: "[Enhancement] "
+labels: []
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 想解决什么问题
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 建议做法
+    validations:
+      required: true
+  - type: textarea
+    id: boundary
+    attributes:
+      label: 对能力边界的影响
+      description: 是否改变数据来源、验收范围或「本机单用户」定位
+    validations:
+      required: false
