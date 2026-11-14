@@ -1,83 +1,45 @@
-# RoboData Workbench · 具身智能数据处理平台
+# RoboData Workbench
 
-**v0.9.0 · Windows / Python 3.12 / Node.js 24 · 本地单用户**
+**把机器人演示数据，做成敢交给下游的训练集。**
+
+v0.9.0 · Windows / Python 3.12 / Node.js 24 · 本地单用户
 
 [![tests](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/tests.yml/badge.svg)](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/tests.yml) [![release](https://img.shields.io/badge/release-v0.9.0-blue.svg)](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/releases/tag/v0.9.0) [![license](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE) [![portfolio](https://img.shields.io/badge/portfolio-live-1677ff.svg)](https://mahonghao1.github.io/)
 
-**在线展示（无需安装）**：[作品集首页](https://mahonghao1.github.io/) · [RoboData 项目深度页](https://mahonghao1.github.io/robodata/)。静态展示页汇总两个项目的当前截图、验收证据与能力边界，不提供本机的 Python 交互服务。
+采集现场四路相机各录一份，导出时每个批次的目录结构都不一样，交接时对方只问一句：这个包能训吗。
 
-把机器人演示数据变成**可检查、可追溯、可验证后交付**的训练样本。新工作台由 React + TypeScript 界面和 FastAPI 本地服务组成；既有 Python 数据处理、质量检查与交付验证仍是业务权威实现。
+RoboData 就是回答这一句的工具。导入、清洗筛选、标注审核、质检、转成 LeRobot v3.0、打包，最后把包**独立验一遍**。哪一步没过，批次就停在那儿，不放给下游。
 
-![v0.8.0 工作台当前界面：SO-100 单相机批次、状态曲线、底部时间轴与右侧检视面板](docs/assets/workbench-v0.8.0.png)
+界面是 React + TypeScript，服务是 FastAPI，全跑在你自己机器上。Python 侧的数据处理、质检和验包才是业务权威实现——界面只是它的一层皮，不会替它做决定。
 
-> 当前版本首屏。2026-11-11 从本机 FastAPI 服务（同源托管构建后的 `frontend/dist`）生成，业务状态登记的是 SO-100 单相机批次。真实视频可播放：时间轴跳到 8.37 s 时视频 `currentTime` 同步为 8.37，曲线游标随帧移动。四相机布局验证图、ALOHA 时间轴拼图与历史迭代截图见下方各节，每张都单独注明真实数据与构造演示的边界。
+![v0.8.0 工作台：SO-100 单相机批次、状态曲线、底部时间轴与右侧检视面板](docs/assets/workbench-v0.8.0.png)
 
-**当前界面以 v0.8.0 为准。** v0.6.0 的旧首屏与旧录屏只保留在迭代记录与文档链接中，不作为公开演示素材。
+> 2026-11-11 从本机 FastAPI 服务（同源托管构建后的 `frontend/dist`）截取。视频是真能播的：时间轴跳到 8.37 s，视频 `currentTime` 也走到 8.37，曲线游标跟着帧动。
 
-## v0.9.0 · 状态回退修复与上线级审计
+## 三个你可能正在经历的场面
 
-v0.9.0 不新增界面，而是把「提交审核后离开一小时，回来看起来全部回退到导入阶段」这条真实缺陷查到底并修完，同时补上防止复发的护栏。
+**四路相机，对不齐。** 帧数一样，时间戳也对得上，可打开一看某一路就是慢了半拍。平台把四路按相同帧索引解码后并排放，八个时刻随你拖。对不上的地方不用翻日志，眼睛就能挑出来。
 
-| 层 | 根因 | 本版处置 |
-| --- | --- | --- |
-| 后端 | 读取运行记录被实现成带业务副作用：`GET` / SSE 读路径会重放质检登记，把审核打回草稿、清掉清洗确认并使产物失效 | 读路径改为**纯只读**（含派生视图），恢复登记只能走显式 `POST /api/runs/{id}/recover` |
-| SSE | 终态不下发结束事件，浏览器 `EventSource` 无限自动重连，把危险读路径放大 | 终态 / 错误 / 超时下发 `event: done` + 心跳 + 超时，客户端终态主动关闭 |
-| 前端 | 阶段进度硬编码，业务状态一失效就只剩「导入」 | 进度由 `deriveStages(batch, runs)` 按真实审核与产物推导 |
-| 前端 | 刷新或长时间离开丢失上下文 | URL + 本地会话双通道恢复，回前台主动对账 |
-| 入口 | 旧 Streamlit 界面仍在每次重绘时自动回写 | 同步改为纯只读 + 提示，破坏性恢复需两步确认 |
-| 交互 | 破坏性操作缺少说明，且后端 409 时前端只能反复点同一个按钮 | 质检重跑 / 恢复质检登记 / 修改筛选决定均二次确认；新增可操作的「确认并重试」，先取服务器真相再带确认标记重发 |
-| 提示 | 用户自己的写操作被误报成「后台处理改了批次」 | 版本基准随写操作同步，提示改为中性归因，并明确说明产物失效 |
+**某条 episode 训练时 loss 一直炸。** 回头查数据，才发现中间几帧关节值飞了。质检做在行一级——时间戳跳变、缺帧、重复帧、异常轨迹、NaN，报告直接给帧号。
 
-验证：后端全量 **289 passed / 7 skipped / 13 subtests**，上线级审计套件 **43 passed**；前端 **26 项单测** 与生产构建通过；真实 `uvicorn` 下终态 SSE 在 8 ms 内结束闭环。完整根因链、逐条修复位置与剩余风险见 [上线级审计报告](docs/LAUNCH_AUDIT_REPORT.md) 与 [v0.9.0 发布说明](RELEASE_NOTES_v0.9.0.md)。
+**交付包被打回，说加载不了。** 你本地明明是好的。所以在交出去之前，先用官方 LeRobot 离线加载一遍，再过 DataLoader，再算 SHA-256。被退一次的时间，够自己验十次。
 
-> 运行边界不变：本机单用户、仅 `127.0.0.1` loopback。报告第 8 节列出的产品语义决策项与公网化前置项未在本版处理，因此本版不宣称「公网多用户可上线」。
+## 它替你省掉什么
 
-
-## v0.8.0 · 16:9 固定工作台
-
-v0.8.0 把两套界面从「窄栏长页」重做为**一屏闭环的固定工作台**：顶栏 48px、侧栏 216px、主区自适应、检视面板 320px、具身底部时间轴 96px（基金为 34px 状态条）。整页不再滚动，只有主区与检视面板局部滚动。
-
-![v0.8.0 具身工作台：固定 Shell、四路相机与曲线共用时间轴、右侧检视面板](docs/assets/workbench-v0.8.0-aloha.png)
-
-> 四路相机视图为界面布局验证截图：镜头画面取自已验收 ALOHA Coffee 交付包的真实帧，批次与相机元数据为演示构造数据，用于核对 16:9 布局与时间轴联动。下方 SO-100 截图来自本机真实 FastAPI 服务。
-
-![v0.8.0 具身工作台真实服务截图：SO-100 单相机批次、曲线游标与底部时间轴](docs/assets/workbench-v0.8.0.png)
-
-> 2026-11-11 从本机 FastAPI 服务（同源托管构建后的 `frontend/dist`）生成，当前业务状态登记的是 SO-100 单相机批次。真实视频可播放：时间轴跳到 8.37 s 时视频 `currentTime` 同步为 8.37，曲线游标随帧移动。
-
-| 改动 | 效果 |
+| 通常的做法 | 这里 |
 | --- | --- |
-| 统一 Shell | 导航从顶栏迁入侧栏；顶栏只放品牌、面包屑、状态与检视开关 |
-| 局部滚动 | 主区与检视面板各自滚动，KPI、时间轴、状态条始终可见 |
-| 时间轴联动 | 播放／逐帧／5 个百分比书签控制真实视频；曲线增加当前帧游标；空格、← →、1–4、Esc 快捷键 |
-| 检视面板 | 当前帧、任务列表、逐路检查、质检与候选、来源锁定集中在一列 |
-| 相机聚焦 | 点击任一相机放大，退出后 2×2 顺序不变；检视面板可收起 |
-| 基金侧 | 全宽表格 32px 行高 + 固定表头，10 行同屏；点行更新右侧检视，不跳页 |
+| 每个数据集现写一个转换脚本，下个批次重写 | 流水线固定，换数据集只调范围 |
+| 质检靠人盯曲线 | 规则内建，逐帧定位，报告可导出 |
+| 「应该没问题」就交付 | 独立验包，SHA-256 对不上就不放行 |
+| 出了问题翻日志猜 | 每次运行按阶段留请求、状态、事件和诊断 |
 
-基金侧同样换成固定 Shell，行高与信息密度按 IBM Carbon DataTable 的 32px 档设置：
+## 免安装，先看效果
 
-![v0.3.0 基金工作台：全宽持仓表、右侧检视与底部口径状态条](docs/assets/fund-v0.3.0.png)
-
-> 从本机 FastAPI 离线演示服务生成。近一年收益保持「不可用」，不以零值替代；右侧显示来源回退状态与计算口径。
-
-**边界**：本次是纯前端布局重构，API 契约、后端、数据口径与验收范围均未改变；仅本机运行，不提供公网交互实例。面板拖拽与布局保存（P2）未实现。
-
-业务链路包含**上传／导入 → 清洗 → 筛选 → 标注审核 → 质检 → 格式转换 → 打包与独立验包**。工作台分为批次总览、episode 与相机浏览、运行诊断、交付核验四类界面；每次处理保留阶段状态、日志和证据。只有通过官方 LeRobot 加载、输出质检、打包和独立验包的产物才可交付。
-
-> **本地边界：** 新工作台只监听 `127.0.0.1`，不提供公网交互服务。仓库的 [在线作品集展示页](https://mahonghao1.github.io/) 与 [RoboData 深度页](https://mahonghao1.github.io/robodata/) 汇总当前截图、验收证据与能力边界；它是静态页，不提供本机的 Python 交互服务。
-
-## 先看什么（无需安装）
-
-[作品集首页](https://mahonghao1.github.io/) 与 [RoboData 深度页](https://mahonghao1.github.io/robodata/) 提供免安装的核对入口：
-
-- **四路相机同步时间轴**：8 个时刻可拖动或播放，每帧从通过验收的交付包四路 H.264 视频按**相同帧索引**解码后拼接，不是录屏，也不是示意图。
-- **v0.8.0 的 16:9 新工作台**：4 张 1920×1080 截图，固定 Shell、四路相机与曲线共用时间轴、全宽表格与右侧检视；其中具身四相机视图为布局验证截图，批次与相机元数据为构造数据，已单独标注。
-- **九个历史与当前界面视角**：工作台、数据概览、逐帧检查、质检报告、样本抽样网格等，点击可打开原图。
-- **证据链与能力边界**：能证明什么、不能证明什么，以及面试追问时该打开哪一页。
+不装任何东西也能核对：[作品集首页](https://mahonghao1.github.io/) 与 [RoboData 深度页](https://mahonghao1.github.io/robodata/) 放着当前截图和验收证据。静态页，不跑你本机的 Python 服务。
 
 ![ALOHA Coffee Episode 0 四路相机同步时间轴：8 个时刻 × 4 路相机](docs/assets/aloha-timeline-sheet.jpg)
 
-> 时间轴帧与下方逐路抽样图均来自 `work/aloha-integration-r4/.../unpacked/dataset/videos/` 中通过验收的四路交付视频（各 5,500 帧 / 50 FPS / 640×480）。采样帧为 0、150、300、450、600、750、900、1050，参数与逐路亮度／方差核验结果见 [manifest.json](docs/assets/timeline/manifest.json)。**边界**：这是静态帧序列，用于核对同一时刻四路都有画面与帧—时间映射一致，不代表相机硬件同步，也不等于工作台实时解码。
+> 四路按**相同帧索引**解码后拼接，不是录屏，也不是示意图。取自通过验收的交付包四路 H.264（各 5,500 帧 / 50 FPS / 640×480），采样帧 0、150、300…1050，参数见 [manifest.json](docs/assets/timeline/manifest.json)。**边界**：静态帧序列，用来核对同一时刻四路都有画面、帧与时间映射一致；不代表相机硬件同步，也不等于工作台实时解码。
 
 ![交付包逐路解码抽样：5 条 Episode × 4 路相机](docs/assets/aloha-episodes-grid.jpg)
 
@@ -87,34 +49,35 @@ v0.8.0 把两套界面从「窄栏长页」重做为**一屏闭环的固定工�
 | Episode 逐帧检查 | [查看](docs/assets/episode-browser.png) | 目标时间与视频时间对齐、关节原始值、曲线游标 |
 | 质检报告 | [查看](docs/assets/quality-page.png) | 逐条检查状态、「已执行但未发现问题」结论与报告导出 |
 | 样本抽样网格 | [查看](docs/assets/sample-contact-sheet.jpg) | SO-100 四条 Episode × 三个时刻的真实解码画面 |
-| 旧版界面（历史 v0.4.0） | [查看](docs/assets/v04/01_overview.png) | 早期 Streamlit 页面，仅作迭代对照，不代表当前 React 工作台 |
+| 旧版界面（历史 v0.4.0） | [查看](docs/assets/v04/01_overview.png) | 早期 Streamlit 页面，仅作迭代对照 |
 
-所有图片均为本机实际运行截图或真实视频抽帧，未补画、未修饰；历史界面单独标注版本。
+图片都是本机实际运行截图或真实视频抽帧，没补画、没修饰；历史界面单独标了版本。
 
-## 它证明了什么
+## 到底做到了什么程度
+
+下面每一条都能点进去核对，不合格的地方也一并写出来。
 
 | 主张 | 证据 |
 | --- | --- |
-| 新工作台界面 | React + TypeScript 页面、FastAPI 同源托管和批次/运行 API；Node 24 构建、单测与 Chromium 浏览器流程通过 |
-| SO-100 主流程 | v0.5.0 固定子集 5 条／3,562 帧通过工作台转换与交付验收；证据见 [v0.5 验收](docs/VALIDATION_v05.md) |
-| HDF5 转换与交付 | v0.4 历史验收：116 帧与源 float32 映射一致，官方离线读取和交付包独立验证通过；详见 [v0.4 验收](docs/VALIDATION_v04.md) |
-| 多相机处理 | 固定 ALOHA Episode 0–4 实测通过：5,500 帧、四路 640 × 480、50 FPS；各相机帧数与时间映射检查通过 |
-| 转换与交付 | 官方离线加载和 5,500 帧数值一致性检查通过；输出质检 55/55 完成；打包 ZIP 独立解包与加载通过 |
-| 失败门禁 | 自动测试覆盖缺相机、时间映射错误、未知结构及失败结果拒绝登记；真实数据转换失败和 ZIP 篡改未作故障注入，本次成功产物通过完整登记链 |
-| 运行可追溯 | 业务运行按阶段保存请求、状态、事件和诊断；具体真实数据的通过范围以对应版本验收记录为准 |
+| 新工作台界面 | React + TypeScript 页面、FastAPI 同源托管、批次/运行 API；Node 24 构建、单测与 Chromium 浏览器流程通过 |
+| SO-100 主流程 | 固定子集 5 条 / 3,562 帧通过工作台转换与交付验收，见 [v0.5 验收](docs/VALIDATION_v05.md) |
+| HDF5 转换与交付 | 116 帧与源 float32 映射一致，官方离线读取与交付包独立验证通过，见 [v0.4 验收](docs/VALIDATION_v04.md) |
+| 多相机处理 | ALOHA Coffee Episode 0–4 实测：5,500 帧、四路 640×480、50 FPS，各相机帧数与时间映射检查通过 |
+| 转换与交付 | 官方离线加载与 5,500 帧数值一致性检查通过；输出质检 55/55 完成；ZIP 独立解包与加载通过 |
+| 失败门禁 | 自动测试覆盖缺相机、时间映射错误、未知结构、失败结果拒绝登记；真实数据转换失败与 ZIP 篡改**未做**故障注入 |
+| 运行可追溯 | 业务运行按阶段保存请求、状态、事件和诊断；真实数据的通过范围以对应版本验收记录为准 |
 
-历史 HDF5 验收：14 个节点全部完成，源任务 0、2 → 输出 2 条／116 帧，端到端 29.26 秒，见 [V0.4 验收](docs/VALIDATION_v04.md)。SO-100 本轮的 UI 开通、5 条／3,562 帧转换及交付证据记录在 [V0.5 验收](docs/VALIDATION_v05.md)，测试证据不代替真实数据运行结果。
+历史 HDF5 验收：14 个节点全部完成，源任务 0、2 → 输出 2 条 / 116 帧，端到端 29.26 秒（[V0.4](docs/VALIDATION_v04.md)）。SO-100 的 UI 开通、5 条 / 3,562 帧转换与交付证据在 [V0.5](docs/VALIDATION_v05.md)。测试证据不代替真实数据运行结果。
 
 ## 从哪里开始
 
-- **只想看效果**：打开[作品集首页](https://mahonghao1.github.io/)或[项目深度页](https://mahonghao1.github.io/robodata/)（无需安装），拖动四路相机同步时间轴、浏览九个界面视角，或查看上方新界面截图
-- **想跑起来**：安装 Node.js 24 LTS 后，双击根目录 `首次安装.cmd`，再双击桌面快捷方式 —— 见[安装与启动](#安装与启动)
-- **讲给面试官**：[演示路线](docs/demo.md)
-- **查实现**：[数据字典](docs/data_dictionary.md)、[V0.5 状态](docs/STATUS_v05.md)、[导航验收](docs/VALIDATION_navigation.md)
-- **查当前迭代**：[v0.9.0 发布说明](RELEASE_NOTES_v0.9.0.md)、[上线级审计报告](docs/LAUNCH_AUDIT_REPORT.md)、[v0.8.0 发布说明](RELEASE_NOTES_v0.8.0.md)、[v0.7.0 发布说明](RELEASE_NOTES_v0.7.0.md)、[变更记录](CHANGELOG.md)
-- **查操作**：[标准操作 SOP](docs/SOP.md)，[HTML 手册](docs/SOP.html) 可离线打开
+- **只想看效果**：打开[作品集首页](https://mahonghao1.github.io/)或[项目深度页](https://mahonghao1.github.io/robodata/)，拖时间轴、翻九个界面视角
+- **想跑起来**：装好 Node.js 24 LTS，双击 `首次安装.cmd`，再用桌面快捷方式启动 —— 见[安装与启动](#安装与启动)
+- **想读实现**：[数据字典](docs/data_dictionary.md)、[V0.5 状态](docs/STATUS_v05.md)、[导航验收](docs/VALIDATION_navigation.md)
+- **想看迭代**：[v0.9.0 发布说明](RELEASE_NOTES_v0.9.0.md)、[上线级审计报告](docs/LAUNCH_AUDIT_REPORT.md)、[变更记录](CHANGELOG.md)
+- **想照着操作**：[标准操作 SOP](docs/SOP.md)，[HTML 手册](docs/SOP.html) 可离线打开
 
-默认服务地址为 [http://127.0.0.1:8765/](http://127.0.0.1:8765/)，由 FastAPI 在本机托管构建后的 React 页面和 API。GitHub Pages 不提供该 Python 服务；旧版 Streamlit 可通过 `启动Streamlit旧版.cmd` 单独运行于 8501 端口。
+默认服务地址 [http://127.0.0.1:8765/](http://127.0.0.1:8765/)，FastAPI 在本机托管构建后的 React 页面和 API。GitHub Pages 不提供这个 Python 服务；旧版 Streamlit 用 `启动Streamlit旧版.cmd` 单独跑在 8501。
 
 ## 安装与启动
 
@@ -277,7 +240,7 @@ $env:ROBODATA_SO100_EPISODES = "0-9"    # 前 10 条
 
 原有故障演示可展开侧栏“高级工具”，在样本页面使用“异常演示副本”“视频缺失演示副本”和“运行超时演示”。具体注入位置及结果含义见 [SOP](docs/SOP.md)。
 
-## 实现与验证
+## 技术上怎么落地
 
 主环境负责页面、轻量读取、质检、后台协调及业务状态；`tools/conversion/` 使用独立 Python 进程完成 HDF5 解析、官方写入与离线加载。两个环境分别锁定依赖。转换组合与维护说明见 [独立环境文档](tools/conversion/README.md)。
 
@@ -303,7 +266,7 @@ CI 在 `windows-latest` 上执行同一组测试（[`.github/workflows/tests.yml
 
 历史截图（仅作迭代对照，已不作为 README 首屏）`docs/assets/workbench-v0.6.0-aloha.png` 来自通过验收的真实 ALOHA Episode 0 四路相机浏览；`docs/assets/workbench-v0.6.0.png` 展示 SO-100 工作台界面，不把它描述为 ALOHA 转换证据。v0.8.0 的 `workbench-v0.8.0.png` 与 `fund-v0.3.0.png` 来自本机真实 FastAPI 服务；`workbench-v0.8.0-aloha.png` 是 16:9 布局验证截图，镜头画面取自真实交付帧但批次元数据为构造数据，不作为 ALOHA 转换或业务状态证据。
 
-## 设计取舍
+## 为什么这么设计
 
 关键决策都放弃了什么，写在这里而不是藏起来。
 
@@ -317,10 +280,74 @@ CI 在 `windows-latest` 上执行同一组测试（[`.github/workflows/tests.yml
 | 失败建模 | 任务失败 / 数据异常 / 程序失败 三类分开 | 放弃单一成功失败判断；换取完整失败轨迹仍可作为有效数据保留 |
 | 产物失效 | 内容版本或哈希变化即标记历史 | 放弃"永远可下载"的便利；换取不会误把过期产物当当前有效交付 |
 
+## 版本记录
+
+每一版改了什么、为什么改，都写在这里。想看最新一版的结论，往上翻到「到底做到了什么程度」。
+
+## v0.9.0 · 状态回退修复与上线级审计
+
+v0.9.0 不新增界面，而是把「提交审核后离开一小时，回来看起来全部回退到导入阶段」这条真实缺陷查到底并修完，同时补上防止复发的护栏。
+
+| 层 | 根因 | 本版处置 |
+| --- | --- | --- |
+| 后端 | 读取运行记录被实现成带业务副作用：`GET` / SSE 读路径会重放质检登记，把审核打回草稿、清掉清洗确认并使产物失效 | 读路径改为**纯只读**（含派生视图），恢复登记只能走显式 `POST /api/runs/{id}/recover` |
+| SSE | 终态不下发结束事件，浏览器 `EventSource` 无限自动重连，把危险读路径放大 | 终态 / 错误 / 超时下发 `event: done` + 心跳 + 超时，客户端终态主动关闭 |
+| 前端 | 阶段进度硬编码，业务状态一失效就只剩「导入」 | 进度由 `deriveStages(batch, runs)` 按真实审核与产物推导 |
+| 前端 | 刷新或长时间离开丢失上下文 | URL + 本地会话双通道恢复，回前台主动对账 |
+| 入口 | 旧 Streamlit 界面仍在每次重绘时自动回写 | 同步改为纯只读 + 提示，破坏性恢复需两步确认 |
+| 交互 | 破坏性操作缺少说明，且后端 409 时前端只能反复点同一个按钮 | 质检重跑 / 恢复质检登记 / 修改筛选决定均二次确认；新增可操作的「确认并重试」，先取服务器真相再带确认标记重发 |
+| 提示 | 用户自己的写操作被误报成「后台处理改了批次」 | 版本基准随写操作同步，提示改为中性归因，并明确说明产物失效 |
+
+验证：后端全量 **289 passed / 7 skipped / 13 subtests**，上线级审计套件 **43 passed**；前端 **26 项单测** 与生产构建通过；真实 `uvicorn` 下终态 SSE 在 8 ms 内结束闭环。完整根因链、逐条修复位置与剩余风险见 [上线级审计报告](docs/LAUNCH_AUDIT_REPORT.md) 与 [v0.9.0 发布说明](RELEASE_NOTES_v0.9.0.md)。
+
+> 运行边界不变：本机单用户、仅 `127.0.0.1` loopback。报告第 8 节列出的产品语义决策项与公网化前置项未在本版处理，因此本版不宣称「公网多用户可上线」。
+
+
+## v0.8.0 · 16:9 固定工作台
+
+v0.8.0 把两套界面从「窄栏长页」重做为**一屏闭环的固定工作台**：顶栏 48px、侧栏 216px、主区自适应、检视面板 320px、具身底部时间轴 96px（基金为 34px 状态条）。整页不再滚动，只有主区与检视面板局部滚动。
+
+![v0.8.0 具身工作台：固定 Shell、四路相机与曲线共用时间轴、右侧检视面板](docs/assets/workbench-v0.8.0-aloha.png)
+
+> 四路相机视图为界面布局验证截图：镜头画面取自已验收 ALOHA Coffee 交付包的真实帧，批次与相机元数据为演示构造数据，用于核对 16:9 布局与时间轴联动。下方 SO-100 截图来自本机真实 FastAPI 服务。
+
+![v0.8.0 具身工作台真实服务截图：SO-100 单相机批次、曲线游标与底部时间轴](docs/assets/workbench-v0.8.0.png)
+
+> 2026-11-11 从本机 FastAPI 服务（同源托管构建后的 `frontend/dist`）生成，当前业务状态登记的是 SO-100 单相机批次。真实视频可播放：时间轴跳到 8.37 s 时视频 `currentTime` 同步为 8.37，曲线游标随帧移动。
+
+| 改动 | 效果 |
+| --- | --- |
+| 统一 Shell | 导航从顶栏迁入侧栏；顶栏只放品牌、面包屑、状态与检视开关 |
+| 局部滚动 | 主区与检视面板各自滚动，KPI、时间轴、状态条始终可见 |
+| 时间轴联动 | 播放／逐帧／5 个百分比书签控制真实视频；曲线增加当前帧游标；空格、← →、1–4、Esc 快捷键 |
+| 检视面板 | 当前帧、任务列表、逐路检查、质检与候选、来源锁定集中在一列 |
+| 相机聚焦 | 点击任一相机放大，退出后 2×2 顺序不变；检视面板可收起 |
+| 基金侧 | 全宽表格 32px 行高 + 固定表头，10 行同屏；点行更新右侧检视，不跳页 |
+
+基金侧同样换成固定 Shell，行高与信息密度按 IBM Carbon DataTable 的 32px 档设置：
+
+![v0.3.0 基金工作台：全宽持仓表、右侧检视与底部口径状态条](docs/assets/fund-v0.3.0.png)
+
+> 从本机 FastAPI 离线演示服务生成。近一年收益保持「不可用」，不以零值替代；右侧显示来源回退状态与计算口径。
+
+**边界**：本次是纯前端布局重构，API 契约、后端、数据口径与验收范围均未改变；仅本机运行，不提供公网交互实例。面板拖拽与布局保存（P2）未实现。
+
+业务链路包含**上传／导入 → 清洗 → 筛选 → 标注审核 → 质检 → 格式转换 → 打包与独立验包**。工作台分为批次总览、episode 与相机浏览、运行诊断、交付核验四类界面；每次处理保留阶段状态、日志和证据。只有通过官方 LeRobot 加载、输出质检、打包和独立验包的产物才可交付。
+
+> **本地边界：** 新工作台只监听 `127.0.0.1`，不提供公网交互服务。仓库的 [在线作品集展示页](https://mahonghao1.github.io/) 与 [RoboData 深度页](https://mahonghao1.github.io/robodata/) 汇总当前截图、验收证据与能力边界；它是静态页，不提供本机的 Python 交互服务。
+
 ## 许可
 
 [MIT](LICENSE)。数据来自公开数据集，来源与许可见 [DATA_NOTICE.md](docs/DATA_NOTICE.md)。
 
 ## English
 
-A local robot-data workbench that turns a fixed public ALOHA Coffee dataset into a verified LeRobot v3.0 delivery. React and TypeScript UI, a loopback-only FastAPI bridge, and Python business logic. Each claim is backed by source hashes, per-camera checks, official offline loading and independent package verification. The automated validation uses an explicitly simulated review gate; it does not imply human review, robot execution or training results. Since v0.7.0 the static portfolio page also includes a draggable four-camera timeline built from real decoded delivery-video frames, plus nine verified UI views; it is a static frame sequence, not live playback or hardware synchronisation. v0.8.0 rebuilds both application UIs as fixed 16:9 workbenches (48px header, 216px sidebar, fluid main area, 320px inspector, 96px timeline), with one shared playback cursor driving real video and charts, and a full-width 32px table with row-linked inspection on the fund side. This is a layout-only refactor: API contracts, Python business logic, data provenance and the validated scope are unchanged.
+**Robot demonstration data, turned into a training set you dare hand off.**
+
+Four cameras record separately, every batch exports with a different directory layout, and the receiving team asks one question: can this package be trained on. RoboData answers it on your own machine — import, clean and filter, review annotations, run per-frame QA, convert to LeRobot v3.0, package, then verify the package independently. A batch that fails any step does not move downstream.
+
+React + TypeScript for the UI, FastAPI for the loopback-only bridge, Python for the data work. The Python side stays authoritative for processing, QA and package verification; the UI never overrides it.
+
+Everything here is checkable, and the gaps are written down too. ALOHA Coffee Episodes 0–4 ran end to end at 5,500 frames, four 640×480 streams at 50 FPS, with per-camera frame counts and time mapping verified. The SO-100 subset converted and passed delivery acceptance at 5 episodes / 3,562 frames. QA completed 55/55, and the delivery ZIP was unpacked and loaded through the official LeRobot loader with SHA-256 verified against tampering. The automated validation uses an explicitly **simulated** review gate — it does not imply human review, robot execution, or training results, and no fault injection was performed for real-data conversion failures or ZIP tampering.
+
+The static [portfolio page](https://mahonghao1.github.io/robodata/) adds a draggable four-camera timeline built from real decoded frames plus nine verified UI views. It is a static frame sequence for checking that all four streams have a frame at the same instant — not live playback, and not a claim of hardware synchronisation.
