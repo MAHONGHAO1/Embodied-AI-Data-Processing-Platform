@@ -47,13 +47,21 @@ def start_quality(data_root: Path, params: dict, *, source_kind: str, execution_
 def available_runs() -> list[dict]:
     from .runtime import list_runs
 
-    return list_runs(runs_root=runs_root())
+    # 列表是纯读操作，不得顺带改写任何运行的 state.json。
+    return list_runs(runs_root=runs_root(), mark_interrupted=False)
 
 
-def load_run(run_id: str) -> dict:
+def load_run(run_id: str, *, mark_interrupted: bool = False) -> dict:
+    """UI 读取默认纯只读。
+
+    Streamlit 每次 rerun（含 1s 轮询片段）都会调用本函数；默认若携带
+    mark_interrupted=True，读操作就会写 state.json 甚至终止进程，是「页面
+    放着不动却把审核打回导入阶段」这一类问题的同类隐患。需要持久标记中断
+    的协调器路径请显式传 mark_interrupted=True。
+    """
     from .runtime import get_run
 
-    return get_run(run_id, runs_root=runs_root())
+    return get_run(run_id, runs_root=runs_root(), mark_interrupted=mark_interrupted)
 
 
 def load_events(run_id: str) -> list[dict]:

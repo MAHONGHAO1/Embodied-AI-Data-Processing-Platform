@@ -329,7 +329,11 @@ def test_business_run_pending_registration_recovery_and_return_link(business_ui,
     assert not app.exception
     assert app.title[0].value == "运行记录"
     assert any("待回写" in item.value for item in app.warning)
+    # 恢复登记属于破坏性回写：第一次点击只给后果提示，不得直接回写业务。
     click(app, "核对并恢复业务登记")
+    assert not any("测试回写已核对" in item.value for item in app.success)
+    assert any(item.label == "确认恢复业务登记" for item in app.button)
+    click(app, "确认恢复业务登记")
     assert any("测试回写已核对" in item.value for item in app.success)
     click(app, "返回关联批次")
     assert app.title[0].value == "批次总览"

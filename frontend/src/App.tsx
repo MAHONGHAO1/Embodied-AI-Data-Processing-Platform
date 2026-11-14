@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import ReactECharts from './Chart';
 import { Activity, Archive, ArrowUpRight, Check, ChevronRight, CircleAlert, Database, FileCheck2, RefreshCw, Search, Upload, Video } from 'lucide-react';
-import { api, listenRun } from './api';
+import { api, isConflict, listenRun } from './api';
+import { deriveStages } from './progress';
+import { clearDraft, draftKey, getDraft, loadSession, saveSession } from './session';
+import type { DraftValues } from './session';
 import type { Batch, CameraInspection, EpisodeDetail, Issue, RouteKey, RunRecord } from './types';
 
 const routeLabels: Record<RouteKey, string> = {
@@ -11,19 +14,38 @@ const routeLabels: Record<RouteKey, string> = {
 function readLocation() {
   const params = new URLSearchParams(window.location.search);
   const route = params.get('view') as RouteKey | null;
-  return { route: route && route in routeLabels ? route : 'overview', batch: params.get('batch') || '' };
+  const episode = Number(params.get('ep'));
+  return {
+    route: route && route in routeLabels ? route : 'overview',
+    batch: params.get('batch') || '',
+    episode: Number.isInteger(episode) && episode >= 0 ? episode : null,
+    run: params.get('run') || '',
+  };
 }
 
-function setLocation(route: RouteKey, batch: string) {
+function setLocation(route: RouteKey, batch: string, episode?: number, run?: string) {
   const params = new URLSearchParams();
   params.set('view', route);
   if (batch) params.set('batch', batch);
+  if (episode && episode > 0) params.set('ep', String(episode));
+  if (run) params.set('run', run);
   window.history.pushState({}, '', `${window.location.pathname}?${params.toString()}`);
 }
 
 function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : '操作未完成，请刷新后重试';
 }
+
+/** 当前仍有效的转换产物与交付包数量：任何 content_version 递增都会让它们失效。 */
+function currentArtifactCount(batch: Batch | null | undefined) {
+  return [...(batch?.outputs ?? []), ...(batch?.deliveries ?? [])]
+    .filter((item) => (item as { current?: boolean }).current).length;
+}
+
+type ConflictIntent =
+  | { kind: 'quality' }
+  | { kind: 'recover'; runId: string }
+  | { kind: 'disposition'; episode: number; disposition: string; reason: string };
 
 function statusText(status?: string) {
   const labels: Record<string, string> = {
@@ -56,23 +78,45 @@ function cssToken(name: string, fallback: string) {
 
 function App() {
   const initial = readLocation();
-  const [route, setRoute] = useState<RouteKey>(initial.route);
-  const [activeBatchId, setActiveBatchId] = useState(initial.batch);
+  // 只初始化一次：避免回放时每帧都读 localStorage。
+  const [initialSession] = useState(loadSession);
+  const restoredRoute = window.location.search ? initial.route : (initialSession.route ?? initial.route);
+  const restoredBatch = initial.batch || initialSession.batchId || '';
+  const restoredEpisode = initial.episode ?? initialSession.episodeIndex ?? 0;
+  const restoredRunId = initial.run || initialSession.selectedRunId;
+  const [route, setRoute] = useState<RouteKey>(restoredRoute);
+  const [activeBatchId, setActiveBatchId] = useState(restoredBatch);
   const [batches, setBatches] = useState<Batch[]>([]);
   const [batchErrors, setBatchErrors] = useState<Array<{ batch_id: string; message: string }>>([]);
   const [batch, setBatch] = useState<Batch | null>(null);
   const [runs, setRuns] = useState<RunRecord[]>([]);
   const [selectedRun, setSelectedRun] = useState<RunRecord | null>(null);
   const [runEvents, setRunEvents] = useState<Array<Record<string, unknown>>>([]);
-  const [episodeIndex, setEpisodeIndex] = useState(0);
+  const [episodeIndex, setEpisodeIndex] = useState(restoredEpisode);
   const [episode, setEpisode] = useState<EpisodeDetail | null>(null);
   const [cameraInfo, setCameraInfo] = useState<Record<string, CameraInspection>>({});
   const [currentFrame, setCurrentFrame] = useState(0);
   const [playing, setPlaying] = useState(false);
   const videoRefs = useRef<Record<string, HTMLVideoElement | null>>({});
+  const activeBatchIdRef = useRef(restoredBatch);
+  const refreshSeq = useRef(0);
+  const frameRestored = useRef(false);
+  const runRestored = useRef(false);
+  const contextRef = useRef({ route: restoredRoute, batchId: restoredBatch, episodeIndex: restoredEpisode, currentFrame: 0, selectedRunId: restoredRunId });
+  const draftRef = useRef<{ batchId: string; episodeIndex: number; values: DraftValues } | null>(null);
+  activeBatchIdRef.current = activeBatchId;
   const [busy, setBusy] = useState(false);
+  const inFlight = useRef(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
+  // 后端 409 表示「服务端认为这次写是破坏性的」：保留可一键「确认并重试」的出口，
+  // 而不是让用户对着一个只能关闭的红条反复点同一个按钮。
+  const [conflict, setConflict] = useState<{ message: string; intent: ConflictIntent } | null>(null);
+
+  const showError = (message: string) => { setError(message); setNotice(''); };
+  const showNotice = (message: string) => { setNotice(message); setError(''); };
   const [sourceKind, setSourceKind] = useState<'hdf5' | 'so100' | 'aloha'>('aloha');
   const [sourcePath, setSourcePath] = useState('');
   const [batchLabel, setBatchLabel] = useState('ALOHA Coffee · Episode 0–4');
@@ -88,50 +132,168 @@ function App() {
   const [focusedCamera, setFocusedCamera] = useState<string | null>(null);
   const [inspectorHidden, setInspectorHidden] = useState(false);
 
+  // 渲染纯性：ref 只在 commit 之后更新；切到别的视图不清空草稿。
+  useEffect(() => {
+    contextRef.current = { route, batchId: activeBatchId, episodeIndex, currentFrame,
+      selectedRunId: selectedRun?.run_id };
+    const formValues: DraftValues = {
+      task: annotationTask, outcome: annotationOutcome, tags: annotationTags, notes: annotationNotes,
+      disposition, dispositionReason, reviewReason, contentVersion: batch?.content_version ?? 0,
+    };
+    const serverValues: DraftValues | null = (episode && batch) ? {
+      task: episode.annotation.task || '', outcome: episode.annotation.outcome || 'unlabeled',
+      tags: (episode.annotation.tags || []).join('、'), notes: episode.annotation.notes || '',
+      disposition: episode.disposition, dispositionReason: '', reviewReason: '',
+      contentVersion: batch.content_version,
+    } : null;
+    // 只有「用户真的改过表单」才记录草稿；写成功后表单与服务器一致，草稿自动失效。
+    const draftChanged = Boolean(serverValues && (Object.keys(formValues) as Array<keyof DraftValues>)
+      .some((key) => formValues[key] !== serverValues[key]));
+    draftRef.current = (batch && episode && serverValues && draftChanged)
+      ? { batchId: batch.batch_id, episodeIndex, values: formValues }
+      : null;
+  });
+
+  const flushSession = () => {
+    const context = contextRef.current;
+    const draft = draftRef.current;
+    saveSession({
+      route: context.route, batchId: context.batchId, episodeIndex: context.episodeIndex,
+      currentFrame: context.currentFrame, selectedRunId: context.selectedRunId,
+      ...(draft ? { drafts: { [draftKey(draft.batchId, draft.episodeIndex)]: draft.values } } : {}),
+    });
+  };
+
+  const versionRef = useRef<{ id: string; version: number } | null>(null);
+
   const refresh = async () => {
+    const seq = ++refreshSeq.current;
     try {
       const [batchResult, runResult] = await Promise.all([api.batches(), api.runs()]);
+      if (seq !== refreshSeq.current) return; // 慢响应不得覆盖更新的批次上下文
+      const currentId = activeBatchIdRef.current;
+      const hasBatch = Boolean(currentId && batchResult.batches.some((item) => item.batch_id === currentId));
+      // 详情是唯一真相来源；所有提交必须等这两个请求都完成且序列号仍最新，
+      // 避免「列表已更新、详情还是旧值」的中间态被用户当成状态回退。
+      const detail = hasBatch ? await api.batch(currentId) : null;
+      if (seq !== refreshSeq.current) return;
+      const previous = versionRef.current;
+      if (previous && previous.id === currentId && detail && previous.version !== detail.content_version) {
+        clearDraft(currentId, contextRef.current.episodeIndex);
+        // 归因保持中性：可能是后台处理、另一个标签页，也可能是用户自己的写操作。
+        setNotice(`批次内容版本已更新（${previous.version} → ${detail.content_version}）；审核状态与已登记产物可能已失效，本地草稿已清除，请重新确认。`);
+      }
       setBatches(batchResult.batches);
       setBatchErrors(batchResult.errors);
       setRuns(runResult.runs);
-      if (activeBatchId) {
-        const next = batchResult.batches.find((item) => item.batch_id === activeBatchId);
-        if (next) setBatch(next);
-      }
-    } catch (err) { setError(errorMessage(err)); }
+      setSelectedRun((current) => current
+        ? (runResult.runs.find((item) => item.run_id === current.run_id) ?? current) : current);
+      setLoading(false);
+      setLoadFailed(false);
+      if (!detail) { setBatch(null); versionRef.current = null; return; }
+      versionRef.current = { id: currentId, version: detail.content_version };
+      setBatch(detail);
+    } catch {
+      if (seq !== refreshSeq.current) return;
+      setLoading(false);
+      // 连接失败用独立常驻横幅表达，不写进会被后续操作清掉的 error。
+      setLoadFailed(true);
+    }
   };
 
+  useEffect(() => { void refresh(); }, [activeBatchId]);
+
   useEffect(() => {
-    void refresh();
     const onPop = () => {
       const next = readLocation();
       setRoute(next.route);
       setActiveBatchId(next.batch);
+      if (next.episode !== null) setEpisodeIndex(next.episode);
+      if (!next.run) setSelectedRun(null);
+      // 前进/后退属于「用户主动换上下文」，允许重新触发一次性恢复。
+      runRestored.current = false;
+      frameRestored.current = false;
     };
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') { flushSession(); return; }
+      // 长时间离开后回到页面：重新拉取服务器真相，避免用过期 revision 提交。
+      // 不清 error：刚失败的操作不能因为切一次后台就被抹掉。
+      void refresh();
+    };
+    const onUnload = () => flushSession();
     window.addEventListener('popstate', onPop);
-    return () => window.removeEventListener('popstate', onPop);
+    window.addEventListener('beforeunload', onUnload);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.removeEventListener('popstate', onPop);
+      window.removeEventListener('beforeunload', onUnload);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
   }, []);
 
   useEffect(() => {
-    let alive = true;
-    if (!activeBatchId) { setBatch(null); return; }
-    api.batch(activeBatchId).then((value) => { if (alive) setBatch(value); }).catch((err) => { if (alive) setError(errorMessage(err)); });
-    return () => { alive = false; };
-  }, [activeBatchId]);
+    const timer = window.setTimeout(() => flushSession(), 600);
+    return () => window.clearTimeout(timer);
+  }, [route, activeBatchId, episodeIndex, currentFrame, selectedRun?.run_id,
+      disposition, dispositionReason, annotationTask, annotationOutcome,
+      annotationTags, annotationNotes, reviewReason, episode]);
+
+  // URL 始终携带完整上下文，刷新 / 分享 / 前进后退都能恢复，不依赖内存状态。
+  useEffect(() => {
+    const params = new URLSearchParams();
+    params.set('view', route);
+    if (activeBatchId) params.set('batch', activeBatchId);
+    if (episodeIndex > 0) params.set('ep', String(episodeIndex));
+    if (selectedRun?.run_id) params.set('run', selectedRun.run_id);
+    window.history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`);
+  }, [route, activeBatchId, episodeIndex, selectedRun?.run_id]);
+
+  // 成功提示自动过期，避免下一次失败时仍显示上一条过期成功消息。
+  useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(() => setNotice(''), 8000);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
+
+  useEffect(() => {
+    if (runRestored.current || !restoredRunId || !runs.length) return;
+    // URL 里的 run 优先于本地会话；找不到时保留标记，等列表下一次刷新再试。
+    const found = runs.find((item) => item.run_id === restoredRunId);
+    if (!found) return;
+    runRestored.current = true;
+    setSelectedRun(found);
+  }, [runs, restoredRunId]);
+
+  useEffect(() => {
+    if (frameRestored.current || !episode || route !== 'episodes') return;
+    frameRestored.current = true;
+    const saved = initialSession.currentFrame;
+    const savedEpisode = initial.episode ?? initialSession.episodeIndex;
+    if (typeof saved === 'number' && Number.isFinite(saved) && saved > 0
+        && savedEpisode === episodeIndex) {
+      setCurrentFrame(Math.min(saved, Math.max(0, episode.row_count - 1)));
+    }
+  }, [episode, route, initialSession, episodeIndex, initial.episode]);
 
   useEffect(() => {
     let alive = true;
-    if (!batch || route !== 'episodes') { setEpisode(null); setCameraInfo({}); return; }
+    if (!batch || route !== 'episodes') {
+      setEpisode(null); setCameraInfo({}); videoRefs.current = {}; return;
+    }
     setEpisode(null);
+    videoRefs.current = {};
+    const draft = getDraft(batch.batch_id, episodeIndex, batch.content_version);
     api.episode(batch.batch_id, episodeIndex).then(async (value) => {
       if (!alive) return;
       setEpisode(value);
-      setCurrentFrame(0);
-      setDisposition(value.disposition);
-      setAnnotationTask(value.annotation.task || '');
-      setAnnotationOutcome(value.annotation.outcome || 'unlabeled');
-      setAnnotationTags((value.annotation.tags || []).join('、'));
-      setAnnotationNotes(value.annotation.notes || '');
+      // 本地草稿只覆盖表单文本；审核状态、质检结论始终以服务器返回为准。
+      setDisposition(draft?.disposition ?? value.disposition);
+      setAnnotationTask(draft?.task ?? value.annotation.task ?? '');
+      setAnnotationOutcome(draft?.outcome ?? value.annotation.outcome ?? 'unlabeled');
+      setAnnotationTags(draft?.tags ?? (value.annotation.tags || []).join('、'));
+      setAnnotationNotes(draft?.notes ?? value.annotation.notes ?? '');
+      setDispositionReason(draft?.dispositionReason ?? '');
+      setReviewReason(draft?.reviewReason ?? '');
       const inspections = await Promise.all(value.cameras.map((camera) =>
         api.camera(batch.batch_id, episodeIndex, camera.name).then((result) => [camera.name, result] as const).catch(() => null)));
       if (alive) setCameraInfo(Object.fromEntries(inspections.filter((item): item is readonly [string, CameraInspection] => item !== null)));
@@ -183,102 +345,231 @@ function App() {
   const go = (next: RouteKey) => {
     setRoute(next);
     setFocusedCamera(null);
-    setLocation(next, activeBatchId);
+    setLocation(next, activeBatchId, episodeIndex, selectedRun?.run_id);
     setError('');
   };
 
   const pickBatch = (id: string) => {
     setActiveBatchId(id);
-    setLocation(route, id);
+    setLocation(route, id, episodeIndex, selectedRun?.run_id);
     const found = batches.find((item) => item.batch_id === id);
     if (found) setBatch(found);
   };
 
-  const start = async (body: Record<string, unknown>) => {
-    setBusy(true); setError(''); setNotice('');
-    try {
-      const result = await api.startRun(body);
-      const run = await api.run(result.run_id);
-      setSelectedRun(run);
-      setRunEvents([]);
-      go('runs');
-      setNotice('处理已排队，运行证据会在此页更新。');
-    } catch (err) { setError(errorMessage(err)); }
-    finally { setBusy(false); }
+  // 所有写操作串行化：杜绝并发 finally 提前解锁、重复提交、旧 revision 覆盖新状态。
+  // intent 用于 409：把服务端门禁的拒绝变成「确认并重试」的可操作出口。
+  const exclusive = async (action: () => Promise<void>, intent?: ConflictIntent) => {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    setBusy(true);
+    setError('');
+    setNotice('');
+    setConflict(null);
+    try { await action(); }
+    catch (err) {
+      showError(errorMessage(err));
+      if (intent && isConflict(err)) setConflict({ message: errorMessage(err), intent });
+    }
+    finally { inFlight.current = false; setBusy(false); }
   };
 
-  const importBatch = async () => {
-    setBusy(true); setError('');
+  // 409 兜底：先取服务器真相（最新 revision / content_version），再带显式确认标记重发一次，
+  // 避免「本地判据陈旧 → 反复 409 → 无法恢复」的死循环。
+  const confirmAndRetry = async () => {
+    if (!conflict || inFlight.current) return;
+    const { intent } = conflict;
+    setConflict(null);
+    inFlight.current = true;
+    setBusy(true);
+    setError('');
+    setNotice('');
     try {
-      let result: { run_id: string };
-      if (uploadFile) {
-        const form = new FormData();
-        form.set('file', uploadFile);
-        form.set('label', batchLabel);
-        const response = await fetch('/api/imports/upload', { method: 'POST', body: form });
-        const payload = await response.json();
-        if (!response.ok) throw new Error(payload.detail || '上传失败');
-        result = payload;
-      } else {
-        result = await api.startRun({ operation: 'import', source_kind: sourceKind, path: sourcePath || undefined, label: batchLabel });
+      let latest: Batch | null = null;
+      if (intent.kind !== 'recover') {
+        const id = activeBatchIdRef.current;
+        latest = id ? await api.batch(id) : null;
+        if (latest) updateBatch(latest);
       }
-      const run = await api.run(result.run_id);
-      setSelectedRun(run);
-      setRoute('runs'); setLocation('runs', activeBatchId);
-      setNotice('导入任务已排队；原始数据将保持只读。');
-    } catch (err) { setError(errorMessage(err)); }
-    finally { setBusy(false); }
+      if (intent.kind === 'quality') {
+        if (!latest) throw new Error('批次已不存在，请刷新后重新选择。');
+        await api.startRun({ operation: 'quality', batch_id: latest.batch_id,
+          revision: latest.revision, invalidate_reviews: true });
+        showNotice('已确认并重发质检：审核状态与已登记产物将失效，需重新确认、转换与打包。');
+      } else if (intent.kind === 'recover') {
+        const result = await api.recoverRun(intent.runId, true);
+        showNotice(`恢复登记结果：${String(result.message || result.status || '已核对')}`);
+      } else {
+        if (!latest) throw new Error('批次已不存在，请刷新后重新选择。');
+        const next = await api.updateDisposition(latest, intent.episode, intent.disposition, intent.reason, true);
+        applyServerBatch(next);
+        showNotice('筛选决定已保存，旧审核状态与已登记产物已失效，需重新确认。');
+      }
+      await refresh();
+    } catch (err) {
+      showError(errorMessage(err));
+    } finally { inFlight.current = false; setBusy(false); }
   };
+
+  const start = (body: Record<string, unknown>, intent?: ConflictIntent) => exclusive(async () => {
+    const result = await api.startRun(body);
+    const run = await api.run(result.run_id);
+    setSelectedRun(run);
+    setRunEvents([]);
+    go('runs');
+    showNotice('处理已排队，运行证据会在此页更新。');
+  }, intent);
+
+  const importBatch = () => exclusive(async () => {
+    let result: { run_id: string };
+    if (uploadFile) {
+      const form = new FormData();
+      form.set('file', uploadFile);
+      form.set('label', batchLabel);
+      const response = await fetch('/api/imports/upload', { method: 'POST', body: form });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.detail || '上传失败');
+      result = payload;
+    } else {
+      result = await api.startRun({ operation: 'import', source_kind: sourceKind, path: sourcePath || undefined, label: batchLabel });
+    }
+    const run = await api.run(result.run_id);
+    setSelectedRun(run);
+    setRoute('runs');
+    setLocation('runs', activeBatchId, episodeIndex, run.run_id);
+    showNotice('导入任务已排队；原始数据将保持只读。');
+  });
 
   const updateBatch = (next: Batch) => {
+    // 写成功后必须同步版本基准：否则下一次 refresh 会把用户自己的显式操作
+    // 误报成「后台处理改了批次」，并连带清掉草稿。
+    if (next.batch_id === activeBatchIdRef.current) {
+      versionRef.current = { id: next.batch_id, version: next.content_version };
+    }
     setBatch(next);
     setBatches((items) => items.map((item) => item.batch_id === next.batch_id ? next : item));
   };
 
-  const saveDisposition = async () => {
+  /** 显式业务写操作在已有当前产物时会让产物失效，先讲清后果再执行。 */
+  const confirmArtifactInvalidation = (action: string, target: Batch | null = batch) => {
+    const count = currentArtifactCount(target);
+    if (!count || typeof window.confirm !== 'function') return true;
+    return window.confirm(
+      `本批次有 ${count} 项当前转换产物或交付包。\n\n${action}会让批次内容版本递增，这些产物与交付包将变为非当前版本，需要重新转换与打包。\n\n确定继续吗？`);
+  };
+
+  /** 写成功后统一说明内容版本变化对已登记产物的影响。 */
+  const versionNotice = (before: Batch, after: Batch) => {
+    if (after.content_version === before.content_version) return '';
+    return currentArtifactCount(before) > 0
+      ? `；批次内容版本 ${before.content_version} → ${after.content_version}，已登记转换产物与交付包变为非当前版本，需重新转换与打包。`
+      : `；批次内容版本 ${before.content_version} → ${after.content_version}。`;
+  };
+
+  // 写成功后：清掉本地草稿，并把表单同步成服务器归一化结果。
+  // 表单与服务器一致后 draftRef 自动为 null，不会被防抖保存重新写回。
+  const applyServerBatch = (next: Batch) => {
+    updateBatch(next);
+    clearDraft(next.batch_id, episodeIndex);
+    const record = next.episodes.find((item) => item.episode_index === episodeIndex);
+    if (!record) return;
+    setDisposition(record.disposition);
+    setAnnotationTask(record.annotation?.task ?? '');
+    setAnnotationOutcome(record.annotation?.outcome ?? 'unlabeled');
+    setAnnotationTags((record.annotation?.tags ?? []).join('、'));
+    setAnnotationNotes(record.annotation?.notes ?? '');
+    setDispositionReason('');
+    setReviewReason('');
+  };
+
+  const restoreFromServer = () => {
     if (!batch || !episode) return;
-    setBusy(true); setError('');
-    try { updateBatch(await api.updateDisposition(batch, episodeIndex, disposition, dispositionReason)); setNotice('筛选决定已保存，旧审核状态已失效。'); }
-    catch (err) { setError(errorMessage(err)); }
-    finally { setBusy(false); }
+    clearDraft(batch.batch_id, episodeIndex);
+    setDisposition(episode.disposition);
+    setAnnotationTask(episode.annotation.task || '');
+    setAnnotationOutcome(episode.annotation.outcome || 'unlabeled');
+    setAnnotationTags((episode.annotation.tags || []).join('、'));
+    setAnnotationNotes(episode.annotation.notes || '');
+    setDispositionReason('');
+    setReviewReason('');
+    showNotice('已清除本地草稿，表单恢复为服务器内容。');
   };
 
-  const saveAnnotation = async () => {
-    if (!batch) return;
-    setBusy(true); setError('');
-    try {
-      updateBatch(await api.saveAnnotation(batch, episodeIndex, {
-        task: annotationTask, outcome: annotationOutcome,
-        tags: annotationTags.split(/[、,，]/).map((item) => item.trim()).filter(Boolean), notes: annotationNotes,
-      }));
-      setNotice('标注已保存为草稿。');
-    } catch (err) { setError(errorMessage(err)); }
-    finally { setBusy(false); }
+  const startQuality = () => {
+    if (!batch || inFlight.current) return;
+    const protectedCount = batch.episodes.filter((item) =>
+      item.review?.status === 'submitted' || item.review?.status === 'approved').length;
+    if (protectedCount > 0 && !window.confirm(
+      `该批次有 ${protectedCount} 个任务已提交或已通过审核。\n\n重跑批次质检会让这些审核失效、候选集需要重新确认，已有转换产物与交付包也会变为非当前版本。\n\n确定继续吗？`)) return;
+    void start({ operation: 'quality', batch_id: batch.batch_id, revision: batch.revision,
+      ...(protectedCount > 0 ? { invalidate_reviews: true } : {}) }, { kind: 'quality' });
   };
 
-  const submitAnnotation = async () => {
-    if (!batch) return;
-    setBusy(true); setError('');
-    try { updateBatch(await api.submitAnnotation(batch, episodeIndex)); setNotice('标注已提交审核。'); }
-    catch (err) { setError(errorMessage(err)); }
-    finally { setBusy(false); }
+  const recoverRun = () => {
+    if (!selectedRun) return;
+    // 质检登记会重置审核与产物，不能让「恢复」看起来像一个无害的重试按钮。
+    const registration = selectedRun.business_registration;
+    const isQuality = registration?.registration_operation === 'quality'
+      || (registration?.registration_operation === undefined && selectedRun.request?.operation === 'quality');
+    if (isQuality && !window.confirm(
+      '该运行待恢复的是批次质检登记。\n\n恢复会重置全部任务的审核状态、退回筛选确认阶段，已验证转换产物与交付包也会变为非当前版本，需重新质检、转换与打包。\n\n确定继续吗？')) return;
+    void exclusive(async () => {
+      const result = await api.recoverRun(selectedRun.run_id, isQuality);
+      showNotice(`恢复登记结果：${String(result.message || result.status || '已核对')}`);
+      await refresh();
+    }, { kind: 'recover', runId: selectedRun.run_id });
   };
 
-  const reviewAnnotation = async (approve: boolean) => {
-    if (!batch) return;
-    setBusy(true); setError('');
-    try { updateBatch(await api.reviewAnnotation(batch, episodeIndex, approve, reviewReason)); setNotice(approve ? '审核已通过。' : '标注已退回。'); }
-    catch (err) { setError(errorMessage(err)); }
-    finally { setBusy(false); }
+  const requireEpisode = () => {
+    if (!batch || !episode) { showError('请先打开数据浏览，等待当前任务加载完成后再操作。'); return false; }
+    return true;
   };
 
-  const confirmCleaning = async () => {
+  const saveDisposition = () => exclusive(async () => {
+    if (!requireEpisode() || !batch) return;
+    const protectedCount = batch.episodes.filter((item) =>
+      item.review?.status === 'submitted' || item.review?.status === 'approved').length;
+    const currentArtifacts = currentArtifactCount(batch);
+    const destructive = protectedCount > 0 || currentArtifacts > 0;
+    if (destructive && !window.confirm(
+      `该批次有 ${protectedCount} 个任务已提交或已通过审核、${currentArtifacts} 项当前产物或交付包。\n\n修改筛选决定会把全部保留任务的审核退回草稿、清洗确认失效，已验证转换产物与交付包也会变为非当前版本，需重新确认、转换与打包。\n\n确定继续吗？`)) return;
+    const next = await api.updateDisposition(batch, episodeIndex, disposition, dispositionReason, destructive);
+    applyServerBatch(next);
+    showNotice('筛选决定已保存，旧审核状态与已登记产物已失效，需重新确认。');
+  }, { kind: 'disposition', episode: episodeIndex, disposition, reason: dispositionReason });
+
+  const saveAnnotation = () => exclusive(async () => {
+    if (!requireEpisode() || !batch) return;
+    if (!confirmArtifactInvalidation('保存标注')) return;
+    const next = await api.saveAnnotation(batch, episodeIndex, {
+      task: annotationTask, outcome: annotationOutcome,
+      tags: annotationTags.split(/[、,，]/).map((item) => item.trim()).filter(Boolean), notes: annotationNotes,
+    });
+    applyServerBatch(next);
+    showNotice(`标注已保存为草稿${versionNotice(batch, next)}`);
+  });
+
+  const submitAnnotation = () => exclusive(async () => {
+    if (!requireEpisode() || !batch) return;
+    const next = await api.submitAnnotation(batch, episodeIndex);
+    applyServerBatch(next);
+    showNotice(`标注已提交审核${versionNotice(batch, next)}`);
+  });
+
+  const reviewAnnotation = (approve: boolean) => exclusive(async () => {
+    if (!requireEpisode() || !batch) return;
+    if (!confirmArtifactInvalidation(approve ? '通过审核' : '退回标注')) return;
+    const next = await api.reviewAnnotation(batch, episodeIndex, approve, reviewReason);
+    applyServerBatch(next);
+    showNotice(`${approve ? '审核已通过' : '标注已退回'}${versionNotice(batch, next)}`);
+  });
+
+  const confirmCleaning = () => exclusive(async () => {
     if (!batch) return;
-    setBusy(true); setError('');
-    try { updateBatch(await api.confirmCleaning(batch)); setNotice('当前筛选结果已确认。'); }
-    catch (err) { setError(errorMessage(err)); }
-    finally { setBusy(false); }
-  };
+    if (!confirmArtifactInvalidation('确认筛选结果')) return;
+    const next = await api.confirmCleaning(batch);
+    updateBatch(next);
+    showNotice(`当前筛选结果已确认${versionNotice(batch, next)}`);
+  });
 
   const activeRuns = runs.filter((run) => run.status === 'queued' || run.status === 'running').length;
   const issueCount = batch?.episodes.reduce((total, item) => total + (item.quality?.issue_count || 0), 0) || 0;
@@ -297,7 +588,7 @@ function App() {
           <span className="brand-mark"><Activity size={17} strokeWidth={2.2} /></span>
           <span><strong>RoboData</strong><small>具身数据工作台</small></span>
         </a>
-        <span className="shell-chip version-chip">v0.8.0 · React 工作台</span>
+        <span className="shell-chip version-chip">v0.9.0 · React 工作台</span>
         <span className="shell-crumb">工作台 <ChevronRight size={13} /> {routeLabels[route]}</span>
         {batch && <span className="shell-chip">{batch.label}</span>}
         {batch && <span className="shell-chip ok">{issueCount} 个质检问题</span>}
@@ -337,8 +628,21 @@ function App() {
           </div>
         </div>
 
-        {(error || notice) && <div className={error ? 'notice error-notice' : 'notice success-notice'} role={error ? 'alert' : 'status'}>
-          {error ? <CircleAlert size={17} /> : <Check size={17} />}{error || notice}<button className="notice-close" onClick={() => { setError(''); setNotice(''); }} aria-label="关闭提示">×</button>
+        {loadFailed && <div className="notice error-notice" role="alert">
+          <CircleAlert size={17} />本机后端未响应（127.0.0.1:8765）：请确认工作台服务已启动，页面当前展示的是上一次成功读取的内容。
+          <button className="button secondary" onClick={() => void refresh()}>重试连接</button>
+        </div>}
+        {(error || notice) && <div className="notice-stack">
+          {error && <div className="notice error-notice" role="alert">
+            <CircleAlert size={17} />{error}
+            {conflict && <button className="button secondary" onClick={() => void confirmAndRetry()} disabled={busy}>
+              确认并重试
+            </button>}
+            <button className="notice-close" onClick={() => { setError(''); setConflict(null); }} aria-label="关闭错误提示">×</button>
+          </div>}
+          {notice && <div className="notice success-notice" role="status">
+            <Check size={17} />{notice}<button className="notice-close" onClick={() => setNotice('')} aria-label="关闭提示">×</button>
+          </div>}
         </div>}
 
         {route === 'overview' && <section className="view-stack">
@@ -359,7 +663,9 @@ function App() {
                   <td>{item.counts?.keep?.episodes || 0} / {item.episodes.length}</td>
                   <td><StatusTag value={item.cleaning_confirmed ? 'passed' : 'pending'} /></td>
                   <td><button className="icon-button small" aria-label={`浏览 ${item.label}`} onClick={() => { pickBatch(item.batch_id); go('episodes'); }}><ArrowUpRight size={15} /></button></td>
-                </tr>)}</tbody></table></div> : <div className="empty-state"><Database size={24} /><strong>还没有登记批次</strong><span>导入公开样例，或选择本机已有的数据目录。</span></div>}
+                </tr>)}</tbody></table></div>
+                : loading ? <div className="empty-state"><RefreshCw size={24} /><strong>正在读取本机数据…</strong><span>首次加载会读取批次快照与运行记录。</span></div>
+                  : <div className="empty-state"><Database size={24} /><strong>还没有登记批次</strong><span>导入公开样例，或选择本机已有的数据目录。</span></div>}
               {batchErrors.map((item) => <p className="inline-warning" key={item.batch_id}>{item.message} · {item.batch_id}</p>)}
             </section>
             <section className="panel import-panel">
@@ -379,10 +685,12 @@ function App() {
           </div>
           {batch && <section className="panel process-panel">
             <div className="panel-heading"><div><h2>批次处理流程</h2><p>{batch.label} · {batch.total_rows?.toLocaleString() || '—'} 帧记录</p></div><button className="button secondary" onClick={() => go('episodes')}>打开任务浏览器 <ChevronRight size={16} /></button></div>
-            <div className="stage-track">{['导入', '清洗筛选', '标注审核', '质量检查', '格式转换', '打包交付', '独立验包'].map((name, index) => {
-              const done = index === 0 || (index === 1 && batch.cleaning_confirmed) || (index >= 4 && Boolean(batch.outputs?.some((item) => item.current)));
-              return <div className={done ? 'stage-item done' : 'stage-item'} key={name}><span>{String(index + 1).padStart(2, '0')}</span><strong>{name}</strong><small>{done ? '已完成' : index === 0 ? statusText(batch.episodes.length ? 'passed' : 'pending') : '待处理'}</small></div>;
-            })}</div>
+            <div className="stage-track">{deriveStages(batch, runs).map((item, index) => (
+              <div className={`stage-item ${item.state}`} key={item.name}>
+                <span>{String(index + 1).padStart(2, '0')}</span><strong>{item.name}</strong>
+                <small>{item.detail}</small>
+              </div>
+            ))}</div>
           </section>}
         </section>}
 
@@ -390,7 +698,7 @@ function App() {
           {!batch ? <div className="panel empty-state large-empty"><Database size={28} /><strong>请选择一个批次</strong><span>从顶部批次选择器打开数据浏览。</span></div> : <>
             <aside className="panel episode-list-panel">
               <div className="panel-heading"><div><h2>任务列表</h2><p>{batch.episodes.length} 个 episode</p></div><Search size={17} /></div>
-              <div className="episode-list">{batch.episodes.map((item) => <button className={episodeIndex === item.episode_index ? 'episode-row selected' : 'episode-row'} key={item.episode_index} onClick={() => setEpisodeIndex(item.episode_index)}>
+              <div className="episode-list">{batch.episodes.map((item) => <button className={episodeIndex === item.episode_index ? 'episode-row selected' : 'episode-row'} key={item.episode_index} onClick={() => { setEpisodeIndex(item.episode_index); setCurrentFrame(0); setPlaying(false); }}>
                 <span className="episode-number">{String(item.episode_index).padStart(3, '0')}</span><span className="episode-copy"><strong>Episode {item.episode_index}</strong><small>{item.row_count.toLocaleString()} 帧 · {statusText(item.disposition)}</small></span><StatusTag value={item.quality.status} />
               </button>)}</div>
             </aside>
@@ -425,12 +733,13 @@ function App() {
                     <label>任务描述<input value={annotationTask} onChange={(event) => setAnnotationTask(event.target.value)} placeholder="说明演示任务内容" /></label>
                     <div className="form-row"><label>执行结果<select value={annotationOutcome} onChange={(event) => setAnnotationOutcome(event.target.value)}><option value="success">成功</option><option value="failure">失败</option><option value="uncertain">不确定</option><option value="unlabeled">未标注</option></select></label><label>问题标签<input value={annotationTags} onChange={(event) => setAnnotationTags(event.target.value)} placeholder="用顿号分隔" /></label></div>
                     <label>备注<textarea value={annotationNotes} onChange={(event) => setAnnotationNotes(event.target.value)} rows={2} /></label>
-                    <div className="button-row"><button className="button secondary" disabled={busy} onClick={() => void saveAnnotation()}>保存草稿</button><button className="button primary" disabled={busy} onClick={() => void submitAnnotation()}>提交审核</button></div>
+                    <div className="button-row"><button className="button secondary" disabled={busy} onClick={() => void saveAnnotation()}>保存草稿</button><button className="button primary" disabled={busy || !['draft', 'returned'].includes(episode.review.status || '')} onClick={() => void submitAnnotation()}>提交审核</button></div>
+                    <p className="form-footnote">表单草稿仅保存在本机，业务状态始终以服务器为准。<button type="button" className="text-link" onClick={restoreFromServer}>恢复服务器内容</button></p>
                     <div className="review-inline"><span>审核状态</span><StatusTag value={episode.review.status} />{episode.review.reason && <small>{episode.review.reason}</small>}</div>
                     {episode.review.status === 'submitted' && <><label>审核意见<input value={reviewReason} onChange={(event) => setReviewReason(event.target.value)} placeholder="退回时必填" /></label><div className="button-row"><button className="button secondary" disabled={busy} onClick={() => void reviewAnnotation(false)}>退回标注</button><button className="button primary" disabled={busy} onClick={() => void reviewAnnotation(true)}>通过审核</button></div></>}
                   </section>
                   <section className="panel quality-panel"><div className="panel-heading"><div><h2>质检记录</h2><p>问题与检查覆盖来自当前批次运行</p></div><StatusTag value={episode.quality.status} /></div>
-                    <div className="quality-summary"><strong>{episode.quality.issues?.length || 0}</strong><span>关联问题</span><button className="button secondary" disabled={busy} onClick={() => void start({ operation: 'quality', batch_id: batch.batch_id, revision: batch.revision })}>运行批次质检</button></div>
+                    <div className="quality-summary"><strong>{episode.quality.issues?.length || 0}</strong><span>关联问题</span><button className="button secondary" disabled={busy} onClick={startQuality}>运行批次质检</button></div>
                     <IssueList issues={episode.quality.issues || []} />
                     <div className="camera-evidence">{episode.cameras.map((camera) => <div key={camera.name}><span>{camera.name.split('.').at(-1)}</span><StatusTag value={cameraInfo[camera.name] ? 'passed' : camera.available ? 'running' : 'load_failed'} /><small>{cameraInfo[camera.name] ? `${cameraInfo[camera.name].frame_count.toLocaleString()} 帧 · ${cameraInfo[camera.name].mapping_claim}` : '等待视频检查'}</small></div>)}</div>
                     <button className="button subtle" disabled={busy || !batch.episodes.length} onClick={() => void confirmCleaning()}>确认当前筛选候选集</button>
@@ -449,7 +758,10 @@ function App() {
           </section>
           <section className="panel run-detail-panel"><div className="panel-heading"><div><h2>{selectedRun ? '运行步骤' : '选择一条运行'}</h2><p>{selectedRun?.run_id || '查看节点状态、错误诊断和业务登记结果'}</p></div>{selectedRun && <StatusTag value={selectedRun.status} />}</div>
             {selectedRun ? <><p className="run-status-message">{selectedRun.message || '运行状态持续更新。'}</p>
-              {selectedRun.business_registration && <div className="registration-box"><strong>业务登记</strong><StatusTag value={selectedRun.business_registration.status} /><span>{selectedRun.business_registration.message}</span></div>}
+              {selectedRun.business_registration && <div className="registration-box"><strong>业务登记</strong><StatusTag value={selectedRun.business_registration.status} /><span>{selectedRun.business_registration.message}</span>
+                {['pending', 'failed'].includes(String(selectedRun.business_registration.status || '')) &&
+                  <button className="button secondary" disabled={busy} onClick={recoverRun}>恢复业务登记</button>}
+              </div>}
               <div className="run-nodes">{(selectedRun.nodes || []).map((node, index) => <div className="run-node" key={node.node_id}><span className="node-number">{String(index + 1).padStart(2, '0')}</span><div><strong>{node.label}</strong><small>{node.message || '等待执行'}</small></div><StatusTag value={node.status} /></div>)}</div>
               <div className="event-list"><h3>运行事件</h3>{runEvents.slice(-30).reverse().map((event, index) => <div key={`${String(event.at_utc || '')}-${index}`}><time>{String(event.at_utc || '').replace('T', ' ').slice(0, 19)}</time><span>{String(event.message || event.event || '')}</span></div>)}</div>
             </> : <div className="empty-state"><Activity size={24} /><strong>运行过程会实时更新</strong><span>运行记录会保留独立节点状态、异常信息和业务登记结果。</span></div>}
@@ -464,7 +776,7 @@ function App() {
                   const output = batch.outputs?.find((item) => item.current);
                   if (output) void start({ operation: 'delivery', batch_id: batch.batch_id, revision: batch.revision, output_id: output.output_id });
                 }}><Archive size={16} />打包交付</button>
-                <button className="button secondary" disabled={busy} onClick={() => void start({ operation: 'quality', batch_id: batch.batch_id, revision: batch.revision })}>运行质检</button>
+                <button className="button secondary" disabled={busy} onClick={startQuality}>运行质检</button>
               </div>
             </section>
             <div className="delivery-grid"><section className="panel"><div className="panel-heading"><div><h2>已验证输出</h2><p>只有当前批次版本可继续交付</p></div><FileCheck2 size={18} /></div>

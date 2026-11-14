@@ -31,18 +31,40 @@ def _write(path,value):
 def _digest(value):
     return hashlib.sha256(json.dumps(value,sort_keys=True,ensure_ascii=False,separators=(',',':')).encode()).hexdigest()
 
+def _upload_limit() -> int:
+    """可用 ROBODATA_MAX_UPLOAD_MB 调整；默认 2 GiB，防止无界写满本机磁盘。"""
+    try:
+        value = int(os.environ.get('ROBODATA_MAX_UPLOAD_MB', '2048'))
+    except ValueError as exc:
+        raise ValueError('ROBODATA_MAX_UPLOAD_MB 必须是正整数') from exc
+    if value <= 0:
+        raise ValueError('ROBODATA_MAX_UPLOAD_MB 必须是正整数')
+    return value * 1024 * 1024
+
+
 def save_upload(data: bytes | BinaryIO, filename: str) -> Path:
     if Path(filename).suffix.lower() not in {'.hdf5','.h5'}:
         raise ValueError('当前上传入口只接受已验证配置的 HDF5 文件')
+    limit = _upload_limit()
     root = Path(os.environ.get('ROBODATA_BUSINESS_ROOT',PROJECT_ROOT/'work/business'))/'uploads'/uuid.uuid4().hex
     root.mkdir(parents=True)
     path = root/'uploaded.hdf5'
     try:
         with path.open('wb') as destination:
             if isinstance(data, bytes):
+                if len(data) > limit:
+                    raise ValueError(f'上传文件超过本机上限 {limit // (1024 * 1024)} MiB')
                 destination.write(data)
             else:
-                shutil.copyfileobj(data, destination, length=1024 * 1024)
+                written = 0
+                while True:
+                    chunk = data.read(1024 * 1024)
+                    if not chunk:
+                        break
+                    written += len(chunk)
+                    if written > limit:
+                        raise ValueError(f'上传文件超过本机上限 {limit // (1024 * 1024)} MiB')
+                    destination.write(chunk)
     except Exception:
         path.unlink(missing_ok=True)
         root.rmdir()

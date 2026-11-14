@@ -1,5 +1,25 @@
 # 变更记录
 
+## v0.9.0（2026-11-14 发布）· 上线级审计与状态回退修复
+
+针对「提交审核后离开一小时，回来发现页面全部回退到导入阶段」的反馈，完成前后端上线级审计、复现、修复与全量回归：
+
+- **P0 根因**：GET / SSE 读路径曾无条件调用 `business.reconcile_run`，重放质检登记会把全部任务审核打回草稿、清掉清洗确认、递增内容版本，并让已验证输出与交付包失效；前端硬编码的阶段进度因此只剩「导入」。SSE 终态未下发 `done`，浏览器 `EventSource` 无限重连，进一步放大了读路径副作用。
+- **后端**：读路径改为纯只读（含 `get_run(mark_interrupted=False)` 派生视图）；恢复登记改为显式 `POST /api/runs/{id}/recover`，并对质检登记增加破坏性确认门禁；SSE 终态 `event: done` + 心跳 + 7200s 超时；`reconcile_run` 增加 `force`、状态早返回与重试硬上限；补充上传大小上限、路径脱敏、文件锁与版本校验加固。
+- **前端**：`listenRun` 终态 / `done` / 错误事件自动关闭；URL 与 localStorage 会话恢复；`refresh` 竞态防护与写操作串行化；阶段进度改由 `deriveStages(batch, runs)` 推导；质检重跑与恢复质检登记均需显式确认；内容版本变更提示与草稿自动失效。
+- **409 可操作兜底**：API 客户端保留 HTTP 状态码；质检重跑 / 恢复质检登记 / 修改筛选决定被后端门禁拒绝时，错误条提供「确认并重试」，先取服务器最新 `revision` 与 `content_version` 再带确认标记重发，消除重复 409 循环。
+- **产物失效提示**：保存标注、提交审核、审核、确认筛选在已有当前产物时先说清「产物与交付包将变为非当前版本」，成功后不再静默。
+- **归因纠正**：写成功后同步版本基准，`refresh` 的版本变更提示改为中性表述，不再把用户自己的操作报成「后台处理」。
+- **测试**：新增 `tests/test_launch_audit.py`（状态持久化、负向边界、并发幂等、性能压力、SSE 生命周期、双入口只读护栏）与 `frontend/src/progress.test.ts`、`session.test.ts`、`api.test.ts` 及扩展的 `App.test.tsx`（合计 26 项）。完整结论见[上线级审计报告](docs/LAUNCH_AUDIT_REPORT.md)。
+- 验收：Python 全量 **289 passed, 7 skipped, 13 subtests passed**；审计套件 **43 passed**；前端 26 项单测与生产构建通过；真实 `uvicorn` 终态 SSE 8 ms 内闭环。发布为 **v0.9.0**，运行边界仍为本机单用户 loopback。
+
+## 未发布 · 工程扩展实验（2026-11-12）
+
+- 新增 `scripts/benchmark_quality.py` 与 `docs/benchmarks/`：对现有 `run_checks(check_video=False)` 做 1k / 5k / 10k 行合成表格吞吐测量，保存 JSON 原始结果；明确不包括 IO、视频、转换和打包，不外推生产容量。
+- 新增独立 `examples/ros2_mcap/` 单 topic ROS2 MCAP 示例：用可选锁定依赖解析 `std_msgs/msg/Float64`，保留 `log_time` 纳秒语义、来源 SHA-256、重复时间与 gap 检查；不接入 Episode/API、不改主项目依赖。
+- 随附的 5 条 MCAP 文件为合成 fixture，不是实机采集数据；专项测试在可选依赖安装后运行。
+- 新增 `docs/demo-5min.md` 面试短讲稿与追问证据索引；README 增加规模实验、MCAP 示例和 5 分钟讲稿入口。
+
 ## v0.8.0（2026-11-12 发布）
 
 - 两套应用界面重做为 **16:9 固定工作台**：顶栏 48px、侧栏 216px、主区自适应、检视面板 320px；具身底部时间轴 96px、基金底部口径状态条 34px。整页不再滚动，仅主区与检视面板局部滚动。

@@ -78,34 +78,38 @@ class BatchStore:
         if lock_path.is_symlink():
             raise WorkflowError("锁文件不能使用符号链接")
         with lock_path.open("a+b") as handle:
-            if handle.seek(0, 2) == 0:
-                handle.write(b"0")
-                handle.flush()
-            deadline = time.monotonic() + 5
-            while True:
-                handle.seek(0)
-                try:
-                    if os.name == "nt":
-                        import msvcrt
-                        msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
-                    else:
-                        import fcntl
-                        fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-                    break
-                except OSError as exc:
-                    if time.monotonic() >= deadline:
-                        raise ConflictError("另一项操作正在保存，请稍后刷新重试") from exc
-                    time.sleep(0.01)
+            acquired = False
             try:
+                if handle.seek(0, 2) == 0:
+                    handle.write(b"0")
+                    handle.flush()
+                deadline = time.monotonic() + 5
+                while True:
+                    handle.seek(0)
+                    try:
+                        if os.name == "nt":
+                            import msvcrt
+                            msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+                        else:
+                            import fcntl
+                            fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                        acquired = True
+                        break
+                    except OSError as exc:
+                        if time.monotonic() >= deadline:
+                            raise ConflictError("另一项操作正在保存，请稍后刷新重试") from exc
+                        time.sleep(0.01)
                 yield
             finally:
-                handle.seek(0)
-                if os.name == "nt":
-                    import msvcrt
-                    msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
-                else:
-                    import fcntl
-                    fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+                # 只有真正拿到锁才解锁：超时分支不能去解锁别的进程持有的字节区间。
+                if acquired:
+                    handle.seek(0)
+                    if os.name == "nt":
+                        import msvcrt
+                        msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+                    else:
+                        import fcntl
+                        fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
 
     def _read(self, batch_id):
         try:
@@ -185,7 +189,9 @@ class BatchStore:
             if idempotency is not None:
                 state.setdefault("applied_runs", {})[key] = {"operation": operation, **idempotency}
             self._write(state)
-        return self.get_batch(batch_id)
+            # 读回也保持在锁内：返回给调用方的 revision 就是本次提交的 revision，
+            # 不会被另一进程刚写入的新版本抢先覆盖。
+            return self.get_batch(batch_id)
 
     def create_batch(self, label, source, episodes, *, run_id=None):
         """Register metadata only, after an importer has stored and inventoried files.
@@ -241,15 +247,18 @@ class BatchStore:
         state = self._read(batch_id)
         counts = {name: {"episodes": 0, "rows": 0} for name in ("keep", "quarantine", "exclude")}
         for episode in state["episodes"]:
-            counts[episode["disposition"]]["episodes"] += 1
-            counts[episode["disposition"]]["rows"] += episode["row_count"]
+            # 兼容早期 / 手工修复过的记录：缺失字段不能让整个批次列表 404。
+            key = episode.get("disposition", "quarantine")
+            counts.setdefault(key, {"episodes": 0, "rows": 0})
+            counts[key]["episodes"] += 1
+            counts[key]["rows"] += episode.get("row_count", 0)
         state["counts"] = counts
         state["total_episodes"] = len(state["episodes"])
-        state["total_rows"] = sum(e["row_count"] for e in state["episodes"])
-        for output in state["outputs"]:
-            output["current"] = output["content_version"] == state["content_version"]
-        for delivery in state["deliveries"]:
-            delivery["current"] = delivery["content_version"] == state["content_version"]
+        state["total_rows"] = sum(e.get("row_count", 0) for e in state["episodes"])
+        for output in state.get("outputs", []):
+            output["current"] = output.get("content_version") == state["content_version"]
+        for delivery in state.get("deliveries", []):
+            delivery["current"] = delivery.get("content_version") == state["content_version"]
         return state
 
     def list_batches(self):

@@ -175,23 +175,46 @@ def render_import():
 
 
 def sync_last_run():
+    """只读同步：Streamlit 每次 rerun（含 1s 轮询片段）都会调用本函数。
+
+    历史上这里会在终态自动调用 reconcile_run，而质检登记重放会把已提交的
+    审核静默打回草稿——与 React 工作台 SSE 无限重连属于同一类根因。恢复
+    登记一律改为用户显式点击按钮，页面放着不动绝不回写业务状态。
+    """
     run_id = st.session_state.get("business_run_id")
     if not run_id:
         return
     try:
         state = ui_runs.load_run(run_id)
-        if state.get("status") not in ui_runs.ACTIVE_STATUSES:
-            service().reconcile_run(run_id)
+        registration = state.get("business_registration") or {}
+        if (state.get("status") not in ui_runs.ACTIVE_STATUSES
+                and registration.get("status") in {"pending", "failed"}):
+            st.info("该运行的处理产物尚未登记到批次。页面不会自动回写；请在运行详情中点击「核对并恢复业务登记」显式确认。")
     except Exception as exc:
-        st.warning(f"最近运行的业务登记尚未完成：{explain_error(exc)}")
-        with st.expander("业务回写诊断"):
+        st.warning(f"最近运行记录暂时不可读：{explain_error(exc)}")
+        with st.expander("运行读取诊断"):
             st.json(error_details(exc, include_traceback=True))
 
 
 def recover_registration(run_id: str):
+    """显式恢复登记；质检登记属于破坏性回写，必须二次确认后才执行。"""
+    pending_key = "business_recover_pending"
+    if st.session_state.get(pending_key) != run_id:
+        try:
+            from . import business as business_module
+            directory = Path(ui_runs.runs_root()) / run_id
+            destructive = business_module.registration_operation_of(directory) == "quality"
+        except Exception:
+            destructive = False
+        st.session_state[pending_key] = run_id
+        st.session_state["business_recover_impact"] = destructive
+        return
+    st.session_state.pop(pending_key, None)
+    st.session_state.pop("business_recover_impact", None)
     try:
-        registration = service().reconcile_run(run_id)
-        notice(registration.get("message", "已核对运行产物与批次版本。"), error=registration.get("status") in {"failed", "stale"})
+        registration = service().reconcile_run(run_id, force=True)
+        notice(registration.get("message", "已核对运行产物与批次版本。"),
+               error=registration.get("status") in {"failed", "stale"})
     except Exception as exc:
         notice(explain_error(exc), error=True)
         st.session_state["business_diagnostic"] = error_details(exc, include_traceback=True)
@@ -218,7 +241,17 @@ def render_run_context(state: dict):
         renderer = st.success if status == "registered" else st.warning
         renderer(registration.get("message") or messages.get(status, "请查看业务登记记录。"))
     if state.get("status") not in ui_runs.ACTIVE_STATUSES and status in {"pending", "failed"}:
-        st.button("核对并恢复业务登记", key=f"recover_business_{state['run_id']}", on_click=recover_registration, args=(state["run_id"],))
+        pending = st.session_state.get("business_recover_pending") == state["run_id"]
+        if pending:
+            if st.session_state.get("business_recover_impact"):
+                st.warning("该运行待恢复的是批次质检登记：会重置全部任务的审核状态、退回筛选确认阶段，已验证转换产物与交付包也会变为非当前版本，需重新质检、转换与打包。")
+            else:
+                st.warning("将核对保留证据并恢复业务登记；中断时尚未执行的步骤须重新运行。")
+            st.button("放弃恢复", key=f"cancel_recover_{state['run_id']}",
+                      on_click=lambda: st.session_state.pop("business_recover_pending", None))
+        st.button("确认恢复业务登记" if pending else "核对并恢复业务登记",
+                  key=f"recover_business_{state['run_id']}",
+                  on_click=recover_registration, args=(state["run_id"],))
     if message := st.session_state.pop("business_notice", None):
         (st.error if message["error"] else st.success)(message["message"])
     if details := st.session_state.pop("business_diagnostic", None):

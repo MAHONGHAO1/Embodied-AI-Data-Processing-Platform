@@ -72,7 +72,9 @@ def _root(runs_root=None) -> Path:
 
 
 def _run_dir(run_id: str, runs_root=None) -> Path:
-    if not isinstance(run_id, str) or not run_id or Path(run_id).name != run_id or "/" in run_id or "\\" in run_id:
+    if (not isinstance(run_id, str) or not run_id or Path(run_id).name != run_id
+            or "/" in run_id or "\\" in run_id or run_id in {".", ".."}
+            or run_id.startswith(".") or len(run_id) > 128):
         raise ValueError("运行编号无效")
     path = _root(runs_root) / run_id
     if path.parent != _root(runs_root):
@@ -385,7 +387,8 @@ def _start_run_locked(request: dict, runs_root: Path) -> str:
 
 
 def _terminate_identity(pid: int, identity: str | None) -> None:
-    if not _alive(pid, identity):
+    # 没有创建身份就无法排除 PID 复用，宁可不终止也不误杀无关进程。
+    if not identity or not _alive(pid, identity):
         return
     if os.name == "nt":
         from ctypes import wintypes
@@ -405,9 +408,18 @@ def _terminate_identity(pid: int, identity: str | None) -> None:
         os.kill(pid, signal.SIGKILL)
 
 
-def get_run(run_id: str, runs_root: Path | None = None) -> dict:
+def get_run(run_id: str, runs_root: Path | None = None, *, mark_interrupted: bool = True) -> dict:
+    """读取运行状态。
+
+    mark_interrupted=False 供只读接口（/api/runs、SSE）使用：对已死亡的协调进程
+    返回「中断」的派生视图，但绝不写盘、绝不杀进程。写盘清理只在启动新运行和
+    显式恢复登记时进行，避免一次 GET 改变系统状态。
+    """
     directory = _run_dir(run_id, runs_root)
-    state = _read_json(directory / "state.json")
+    try:
+        state = _read_json(directory / "state.json")
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+        raise ValueError(f"运行记录损坏，请保留该目录排查：{run_id}") from exc
     if state is None:
         raise FileNotFoundError(f"运行记录不存在：{run_id}")
     if state["status"] in ACTIVE_STATUSES:
@@ -415,24 +427,36 @@ def get_run(run_id: str, runs_root: Path | None = None) -> dict:
         age = (datetime.now(timezone.utc) - datetime.fromisoformat(state["started_at"])).total_seconds()
         dead = not _alive(pid, state.get("coordinator_identity")) if pid else age > 20
         if dead:
-            _terminate_identity(state.get("worker_pid"), state.get("worker_identity"))
-            state.update(status="interrupted", completed_at=utc_now(), message="后台协调进程已退出；此前完成的阶段结果和日志仍保留")
-            for node in state["nodes"]:
-                if node["status"] == "running":
-                    _set_node(node, "interrupted", "协调进程退出，节点中断")
-                elif node["status"] == "pending":
-                    _set_node(node, "skipped", "运行中断，未执行")
-            _event(directory, "run", "interrupted", state["message"], level="ERROR")
-            _save_state(directory, state)
+            message = "后台协调进程已退出；此前完成的阶段结果和日志仍保留"
+            if mark_interrupted:
+                _terminate_identity(state.get("worker_pid"), state.get("worker_identity"))
+                state.update(status="interrupted", completed_at=utc_now(), message=message)
+                for node in state["nodes"]:
+                    if node["status"] == "running":
+                        _set_node(node, "interrupted", "协调进程退出，节点中断")
+                    elif node["status"] == "pending":
+                        _set_node(node, "skipped", "运行中断，未执行")
+                _event(directory, "run", "interrupted", state["message"], level="ERROR")
+                _save_state(directory, state)
+            else:
+                nodes = []
+                for node in state["nodes"]:
+                    item = dict(node)
+                    if item["status"] == "running":
+                        item.update(status="interrupted", message="协调进程退出，节点中断")
+                    elif item["status"] == "pending":
+                        item.update(status="skipped", message="运行中断，未执行")
+                    nodes.append(item)
+                state = {**state, "status": "interrupted", "message": message, "nodes": nodes}
     return state
 
 
-def list_runs(runs_root: Path | None = None) -> list[dict]:
+def list_runs(runs_root: Path | None = None, *, mark_interrupted: bool = True) -> list[dict]:
     root = _root(runs_root)
     result = []
     for path in sorted(root.glob("*/state.json"), reverse=True):
         try:
-            result.append(get_run(path.parent.name, root))
+            result.append(get_run(path.parent.name, root, mark_interrupted=mark_interrupted))
         except (OSError, ValueError):
             continue
     return result

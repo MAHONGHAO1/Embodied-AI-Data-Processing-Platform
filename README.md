@@ -1,8 +1,8 @@
 # RoboData Workbench · 具身智能数据处理平台
 
-**v0.8.0 · Windows / Python 3.12 / Node.js 24 · 本地单用户**
+**v0.9.0 · Windows / Python 3.12 / Node.js 24 · 本地单用户**
 
-在线作品集展示页（无需安装即可查看两个项目的真实截图、验收证据与能力边界）：https://mahonghao1.github.io/Embodied-AI-Data-Processing-Platform/
+[个人主页](https://mahonghao1.github.io/) · [在线项目展示与证据页](https://mahonghao1.github.io/Embodied-AI-Data-Processing-Platform/)（无需安装，可查看当前工作台截图、数据视图与验证边界）
 
 把机器人演示数据变成**可检查、可追溯、可验证后交付**的训练样本。新工作台由 React + TypeScript 界面和 FastAPI 本地服务组成；既有 Python 数据处理、质量检查与交付验证仍是业务权威实现。
 
@@ -11,6 +11,24 @@
 > 截图于 2026-11-09 从本机 FastAPI 服务生成，展示固定 revision 的真实 ALOHA Coffee Episode 0。Episode 0–4 已完成本地转换与交付验收；标注审核门禁由脚本模拟，未声称人工审核或机器人执行效果。逐路文件时间映射检查不代表硬件同步。详见 [v0.6.0 状态](docs/STATUS_v0.6.0.md) 与 [验收记录](docs/VALIDATION_v0.6.0.md)。
 
 上方为 v0.6.0 的历史首屏截图，保留作真实 ALOHA 数据浏览的证据；**当前界面见下方「v0.8.0 · 16:9 固定工作台」**。旧录屏含加载或空状态，不作为公开演示素材。
+
+## v0.9.0 · 状态回退修复与上线级审计
+
+v0.9.0 不新增界面，而是把「提交审核后离开一小时，回来看起来全部回退到导入阶段」这条真实缺陷查到底并修完，同时补上防止复发的护栏。
+
+| 层 | 根因 | 本版处置 |
+| --- | --- | --- |
+| 后端 | 读取运行记录被实现成带业务副作用：`GET` / SSE 读路径会重放质检登记，把审核打回草稿、清掉清洗确认并使产物失效 | 读路径改为**纯只读**（含派生视图），恢复登记只能走显式 `POST /api/runs/{id}/recover` |
+| SSE | 终态不下发结束事件，浏览器 `EventSource` 无限自动重连，把危险读路径放大 | 终态 / 错误 / 超时下发 `event: done` + 心跳 + 超时，客户端终态主动关闭 |
+| 前端 | 阶段进度硬编码，业务状态一失效就只剩「导入」 | 进度由 `deriveStages(batch, runs)` 按真实审核与产物推导 |
+| 前端 | 刷新或长时间离开丢失上下文 | URL + 本地会话双通道恢复，回前台主动对账 |
+| 入口 | 旧 Streamlit 界面仍在每次重绘时自动回写 | 同步改为纯只读 + 提示，破坏性恢复需两步确认 |
+| 交互 | 破坏性操作缺少说明，且后端 409 时前端只能反复点同一个按钮 | 质检重跑 / 恢复质检登记 / 修改筛选决定均二次确认；新增可操作的「确认并重试」，先取服务器真相再带确认标记重发 |
+| 提示 | 用户自己的写操作被误报成「后台处理改了批次」 | 版本基准随写操作同步，提示改为中性归因，并明确说明产物失效 |
+
+验证：后端全量 **289 passed / 7 skipped / 13 subtests**，上线级审计套件 **43 passed**；前端 **26 项单测** 与生产构建通过；真实 `uvicorn` 下终态 SSE 在 8 ms 内结束闭环。完整根因链、逐条修复位置与剩余风险见 [上线级审计报告](docs/LAUNCH_AUDIT_REPORT.md) 与 [v0.9.0 发布说明](RELEASE_NOTES_v0.9.0.md)。
+
+> 运行边界不变：本机单用户、仅 `127.0.0.1` loopback。报告第 8 节列出的产品语义决策项与公网化前置项未在本版处理，因此本版不宣称「公网多用户可上线」。
 
 ## v0.8.0 · 16:9 固定工作台
 
@@ -88,9 +106,10 @@ v0.8.0 把两套界面从「窄栏长页」重做为**一屏闭环的固定工�
 
 - **只想看效果**：打开[在线作品集展示页](https://mahonghao1.github.io/Embodied-AI-Data-Processing-Platform/)（无需安装），拖动四路相机同步时间轴、浏览九个界面视角，或查看上方新界面截图
 - **想跑起来**：安装 Node.js 24 LTS 后，双击根目录 `首次安装.cmd`，再双击桌面快捷方式 —— 见[安装与启动](#安装与启动)
-- **讲给面试官**：[演示路线](docs/demo.md)
+- **讲给面试官**：[5 分钟短讲稿](docs/demo-5min.md)、[8 分钟完整路线](docs/demo.md)
+- **看规模实验 / 格式切片**：[表格质检规模基准](docs/benchmarks/2026-11-12-scale-experiment.md)、[隔离的 ROS2 MCAP 示例](examples/ros2_mcap/README.md)
 - **查实现**：[数据字典](docs/data_dictionary.md)、[V0.5 状态](docs/STATUS_v05.md)、[导航验收](docs/VALIDATION_navigation.md)
-- **查当前迭代**：[v0.8.0 发布说明](RELEASE_NOTES_v0.8.0.md)、[v0.7.0 发布说明](RELEASE_NOTES_v0.7.0.md)、[v0.6.0 状态](docs/STATUS_v0.6.0.md)、[v0.6.0 验收记录](docs/VALIDATION_v0.6.0.md)、[变更记录](CHANGELOG.md)
+- **查当前迭代**：[v0.9.0 发布说明](RELEASE_NOTES_v0.9.0.md)、[上线级审计报告](docs/LAUNCH_AUDIT_REPORT.md)、[v0.8.0 发布说明](RELEASE_NOTES_v0.8.0.md)、[v0.7.0 发布说明](RELEASE_NOTES_v0.7.0.md)、[变更记录](CHANGELOG.md)
 - **查操作**：[标准操作 SOP](docs/SOP.md)，[HTML 手册](docs/SOP.html) 可离线打开
 
 默认服务地址为 [http://127.0.0.1:8765/](http://127.0.0.1:8765/)，由 FastAPI 在本机托管构建后的 React 页面和 API。GitHub Pages 不提供该 Python 服务；旧版 Streamlit 可通过 `启动Streamlit旧版.cmd` 单独运行于 8501 端口。

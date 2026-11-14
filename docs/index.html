@@ -170,7 +170,7 @@ footer{padding:40px 0 56px;font-size:12px;color:var(--muted);display:flex;justif
 <h1>把机器人数据变成<br><em>可验证</em>的交付物</h1>
 <p class="lede">两个独立完成的本地工程作品。主项目打通公开机器人数据集的多相机质检、格式转换与独立验包；副项目把数据来源与失效状态做成看得见的分析界面。两者共通的一点：每个结论都能回到可核对的证据。</p>
 <p class="lede">这一页提供<strong>无需安装</strong>的入口：四张 16:9 新工作台截图、可拖动的四路相机同步时间轴、九个真实界面视角、五步证据链，以及明确写出的能力边界。</p>
-<div class="tags"><span>公开数据或明确标注的合成数据</span><span>仅本机运行，无公开服务</span><span>已发布 v0.8.0 / v0.3.0</span></div>
+<div class="tags"><span>公开数据或明确标注的合成数据</span><span>仅本机运行，无公开服务</span><span>已发布 v0.9.0 / v0.3.0</span></div>
 </div>
 <aside class="meta">
 <dl>
@@ -221,7 +221,7 @@ footer{padding:40px 0 56px;font-size:12px;color:var(--muted);display:flex;justif
 <p class="prose" style="margin-top:22px"><strong>架构与职责：</strong>React + TypeScript 页面只做浏览与呈现；FastAPI 仅监听 <code>127.0.0.1:8765</code>；Python 业务层负责质检、审核门禁、转换调度与交付登记；格式读写由官方 LeRobot 库完成。转换产物、运行日志与证据留在本地，页面不提供公网服务。</p>
 <div class="links">
 <a href="https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform">仓库与 README</a>
-<a href="https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/releases/tag/v0.8.0">v0.8.0 发布说明</a>
+<a href="https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/releases/tag/v0.9.0">v0.9.0 发布说明</a>
 <a href="https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/releases/tag/v0.7.0">v0.7.0 展示升级</a>
 <a href="https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/blob/main/docs/VALIDATION_v0.6.0.md">验收记录</a>
 <a href="https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/blob/main/docs/demo.md">八分钟讲解路线</a>
@@ -245,7 +245,7 @@ footer{padding:40px 0 56px;font-size:12px;color:var(--muted);display:flex;justif
 <div><div class="ci">03 / 表格铺满</div><h3>10 行持仓进入首屏</h3><p>32px 行高、固定表头、全宽列；收益不可用时给原因而不是零值。参考 Carbon DataTable 与 Ant Design Pro 的 fluid 主区。</p></div>
 </div>
 <div class="links">
-<a href="https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/releases/tag/v0.8.0">v0.8.0 发布说明</a>
+<a href="https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/releases/tag/v0.9.0">v0.9.0 发布说明</a>
 <a href="https://github.com/MAHONGHAO1/AI-Fund-Management-Platform/releases/tag/v0.3.0">v0.3.0 发布说明</a>
 <a href="https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/blob/main/README.md#设计取舍">设计取舍</a>
 </div>
@@ -340,6 +340,7 @@ footer{padding:40px 0 56px;font-size:12px;color:var(--muted);display:flex;justif
 <tr><th>数据来自哪里？</th><td>批次总览的固定版本、许可与来源信息；逐项校验见 v0.6.0 验收记录。</td></tr>
 <tr><th>多相机如何检查？</th><td>Episode 浏览器的逐路检查状态、本页四路同步时间轴，以及验收记录中的视频、帧数与时间映射结果。</td></tr>
 <tr><th>时间轴上的帧是录屏吗？</th><td>不是。来自交付包四路 H.264 视频按相同帧索引解码拼接；参数与逐路亮度核验见 timeline/manifest.json。</td></tr>
+<tr><th>v0.9.0 修了什么？</th><td>修复「提交审核后离开一小时，回来像全部回退到导入阶段」：读路径改为纯只读、SSE 终态主动结束、阶段进度按真实审核与产物推导、旧 Streamlit 入口同纪律，并补上 409「确认并重试」。根因与剩余风险见仓库 docs/LAUNCH_AUDIT_REPORT.md。</td></tr>
 <tr><th>16:9 新界面改了什么？</th><td>固定 Shell、局部滚动、四路相机与曲线共用一条时间轴、全宽 32px 表格与行检视联动；两仓 v0.8.0 / v0.3.0 发布说明列出完整改动与验证。</td></tr>
 <tr><th>新界面截图都是真实业务状态吗？</th><td>不是。带「构造元数据」标记的四相机布局验证图使用真实交付帧 + 构造的批次元数据；其余三张来自本机真实 FastAPI 服务，README 逐张注明来源。</td></tr>
 <tr><th>工作台能在线打开吗？</th><td>不能。两个服务只监听 127.0.0.1；本页是静态展示，不提供公网交互实例，也不改变「仅本机运行」口径。</td></tr>
@@ -366,7 +367,7 @@ cd frontend &amp;&amp; npm ci &amp;&amp; npm run build &amp;&amp; cd ..
 <p class="note">完整步骤、首次安装脚本与复现验收命令见两仓 README。旧版 Streamlit 入口保留为回退；历史逐节点截图与 v0.4.0 验收报告见 <a href="validation-report-v0.4.0.html">归档页</a>。本页的帧序列与图集由 <code>docs/assets/timeline/manifest.json</code> 记录来源与采样参数，可对照交付包视频复核；v0.8.0 / v0.3.0 的四张 16:9 界面截图及构造元数据标记见两仓发布说明。</p>
 </div></section>
 
-<footer class="wrap"><span>更新于 2026-11-12 · 页面内容对应已发布版本 v0.8.0 / v0.3.0</span><span>公开数据按上游许可使用 · 基金部分不构成投资建议</span></footer>
+<footer class="wrap"><span>更新于 2026-11-14 · 页面内容对应已发布版本 v0.9.0 / v0.3.0</span><span>公开数据按上游许可使用 · 基金部分不构成投资建议</span></footer>
 
 <script>
 (function(){

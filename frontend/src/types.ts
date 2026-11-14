@@ -76,5 +76,5 @@ export interface RunRecord {
   batch_id?: string;
   request?: { operation?: string; kind?: string; label?: string };
   nodes?: Array<{ node_id: string; label: string; status: string; message?: string; started_at?: string; completed_at?: string }>;
-  business_registration?: { status?: string; message?: string };
+  business_registration?: { status?: string; message?: string; registration_operation?: string };
 }

@@ -489,6 +489,24 @@ def _evidence_hashes(directory, operation, registration_stage="registration", re
     return records
 
 
+def registration_operation_of(run_dir: Path) -> str | None:
+    """与 _register 完全同口径解析待恢复登记的业务操作。
+
+    历史 / 手工修复的 registration.json 可能没有 registration_operation 字段，
+    此时必须回退到 request.json 的 operation；破坏性确认门禁若只看显式字段，
+    这类旧记录就能无声绕过。此函数只读，不产生任何回写。
+    """
+    from .runtime import _read_json
+    pending = _read_json(run_dir / "registration.json", {})
+    if pending.get("registration_operation"):
+        return pending["registration_operation"]
+    try:
+        request = _read_json(Path(pending.get("request_path", run_dir / "request.json")))
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+    return request.get("operation") if isinstance(request, dict) else None
+
+
 def _register(directory):
     from .runtime import _read_json, _atomic_json, utc_now
     from .importing import verify_managed_source
@@ -500,7 +518,7 @@ def _register(directory):
     expected = pending.get("evidence_sha256")
     if not expected or expected != _evidence_hashes(directory, operation, registration_stage, request, pending.get("request_path")):
         raise WorkflowError("登记证据不完整或处理产物证据已变化，请保留该运行排查")
-    registration_operation = pending.get("registration_operation", operation)
+    registration_operation = registration_operation_of(directory) or operation
     if registration_operation == "import":
         details = _read_step(directory, "inventory")["details"]
         verify_managed_source(details["source"])
@@ -533,15 +551,37 @@ def _register(directory):
     return result
 
 
-def reconcile_run(run_id, runs_root=None):
-    """Retry only a pending completed artifact registration, without rerunning work."""
+def reconcile_run(run_id, runs_root=None, *, force=False):
+    """Retry only a pending completed artifact registration, without rerunning work.
+
+    force=True 仅由用户显式点击「恢复登记」时传入；失败记录默认不再自动重试，
+    避免读路径或轮询把同一份过期证据反复回写。
+    """
     from .runtime import (_run_dir, _read_json, _atomic_json, get_run, ACTIVE_STATUSES,
                           _startup_guard, _save_state, _set_node, _event, utc_now)
-    directory = _run_dir(run_id, runs_root)
+    from . import ui_runs
+
+    # 与 /api/runs 使用同一运行根目录，避免环境变量生效时读到默认目录。
+    root = runs_root or ui_runs.runs_root()
+    directory = _run_dir(run_id, root)
+    # 终态读是非常高频的路径（SSE 重连、轮询、列表）：已登记的运行直接在锁外返回，
+    # 既避免无谓的锁竞争，也保证「读不会改写业务状态」。
+    registration = _read_json(directory / "registration.json", {})
+    if registration.get("status") in {"registered", "stale"}:
+        return registration
+    attempts = int(registration.get("recovery_attempts") or 0)
+    # 硬上限连 force 也不能绕过：避免用户反复点击把同一份过期证据无限重放。
+    if attempts >= 3:
+        return registration
+    if not force and registration.get("status") == "failed":
+        return registration  # 失败登记只在用户显式要求时重试，杜绝后台静默重放
     with _startup_guard(directory.parent):
-        state = get_run(run_id, runs_root)
-        if state["status"] in ACTIVE_STATUSES:
+        # 判断「后台是否仍在运行」必须看磁盘原始状态，不能用会被 get_run
+        # 派生覆盖的视图；否则恢复登记可能提前打断一个还活着的协调进程。
+        raw = _read_json(directory / "state.json", {})
+        if raw.get("status") in ACTIVE_STATUSES:
             raise WorkflowError("后台仍在运行，请等待结果回写")
+        state = get_run(run_id, root, mark_interrupted=False)
         registration = _read_json(directory / "registration.json", {})
         if registration.get("status") in {"registered", "stale"}:
             return registration
@@ -559,9 +599,11 @@ def reconcile_run(run_id, runs_root=None):
             state.update(batch_id=result["batch_id"], status="completed", completed_at=utc_now(),
                          message="已核对保留的处理证据并恢复业务登记；中断时尚未执行的步骤须重新运行")
         except ConflictError as exc:
-            result = {**registration, "status": "stale", "message": str(exc)}
+            result = {**registration, "status": "stale", "message": str(exc),
+                      "recovery_attempts": attempts + 1}
         except Exception as exc:
-            result = {**registration, "status": "failed", "message": str(exc)}
+            result = {**registration, "status": "failed", "message": str(exc),
+                      "recovery_attempts": attempts + 1}
         _atomic_json(directory / "registration.json", result)
         state["business_registration"] = result
         _event(directory, "registration", "reconciled", result["message"],

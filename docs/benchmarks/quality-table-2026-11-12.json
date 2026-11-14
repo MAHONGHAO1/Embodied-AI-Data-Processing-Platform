@@ -1,0 +1,81 @@
+{
+  "benchmark": "robodata.quality.run_checks table-only scale experiment",
+  "scope": "synthetic fixed-width Episode records; check_video=False; excludes fixture construction, Parquet IO, video decoding, conversion and packaging",
+  "seed": "deterministic zero/one vectors; no random values",
+  "environment": {
+    "python": "3.12.10",
+    "platform": "Windows-11-10.0.26300-SP0",
+    "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+    "cpu_count": 20,
+    "pandas": "3.0.5",
+    "numpy": "2.5.3"
+  },
+  "results": [
+    {
+      "rows": 1000,
+      "repeats": 3,
+      "median_seconds": 0.012824,
+      "min_seconds": 0.012143,
+      "max_seconds": 0.013252,
+      "rows_per_second": 77979.4,
+      "data_issues": [
+        0,
+        0,
+        0
+      ],
+      "video_checks": "not run"
+    },
+    {
+      "rows": 5000,
+      "repeats": 3,
+      "median_seconds": 0.060775,
+      "min_seconds": 0.059667,
+      "max_seconds": 0.062447,
+      "rows_per_second": 82270.81,
+      "data_issues": [
+        0,
+        0,
+        0
+      ],
+      "video_checks": "not run"
+    },
+    {
+      "rows": 10000,
+      "repeats": 3,
+      "median_seconds": 0.121827,
+      "min_seconds": 0.117964,
+      "max_seconds": 0.125474,
+      "rows_per_second": 82083.34,
+      "data_issues": [
+        0,
+        0,
+        0
+      ],
+      "video_checks": "not run"
+    }
+  ],
+  "real_sample": {
+    "source": {
+      "repo_id": "lerobot/aloha_static_coffee",
+      "revision": "b144896feb1f37398a862927b22cd3abdf005a6b",
+      "format_version": "v3.0"
+    },
+    "episode_index": 0,
+    "rows": 1100,
+    "fps": 50.0,
+    "parquet_file": "file-000.parquet",
+    "parquet_sha256": "29c031583a0957a235b25656c8558e96ae3c5b74484408df3d46e21f2c858d29",
+    "load_episode_seconds_single_run": 0.075517,
+    "table_check_repeats": 3,
+    "table_check_median_seconds": 0.012912,
+    "table_rows_per_second": 85193.39,
+    "data_issues": [
+      0,
+      0,
+      0
+    ],
+    "video_checks": "not run",
+    "interpretation": "One real fixed-sample episode; loading time is a single observation, not a stable IO benchmark."
+  },
+  "interpretation": "Current table-check path only. Does not establish full-pipeline capacity or a before/after speedup."
+}

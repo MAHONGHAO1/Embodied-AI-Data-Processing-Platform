@@ -143,6 +143,12 @@ input::placeholder { color: var(--color-muted); }
 .success-notice { color: var(--color-success); background: var(--color-success-bg); border: 1px solid var(--color-success); }
 .notice-close { margin-left: auto; width: 28px; height: 28px; border: 0; border-radius: 5px; background: transparent; color: inherit; cursor: pointer; font-size: 20px; }
 .notice-close:hover { background: var(--color-close-hover); }
+/* 错误与成功提示可同时存在，互不覆盖；连接失败横幅常驻直到恢复。 */
+.notice-stack { display: grid; gap: 8px; margin: -7px 0 17px; }
+.notice-stack .notice { margin: 0; }
+.notice .button { margin-left: auto; flex: 0 0 auto; }
+.stage-item.active { box-shadow: inset 0 -2px var(--color-accent); }
+.stage-item.active small { color: var(--color-accent); }
 
 .explorer-grid { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 18px; align-items: start; }
 .episode-list-panel { position: sticky; top: 14px; padding: 16px 0 8px; overflow: clip; }
@@ -473,4 +479,33 @@ tbody tr:hover { background: #f4f4f4; }
   .shell-chip, .nav-foot, .nav-meta { display: none; }
   .workbench-shell > .page-wrap { padding-right: 12px; padding-left: 12px; }
   .explorer-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* 渲染层异常兜底：明确告诉用户业务数据仍在磁盘上，避免误以为「数据丢了」。 */
+.fatal-error {
+  max-width: 720px;
+  margin: 64px auto;
+  padding: var(--space-5, 24px);
+  background: var(--color-paper, #fff);
+  border: 1px solid var(--color-line, #e0e0e0);
+  border-left: 4px solid #da1e28;
+  font-family: var(--font-body, sans-serif);
+  color: var(--color-ink, #161616);
+}
+.fatal-error h1 { font-size: var(--text-lg, 20px); margin: 0 0 var(--space-3, 12px); }
+.fatal-error p { font-size: var(--text-sm, 14px); line-height: 1.6; color: var(--color-ink-soft, #525252); }
+.fatal-error pre {
+  white-space: pre-wrap;
+  word-break: break-all;
+  padding: var(--space-3, 12px);
+  background: var(--color-ground, #f4f4f4);
+  border: 1px solid var(--color-line, #e0e0e0);
+  font-size: var(--text-xs, 12px);
+}
+.fatal-error button {
+  padding: 8px 16px;
+  border: 0;
+  background: var(--color-accent, #0f62fe);
+  color: #fff;
+  cursor: pointer;
 }
