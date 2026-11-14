@@ -307,6 +307,7 @@ body { min-width: 0; }
 .shell-crumb { display: inline-flex; align-items: center; gap: 4px; color: var(--color-muted); font-size: 12px; white-space: nowrap; }
 .shell-chip { max-width: 250px; overflow: hidden; text-overflow: ellipsis; font-size: 11px; padding: 3px 9px; border: 1px solid var(--color-line-strong); border-radius: 999px; color: var(--color-ink-soft); white-space: nowrap; }
 .shell-chip.ok { color: var(--color-success); background: var(--color-success-bg); border-color: transparent; }
+.version-chip { color: #d0e2ff; border-color: #525252; background: #262626; }
 .workbench-shell .topbar-actions { margin-left: auto; gap: 10px; }
 .shell-toggle { padding: 5px 9px; border: 1px solid var(--color-line-strong); border-radius: 6px; background: transparent; color: var(--color-ink-soft); font-size: 11px; cursor: pointer; white-space: nowrap; }
 .shell-toggle:hover { color: var(--color-accent); border-color: var(--color-accent); }
@@ -395,6 +396,76 @@ body { min-width: 0; }
   .shell-chip { max-width: 140px; }
   .tl-meta span:last-child { display: none; }
   .tl-out { min-width: 170px; }
+}
+
+/* Carbon-inspired professional data theme: semantic roles, restrained color, dense reading. */
+:root {
+  --font-body: "IBM Plex Sans", "Noto Sans SC", "Segoe UI", "Microsoft YaHei", sans-serif;
+  --color-ink: #161616;
+  --color-ink-soft: #525252;
+  --color-muted: #6f6f6f;
+  --color-ground: #f4f4f4;
+  --color-paper: #ffffff;
+  --color-paper-raised: #ffffff;
+  --color-line: #e0e0e0;
+  --color-line-strong: #a8a8a8;
+  --color-accent: #0f62fe;
+  --color-accent-hover: #0043ce;
+  --color-accent-soft: #e5f1ff;
+  --color-focus: #0f62fe;
+  --color-success: #198038;
+  --color-success-bg: #defbe6;
+  --color-warning: #8e562e;
+  --color-warning-bg: #fff1d6;
+  --color-danger: #da1e28;
+  --color-danger-bg: #fff1f1;
+  --color-info: #0043ce;
+  --color-info-bg: #edf5ff;
+  --radius-control: 4px;
+  --radius-panel: 4px;
+  --shadow-panel: none;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-md: 16px;
+  --text-lg: 20px;
+  --text-xl: 28px;
+}
+body { font-size: var(--text-sm); line-height: 1.45; }
+.workbench-shell > .topbar { background: #161616; color: #f4f4f4; border-bottom-color: #393939; }
+.workbench-shell > .topbar .brand strong,
+.workbench-shell > .topbar .shell-crumb { color: #f4f4f4; }
+.workbench-shell > .topbar .brand-mark { color: #78a9ff; background: #262626; }
+.workbench-shell > .topbar .shell-crumb,
+.workbench-shell > .topbar .topbar-actions { color: #c6c6c6; }
+.workbench-shell > .topbar .shell-chip { color: #d0e2ff; border-color: #525252; }
+.workbench-shell > .topbar .shell-chip.ok { color: #a7f0ba; background: #1d3b28; }
+.workbench-shell > .topbar .shell-toggle { color: #f4f4f4; border-color: #6f6f6f; }
+.workbench-shell > .topbar .shell-toggle:hover { color: #ffffff; border-color: #78a9ff; }
+.sidenav, .inspector, .timeline { background: #ffffff; }
+.sidenav { border-right-color: #e0e0e0; }
+.sidenav .nav-link { border-radius: 0; }
+.sidenav .nav-link.selected { background: #e5f1ff; box-shadow: inset 3px 0 #0f62fe; }
+.panel, .summary-strip, .insp-note, .stage-item { border-radius: 4px; box-shadow: none; }
+.summary-strip > div, .panel { padding: 16px; }
+.panel-heading h2 { font-size: 16px; }
+th { height: 32px; padding: 8px 9px; background: #f4f4f4; }
+td { height: 32px; padding: 7px 9px; }
+tbody tr:hover { background: #f4f4f4; }
+.row-selected { background: #e5f1ff; }
+.status-tag { border-radius: 3px; }
+.button, .tl-btn { border-radius: 4px; }
+.insp-h { height: 44px; }
+.timeline { border-top-color: #e0e0e0; }
+.timeline input[type="range"] { accent-color: #0f62fe; }
+
+@media (max-width: 900px) {
+  .workbench-shell > .topbar { background: #161616; }
 }
 @media (max-width: 900px) {
   .workbench-shell, .workbench-shell.no-inspector { grid-template-columns: 150px minmax(0, 1fr) 0; }

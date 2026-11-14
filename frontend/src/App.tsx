@@ -297,6 +297,7 @@ function App() {
           <span className="brand-mark"><Activity size={17} strokeWidth={2.2} /></span>
           <span><strong>RoboData</strong><small>具身数据工作台</small></span>
         </a>
+        <span className="shell-chip version-chip">v0.8.0 · React 工作台</span>
         <span className="shell-crumb">工作台 <ChevronRight size={13} /> {routeLabels[route]}</span>
         {batch && <span className="shell-chip">{batch.label}</span>}
         {batch && <span className="shell-chip ok">{issueCount} 个质检问题</span>}
