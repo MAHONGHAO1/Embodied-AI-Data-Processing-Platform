@@ -183,7 +183,8 @@ def test_cli_generates_marked_demo_and_check_writes_reports(original_sample, tmp
     assert main(["make-failure-demo", "--data-root", str(original_sample), "--target", str(target)]) == 0
     assert "故障注入测试副本" in capsys.readouterr().out
     assert main(["check", "--data-root", str(target), "--output", str(reports),
-                 "--runs-root", str(tmp_path / "runs")]) == 0
+                 "--runs-root", str(tmp_path / "runs")]) == 3
+    # 故障注入副本本来就有数据异常，退出码必须非 0，否则 CI 会当它通过。
     assert (reports / "quality_report.html").is_file()
     result = json.loads((reports / "quality_report.json").read_text(encoding="utf-8"))
     assert result["source"]["source_kind"] == "injected_test"

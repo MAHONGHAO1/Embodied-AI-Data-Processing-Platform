@@ -224,7 +224,8 @@ def _load_state(run_id: str) -> dict:
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="RoboData local workbench", version="0.9.0", docs_url=None, redoc_url=None)
+    app = FastAPI(title="RoboData local workbench", version="0.9.0", docs_url=None, redoc_url=None,
+                  redirect_slashes=False)
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost", "testserver"])
 
     @app.middleware("http")

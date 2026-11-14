@@ -1,0 +1,9 @@
+{
+  "source": {
+    "repo_id": "MAHONGHAO1/robodata-known-bad",
+    "revision": "fixtures",
+    "license": "MIT",
+    "robot": "robodata-known-bad-fixture"
+  },
+  "note": "人工构造的故障样本，仅供判据验证，不是真实采集数据。"
+}

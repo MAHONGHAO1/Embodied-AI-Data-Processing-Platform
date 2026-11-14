@@ -28,7 +28,8 @@ def main(argv=None):
     inspect.add_argument("--episode", type=int, default=0)
     check = sub.add_parser("check", help="检查全部 5 条任务并输出 HTML/JSON")
     check.add_argument('--source', choices=('so100', 'converted'), default='so100')
-    check.add_argument("--data-root", type=Path, default=None)
+    check.add_argument("--data-root", type=Path, default=None,
+                       help="任意 LeRobot v2.0/v3.0 数据目录；缺省时用内置样本")
     check.add_argument("--output", type=Path, default=DEFAULT_REPORT_ROOT)
     check.add_argument("--skip-video", action="store_true", help="跳过视频检查；报告明确标为未检查")
     check.add_argument("--node-timeout", type=float, default=60, help="普通节点超时秒数")
@@ -36,6 +37,10 @@ def main(argv=None):
     check.add_argument("--execution-demo", choices=("none", "video_timeout"), default="none",
                        help="video_timeout：明确标注的人为运行等待演示")
     check.add_argument("--runs-root", type=Path, default=None, help="可选运行记录目录")
+    check.add_argument("--format", choices=("json", "junit", "sarif"), default="json",
+                       help="额外输出给 CI 的文件：junit 测试面板用，sarif 扫描视图用")
+    check.add_argument("--fail-on-incomplete", action="store_true",
+                       help="有未执行的判据时也返回非 0（用于把不完整的检查当失败）")
     for name in ('convert', 'verify-export'):
         conversion = sub.add_parser(name, help='HDF5 官方转换' if name == 'convert' else '独立离线官方加载验证')
         conversion.add_argument('--input', type=Path, default=HDF5_PATH)
@@ -201,7 +206,22 @@ def main(argv=None):
                               "message": state.get("message", "")}, ensure_ascii=False, indent=2, default=str))
             if state["status"] in {"failed", "interrupted"} or report is None:
                 return 1
-            return 2 if report["summary"].get("load_failure_count", 0) else 0
+            summary = report["summary"]
+            if args.format in {"junit", "sarif"}:
+                from .ci_output import to_junit, to_sarif
+                rendered = to_junit(report) if args.format == "junit" else to_sarif(report)
+                suffix = "xml" if args.format == "junit" else "sarif"
+                ci_path = Path(report_path).with_name(f"quality_{args.format}.{suffix}")
+                ci_path.write_text(rendered, encoding="utf-8")
+                print(json.dumps({"ci_format": args.format, "ci_output": str(ci_path)},
+                                 ensure_ascii=False))
+            if summary.get("load_failure_count", 0):
+                return 2
+            if summary.get("data_issue_count", 0):
+                return 3
+            if args.fail_on_incomplete and summary.get("not_checked_count", 0):
+                return 4
+            return 0
         return 0
     except Exception as exc:
         from .errors import explain_error

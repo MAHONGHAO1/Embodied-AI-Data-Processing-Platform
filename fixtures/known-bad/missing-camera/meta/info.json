@@ -1,0 +1,109 @@
+{
+  "codebase_version": "v3.0",
+  "robot_type": "robodata-known-bad-fixture",
+  "fps": 30.0,
+  "features": {
+    "index": {
+      "dtype": "int64",
+      "shape": [
+        1
+      ],
+      "names": [
+        "index"
+      ]
+    },
+    "episode_index": {
+      "dtype": "int64",
+      "shape": [
+        1
+      ],
+      "names": [
+        "episode_index"
+      ]
+    },
+    "frame_index": {
+      "dtype": "int64",
+      "shape": [
+        1
+      ],
+      "names": [
+        "frame_index"
+      ]
+    },
+    "timestamp": {
+      "dtype": "float32",
+      "shape": [
+        1
+      ],
+      "names": [
+        "timestamp"
+      ]
+    },
+    "observation.state": {
+      "dtype": "float32",
+      "shape": [
+        6
+      ],
+      "names": {
+        "motors": [
+          "main_shoulder_pan",
+          "main_shoulder_lift",
+          "main_elbow_flex",
+          "main_wrist_flex",
+          "main_wrist_roll",
+          "main_gripper"
+        ]
+      }
+    },
+    "action": {
+      "dtype": "float32",
+      "shape": [
+        6
+      ],
+      "names": {
+        "motors": [
+          "main_shoulder_pan",
+          "main_shoulder_lift",
+          "main_elbow_flex",
+          "main_wrist_flex",
+          "main_wrist_roll",
+          "main_gripper"
+        ]
+      }
+    },
+    "observation.images.laptop": {
+      "dtype": "video",
+      "shape": [
+        32,
+        32,
+        3
+      ],
+      "names": [
+        "height",
+        "width",
+        "channels"
+      ],
+      "info": {
+        "video.fps": 30.0
+      }
+    },
+    "observation.images.phone": {
+      "dtype": "video",
+      "shape": [
+        32,
+        32,
+        3
+      ],
+      "names": [
+        "height",
+        "width",
+        "channels"
+      ],
+      "info": {
+        "video.fps": 30.0
+      }
+    }
+  },
+  "data_path": "data/chunk-{chunk_index:03d}/file-{file_index:03d}.parquet",
+  "video_path": "videos/{video_key}/chunk-{chunk_index:03d}/file-{file_index:03d}.mp4"
+}
