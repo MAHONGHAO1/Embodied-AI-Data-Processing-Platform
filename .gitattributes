@@ -1,0 +1,3 @@
+# Linguist: 旧版 Streamlit 单文件入口是遗留实现，不参与语言统计，
+# 避免掩盖当前 React + TypeScript 工作台的技术栈构成。
+app.py linguist-detectable=false

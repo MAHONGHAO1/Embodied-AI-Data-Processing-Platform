@@ -2,15 +2,17 @@
 
 **v0.8.0 · Windows / Python 3.12 / Node.js 24 · 本地单用户**
 
-在线作品集展示页（无需安装即可查看两个项目的真实截图、验收证据与能力边界）：https://mahonghao1.github.io/Embodied-AI-Data-Processing-Platform/
+[![tests](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/tests.yml/badge.svg)](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/tests.yml) [![release](https://img.shields.io/badge/release-v0.8.0-blue.svg)](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/releases/tag/v0.8.0) [![license](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE) [![portfolio](https://img.shields.io/badge/portfolio-live-1677ff.svg)](https://mahonghao1.github.io/)
+
+**在线展示（无需安装）**：[作品集首页](https://mahonghao1.github.io/) · [RoboData 项目深度页](https://mahonghao1.github.io/robodata/)。静态展示页汇总两个项目的当前截图、验收证据与能力边界，不提供本机的 Python 交互服务。
 
 把机器人演示数据变成**可检查、可追溯、可验证后交付**的训练样本。新工作台由 React + TypeScript 界面和 FastAPI 本地服务组成；既有 Python 数据处理、质量检查与交付验证仍是业务权威实现。
 
-![RoboData React 工作台浏览真实 ALOHA Coffee Episode 0 的四路相机、50 FPS、每条 1,100 帧及质检结果](docs/assets/workbench-v0.6.0-aloha.png)
+![v0.8.0 工作台当前界面：SO-100 单相机批次、状态曲线、底部时间轴与右侧检视面板](docs/assets/workbench-v0.8.0.png)
 
-> 截图于 2026-11-09 从本机 FastAPI 服务生成，展示固定 revision 的真实 ALOHA Coffee Episode 0。Episode 0–4 已完成本地转换与交付验收；标注审核门禁由脚本模拟，未声称人工审核或机器人执行效果。逐路文件时间映射检查不代表硬件同步。详见 [v0.6.0 状态](docs/STATUS_v0.6.0.md) 与 [验收记录](docs/VALIDATION_v0.6.0.md)。
+> 当前版本首屏。2026-11-11 从本机 FastAPI 服务（同源托管构建后的 `frontend/dist`）生成，业务状态登记的是 SO-100 单相机批次。真实视频可播放：时间轴跳到 8.37 s 时视频 `currentTime` 同步为 8.37，曲线游标随帧移动。四相机布局验证图、ALOHA 时间轴拼图与历史迭代截图见下方各节，每张都单独注明真实数据与构造演示的边界。
 
-上方为 v0.6.0 的历史首屏截图，保留作真实 ALOHA 数据浏览的证据；**当前界面见下方「v0.8.0 · 16:9 固定工作台」**。旧录屏含加载或空状态，不作为公开演示素材。
+**当前界面以 v0.8.0 为准。** v0.6.0 的旧首屏与旧录屏只保留在迭代记录与文档链接中，不作为公开演示素材。
 
 ## v0.8.0 · 16:9 固定工作台
 
@@ -43,11 +45,11 @@ v0.8.0 把两套界面从「窄栏长页」重做为**一屏闭环的固定工�
 
 业务链路包含**上传／导入 → 清洗 → 筛选 → 标注审核 → 质检 → 格式转换 → 打包与独立验包**。工作台分为批次总览、episode 与相机浏览、运行诊断、交付核验四类界面；每次处理保留阶段状态、日志和证据。只有通过官方 LeRobot 加载、输出质检、打包和独立验包的产物才可交付。
 
-> **本地边界：** 新工作台只监听 `127.0.0.1`，不提供公网交互服务。仓库的 [在线作品集展示页](https://mahonghao1.github.io/Embodied-AI-Data-Processing-Platform/)汇总两个项目的真实截图、验收证据与能力边界；它是静态页，不提供本机的 Python 交互服务。
+> **本地边界：** 新工作台只监听 `127.0.0.1`，不提供公网交互服务。仓库的 [在线作品集展示页](https://mahonghao1.github.io/) 与 [RoboData 深度页](https://mahonghao1.github.io/robodata/) 汇总当前截图、验收证据与能力边界；它是静态页，不提供本机的 Python 交互服务。
 
 ## 先看什么（无需安装）
 
-[在线作品集展示页](https://mahonghao1.github.io/Embodied-AI-Data-Processing-Platform/) 提供免安装的核对入口：
+[作品集首页](https://mahonghao1.github.io/) 与 [RoboData 深度页](https://mahonghao1.github.io/robodata/) 提供免安装的核对入口：
 
 - **四路相机同步时间轴**：8 个时刻可拖动或播放，每帧从通过验收的交付包四路 H.264 视频按**相同帧索引**解码后拼接，不是录屏，也不是示意图。
 - **v0.8.0 的 16:9 新工作台**：4 张 1920×1080 截图，固定 Shell、四路相机与曲线共用时间轴、全宽表格与右侧检视；其中具身四相机视图为布局验证截图，批次与相机元数据为构造数据，已单独标注。
@@ -86,7 +88,7 @@ v0.8.0 把两套界面从「窄栏长页」重做为**一屏闭环的固定工�
 
 ## 从哪里开始
 
-- **只想看效果**：打开[在线作品集展示页](https://mahonghao1.github.io/Embodied-AI-Data-Processing-Platform/)（无需安装），拖动四路相机同步时间轴、浏览九个界面视角，或查看上方新界面截图
+- **只想看效果**：打开[作品集首页](https://mahonghao1.github.io/)或[项目深度页](https://mahonghao1.github.io/robodata/)（无需安装），拖动四路相机同步时间轴、浏览九个界面视角，或查看上方新界面截图
 - **想跑起来**：安装 Node.js 24 LTS 后，双击根目录 `首次安装.cmd`，再双击桌面快捷方式 —— 见[安装与启动](#安装与启动)
 - **讲给面试官**：[演示路线](docs/demo.md)
 - **查实现**：[数据字典](docs/data_dictionary.md)、[V0.5 状态](docs/STATUS_v05.md)、[导航验收](docs/VALIDATION_navigation.md)
@@ -149,9 +151,9 @@ v0.6.0 支持固定来源 [ALOHA Coffee](https://huggingface.co/datasets/lerobot
 | 运行诊断 | 后台运行状态、阶段节点、事件流、错误和登记结果 |
 | 交付核验 | 当前版本的转换产物、官方加载/质检证据、打包状态与独立验包 |
 
-![React 工作台批次总览：本机已有 SO-100 五条任务批次](docs/assets/workbench-v0.6.0.png)
+![历史界面（v0.6.0）：React 工作台批次总览，本机 SO-100 五条任务批次](docs/assets/workbench-v0.6.0.png)
 
-上方的 SO-100 截图记录旧版演示用批次；ALOHA 的真实浏览画面见首屏截图。
+> 上方为 v0.6.0 历史界面，仅作迭代对照；当前界面以本页顶部与「v0.8.0 · 16:9 固定工作台」的截图为准。ALOHA 四路相机的静态抽帧证据见「先看什么」章节。
 
 业务层仍分别记录导入、清洗、筛选、标注、审核、质检、转换和交付阶段。质量检查通过的任务只是候选；只有当前审核、官方加载、输出检查、打包和独立验包全部通过，才登记为可交付。重选或重新标注会使下游审核与产物失效，原始数值不被自动修复。
 
@@ -280,7 +282,7 @@ CI 在 `windows-latest` 上执行同一组测试（[`.github/workflows/tests.yml
 
 原始数据、管理副本、运行日志、报告和交付 ZIP 默认保存在被 Git 忽略的 `data/`、`work/`、`reports/`。历史证据中引用的本地产物需自行复现，不随源码自动下载。
 
-历史首屏截图 `docs/assets/workbench-v0.6.0-aloha.png` 来自通过验收的真实 ALOHA Episode 0 四路相机浏览；`docs/assets/workbench-v0.6.0.png` 展示 SO-100 工作台界面，不把它描述为 ALOHA 转换证据。v0.8.0 的 `workbench-v0.8.0.png` 与 `fund-v0.3.0.png` 来自本机真实 FastAPI 服务；`workbench-v0.8.0-aloha.png` 是 16:9 布局验证截图，镜头画面取自真实交付帧但批次元数据为构造数据，不作为 ALOHA 转换或业务状态证据。
+历史截图（仅作迭代对照，已不作为 README 首屏）`docs/assets/workbench-v0.6.0-aloha.png` 来自通过验收的真实 ALOHA Episode 0 四路相机浏览；`docs/assets/workbench-v0.6.0.png` 展示 SO-100 工作台界面，不把它描述为 ALOHA 转换证据。v0.8.0 的 `workbench-v0.8.0.png` 与 `fund-v0.3.0.png` 来自本机真实 FastAPI 服务；`workbench-v0.8.0-aloha.png` 是 16:9 布局验证截图，镜头画面取自真实交付帧但批次元数据为构造数据，不作为 ALOHA 转换或业务状态证据。
 
 ## 设计取舍
 

@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 在线展示页
+    url: https://mahonghao1.github.io/
+    about: 先看当前版本的静态截图、验收证据与能力边界
+  - name: RoboData 项目深度页
+    url: https://mahonghao1.github.io/robodata/
+    about: 四相机时间轴、质检报告与数据范围的图文说明

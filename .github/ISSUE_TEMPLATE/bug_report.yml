@@ -1,0 +1,43 @@
+name: 问题反馈
+description: 报告本地运行、界面或数据来源方面的问题
+title: "[Bug] "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        提交前请确认：本项目仅在本机 `127.0.0.1` 运行，不提供公网服务；基金项目的持仓为虚构合成样例，不连接真实账户。
+  - type: input
+    id: version
+    attributes:
+      label: 版本与入口
+      description: 例如 v0.8.0 / React 工作台，或旧版 Streamlit 入口
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      description: 写出可重复的命令或操作顺序
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望与实际
+    validations:
+      required: true
+  - type: textarea
+    id: env
+    attributes:
+      label: 环境与日志
+      description: OS、Python / Node 版本、是否使用 uv --locked、相关报错或截图
+    validations:
+      required: false
+  - type: checkboxes
+    id: boundary
+    attributes:
+      label: 边界确认
+      options:
+        - label: 我理解本项目不提供公网交互实例，也不宣称相机硬件同步或提供投资建议
+          required: true
