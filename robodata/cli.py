@@ -71,7 +71,7 @@ def main(argv=None):
         command.add_argument('--runs-root', type=Path, default=None)
         if name == 'import-batch':
             command.add_argument('--input', type=Path, required=True)
-            command.add_argument('--source', choices=('hdf5', 'so100'), required=True)
+            command.add_argument('--source', choices=('hdf5', 'so100', 'aloha', 'matching_cable'), required=True)
             command.add_argument('--label', required=True)
             command.add_argument('--test-label', default=None, help='仅用于明确标注的故障副本')
         if name in {'show-batch', 'show-flow', 'check-batch', 'final-check-batch', 'convert-batch', 'deliver-batch'}:

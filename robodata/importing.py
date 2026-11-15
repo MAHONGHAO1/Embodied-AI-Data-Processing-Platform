@@ -14,6 +14,8 @@ import uuid
 from .config import HDF5_EPISODES, PROJECT_ROOT
 from .sources import HDF5_SHA256, HDF5_SIZE, HDF5_SOURCE
 from .source import SAMPLE_FILES, MANIFEST_NAME, DEMO_MANIFEST_NAME, file_sha256
+from .matching import (SOURCE_KIND as MATCHING_SOURCE_KIND, assert_source_unchanged as assert_matching_source_unchanged,
+                       discover_episodes, file_records as matching_file_records)
 
 HDF5_RULES = ('required_fields','row_count','vector_shape','numeric_finite','frame_index',
                'timestamp_monotonic','timestamp_interval','image_shape','image_frame_count','image_read')
@@ -86,6 +88,9 @@ def input_fingerprint(source: dict) -> str:
     return _digest({'files':actual,'interpretation':manifest['interpretation']})
 
 def assert_input_unchanged(source: dict):
+    if source.get('kind') == MATCHING_SOURCE_KIND:
+        assert_matching_source_unchanged(source)
+        return
     if input_fingerprint(source)!=source['input_fingerprint']:
         raise ValueError('批次管理副本的输入文件已变化，请重新导入；当前检查和产物不可继续使用')
 
@@ -112,13 +117,29 @@ def _preview_worker(raw: Path, output: Path, label=None):
         error.details=details
         raise error
 
+def _matching_preview_worker(raw: Path, output: Path):
+    from .conversion import CONVERSION_PYTHON
+    worker=PROJECT_ROOT/'tools/conversion/matching_preview.py'
+    cmd=[str(CONVERSION_PYTHON),str(worker),'--input',str(raw),'--output',str(output)]
+    env=os.environ.copy()
+    env.update(PYTHONUTF8='1',PYTHONIOENCODING='utf-8',HF_HUB_OFFLINE='1',HF_DATASETS_OFFLINE='1')
+    process=subprocess.run(cmd,env=env,capture_output=True,text=True,encoding='utf-8',errors='replace')
+    output.parent.mkdir(parents=True,exist_ok=True)
+    (output.parent/(output.name+'.stdout.log')).write_text(process.stdout,encoding='utf-8')
+    (output.parent/(output.name+'.stderr.log')).write_text(process.stderr,encoding='utf-8')
+    if process.returncode:
+        diagnostic=output/'diagnostic.json'
+        details=_json(diagnostic) if diagnostic.is_file() else {}
+        raise ValueError(details.get('message_zh') or details.get('message') or 'Matching Cable 帧数据预览解析失败')
+
 def _copy(request,run):
     kind=request['source_kind']
-    if kind not in {'hdf5','so100','aloha'}: raise ValueError('只支持固定 HDF5、SO-100 或 ALOHA Coffee 配置')
+    if kind not in {'hdf5','so100','aloha',MATCHING_SOURCE_KIND}: raise ValueError('只支持固定 HDF5、SO-100、ALOHA Coffee 或 Matching Cable 帧目录')
     managed=Path(request['managed_dir']).resolve()
     raw=managed/'source'
     if raw.exists(): raise ValueError('本次导入暂存目录已存在，不能覆盖既有数据')
     raw.mkdir(parents=True)
+    files=None
     label=request.get('test_label')
     if kind == 'aloha':
         if label:
@@ -163,11 +184,23 @@ def _copy(request,run):
             shutil.copy2(file,destination)
             if file_sha256(destination)!=before or file_sha256(file)!=before:
                 raise ValueError(f'复制期间输入发生变化：{name}')
-    files=_files(raw,names)
+    elif kind == MATCHING_SOURCE_KIND:
+        if not source.is_dir(): raise NotADirectoryError('Matching Cable 导入需要包含数字 Episode 目录的本地目录')
+        if label: raise ValueError('Matching Cable 本机数据不支持固定样本故障副本标记')
+        episodes=discover_episodes(source,os.environ.get('ROBODATA_MATCHING_EPISODES'))
+        files=matching_file_records(source,episodes,include_hashes=False)
+        interpretation={**PROFILE,'kind':kind,'source_root':str(source),
+                        'episodes':[{'episode_index':item['episode_index'],'source_episode_id':item['source_episode_id'],
+                                     'frame_count':len(item['frames'])} for item in episodes],
+                        'state_field':'puppet/joint_position','action_field':'master/joint_position',
+                        'cameras':['camera_0','camera_1','camera_2','camera_3'],'fps':20,
+                        'test_label':None,'batch_label':str(request.get('label') or '').strip()}
+    if files is None:
+        files=_files(raw,names)
     # 批次名参与指纹：同名视为同一批次（复用既有筛选／审核／交付记录），
     # 异名视为用户要建立独立批次，便于演示或对照实验时从零跑一遍，
     # 而不必删除或改动既有批次。文件内容与来源配置仍是硬校验。
-    if kind != 'aloha':
+    if kind != 'aloha' and kind != MATCHING_SOURCE_KIND:
         interpretation={**PROFILE,'kind':kind,'test_label':label,
                         'batch_label':str(request.get('label') or '').strip()}
     fingerprint=_digest({'files':files,'interpretation':interpretation})
@@ -177,6 +210,22 @@ def _copy(request,run):
 
 def _preview(request,run):
     managed=Path(request['managed_dir'])
+    if request['source_kind']==MATCHING_SOURCE_KIND:
+        _matching_preview_worker(Path(request['input_path']),managed/'preview')
+        preview_manifest=_json(managed/'preview/source_manifest.json')
+        input_manifest=_json(managed/'input_manifest.json')
+        input_manifest['files']=preview_manifest['files']
+        input_manifest['interpretation']['episodes']=[
+            {'episode_index':item['episode_index'],'source_episode_id':item['source_episode_id'],
+             'frame_count':item['length']} for item in preview_manifest['episodes']]
+        fingerprint=_digest({'files':input_manifest['files'],'interpretation':input_manifest['interpretation']})
+        input_manifest['input_fingerprint']=fingerprint
+        preview_manifest['input_fingerprint']=fingerprint
+        _write(managed/'input_manifest.json',input_manifest)
+        _write(managed/'preview/source_manifest.json',preview_manifest)
+        return {'data_root':str(managed/'preview'),'preview_root':str(managed/'preview'),
+                'metadata_path':str(managed/'preview/source_manifest.json'),
+                'episode_indices':[item['episode_index'] for item in preview_manifest['episodes']]}
     if request['source_kind']=='hdf5':
         _preview_worker(managed/'source/test.hdf5',managed/'preview',request.get('test_label'))
         files=[p.relative_to(managed/'preview').as_posix() for p in (managed/'preview').rglob('*') if p.is_file()]
@@ -192,8 +241,29 @@ def _inventory(request,run):
     source={'kind':request['source_kind'],'managed_path':str(managed),
             'input_fingerprint':manifest['input_fingerprint'],'manifest_path':str(managed/'input_manifest.json'),
             'import_run_id':run.name,'test_label':request.get('test_label')}
-    if request['source_kind']=='hdf5':
+    if request['source_kind']==MATCHING_SOURCE_KIND:
+        from .dataset import load_metadata
+        from .quality import RULES
+        preview=managed/'preview'
+        preview_manifest=_json(preview/'source_manifest.json')
+        metadata=load_metadata(preview)
+        source.update(
+            kind=MATCHING_SOURCE_KIND,data_root=str(preview),raw_data_root=str(Path(request['input_path']).resolve()),
+            preview_root=str(preview),repo_id='local/matching-cable-teleoperation',revision='local-source',
+            license='用户本机数据；许可由数据提供方确认',robot='双主从臂遥操作平台',
+            format_version='matching_cable_frames_v1',fps=20.0,camera=preview_manifest['source']['camera'],
+            cameras=preview_manifest['source']['cameras'],camera_metadata=preview_manifest['camera_metadata'],
+            episode_mapping=preview_manifest['source']['episode_mapping'],
+            state_field='puppet/joint_position',action_field='master/joint_position',
+            source_statistics={'source_episodes':len(preview_manifest['episodes']),
+                               'source_frames':preview_manifest['total_frames']},
+            warnings=preview_manifest.get('timestamp_warnings',[]),required_rules=list(RULES),
+            timestamp_semantics=preview_manifest['source']['timestamp_semantics'])
+        episodes=[{'episode_index':item['episode_index'],'row_count':int(item['length']),
+                   'source_episode_id':item['source_episode_id']} for item in preview_manifest['episodes']]
+    elif request['source_kind']=='hdf5':
         metadata=_json(managed/'preview/metadata.json')
+
         source.update(**{k:v for k,v in HDF5_SOURCE.items() if k!='format_version'},
                       hdf5_path=str(managed/'source/test.hdf5'),preview_root=str(managed/'preview'),
                       source_statistics=metadata['source_statistics'],warnings=metadata.get('warnings',[]),

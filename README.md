@@ -181,10 +181,13 @@ flowchart LR
 | [jmrog/so100_sweet_pick](https://huggingface.co/datasets/jmrog/so100_sweet_pick) | revision `54141acb0bd6bcb868e34b4eb328f26481d333b2`；默认启用 Episode 0–4（3,562 帧）。 | LeRobot v2.0 真机数据，状态／动作各 6 维，laptop 单相机 640×480、30 Hz、AV1 编码；支持 UI 导入、筛选、标注审核、最终质检、v3.0 转换和打包验包。 |
 | [robomimic/robomimic_datasets](https://huggingface.co/datasets/robomimic/robomimic_datasets) | revision `74fa018461f479cd9fd15b924a16103012096203`；`test/test.hdf5` 共 demo_0–9（531 帧），默认启用 demo_0–2（174 帧）。 | Panda / Lift 仿真测试片段，状态 9 维、动作 7 维、agentview 84×84 RGB；业务候选子集可转换和打包。 |
 | [lerobot/aloha_static_coffee](https://huggingface.co/datasets/lerobot/aloha_static_coffee) | 固定 revision `b144896feb1f37398a862927b22cd3abdf005a6b`；来源元数据声明全量 50 条／55,000 帧和 50 FPS；本机实测 Episode 0–4 共 5,500 帧、四路相机。 | ALOHA 公开示例；逐相机检查文件、解码、帧数和时间映射，不推断相机硬件同步。v0.6.0 的实际转换与交付范围见 [验收记录](docs/VALIDATION_v0.6.0.md)。 |
+| Matching Cable 本机帧目录 | 父目录下的 `68`–`74` 各代表一条完整原始遥操 Episode；每个 `.hdf5` 是一帧，相邻时间戳约 50 ms，即 20 FPS。 | `master/joint_position` 16 维作为 action，`puppet/joint_position` 16 维作为 observation.state；保留 `puppet/eef`、`master/eef`、关节力矩和六维力等数值，校验四路 RGB 与两路深度；支持目录导入、预览、筛选、标注审核、v3.0 转换和交付。 |
 
 HDF5 本地上传仍受固定配置约束，不是通用 HDF5 导入器。测试副本必须显式标记；标记不会让结构或质量检查自动通过。
 
-**两种来源都能跑完整条链路**（导入 → 质检 → 筛选 → 标注 → 最终质检 → 转换 → 交付 → 独立验证），转换链路上各有各的适配器：
+Matching Cable 来源需要选择**父目录**（例如 `E:\遥操数据\matching_cable\matching_cable`）或某一条数字 Episode 目录，而不是目录中的单个 `.hdf5` 帧。默认导入目录下全部数字 Episode；可用 `ROBODATA_MATCHING_EPISODES=68,70` 选择范围，用 `ROBODATA_MATCHING_MAX_FRAMES_PER_EPISODE` 做小范围烟测。
+
+**所有已注册来源都复用同一条业务链路**（导入 → 质检 → 筛选 → 标注 → 最终质检 → 转换 → 交付 → 独立验证），转换链路上各有各的适配器：
 
 - **HDF5 → v3.0**：由 `tools/conversion/worker.py` 直接读取 HDF5 的 demo 结构，映射字段后用官方 `LeRobotDataset.create()` 写入。
 - **SO-100 v2.0 → v3.0**：源是 LeRobot v2.0，缺 v2.1 要求的 `meta/episodes_stats.jsonl`，因此先补齐 per-episode 统计（数值读 parquet，视频抽帧后走官方 `sample_images`），再逐阶段调用官方转换函数。**官方 `convert_dataset()` 末尾会 `rmtree` 并原地替换源数据集，平台只调用其阶段函数，源数据始终只读。**

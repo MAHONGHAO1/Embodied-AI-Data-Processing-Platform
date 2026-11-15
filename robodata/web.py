@@ -95,7 +95,7 @@ class RunRequest(BaseModel):
     operation: Literal["import", "quality", "final_quality", "conversion", "delivery", "verify_delivery"]
     # 重跑质检会把已提交 / 已通过的审核打回草稿，必须由调用方显式确认。
     invalidate_reviews: bool | None = None
-    source_kind: Literal["hdf5", "so100", "aloha"] | None = None
+    source_kind: Literal["hdf5", "so100", "aloha", "matching_cable"] | None = None
     path: str | None = None
     label: str | None = None
     test_label: str | None = None

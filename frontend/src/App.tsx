@@ -117,7 +117,7 @@ function App() {
 
   const showError = (message: string) => { setError(message); setNotice(''); };
   const showNotice = (message: string) => { setNotice(message); setError(''); };
-  const [sourceKind, setSourceKind] = useState<'hdf5' | 'so100' | 'aloha'>('aloha');
+  const [sourceKind, setSourceKind] = useState<'hdf5' | 'so100' | 'aloha' | 'matching_cable'>('aloha');
   const [sourcePath, setSourcePath] = useState('');
   const [batchLabel, setBatchLabel] = useState('ALOHA Coffee · Episode 0–4');
   const [uploadFile, setUploadFile] = useState<File | null>(null);
@@ -658,7 +658,7 @@ function App() {
               {batches.length ? <div className="table-scroll"><table><thead><tr><th>批次名称</th><th>来源</th><th>任务</th><th>候选</th><th>最近阶段</th><th /></tr></thead>
                 <tbody>{batches.map((item) => <tr key={item.batch_id} className={item.batch_id === activeBatchId ? 'row-selected' : ''}>
                   <td><button className="text-link" onClick={() => pickBatch(item.batch_id)}>{item.label}</button><small className="table-meta">版本 {item.content_version} · {item.batch_id.slice(-8)}</small></td>
-                  <td><span className="source-label">{item.source.kind === 'aloha' ? 'ALOHA Coffee' : item.source.kind === 'so100' ? 'SO-100' : 'HDF5'}</span></td>
+                  <td><span className="source-label">{item.source.kind === 'aloha' ? 'ALOHA Coffee' : item.source.kind === 'so100' ? 'SO-100' : item.source.kind === 'matching_cable' ? 'Matching Cable' : 'HDF5'}</span></td>
                   <td>{item.total_episodes || item.episodes.length} <small>tasks</small></td>
                   <td>{item.counts?.keep?.episodes || 0} / {item.episodes.length}</td>
                   <td><StatusTag value={item.cleaning_confirmed ? 'passed' : 'pending'} /></td>
@@ -671,12 +671,13 @@ function App() {
             <section className="panel import-panel">
               <div className="panel-heading"><div><h2>导入数据</h2><p>创建新的可追溯批次</p></div><Upload size={18} /></div>
               <label>数据来源<select value={sourceKind} onChange={(event) => setSourceKind(event.target.value as typeof sourceKind)}>
-                <option value="aloha">ALOHA Coffee · 固定公开版本</option><option value="so100">SO-100 本机目录</option><option value="hdf5">HDF5 本机路径</option>
+                <option value="aloha">ALOHA Coffee · 固定公开版本</option><option value="so100">SO-100 本机目录</option><option value="hdf5">HDF5 本机路径</option><option value="matching_cable">Matching Cable · 单帧 HDF5 遥操目录</option>
               </select></label>
               <label>批次名称<input value={batchLabel} onChange={(event) => setBatchLabel(event.target.value)} /></label>
               {sourceKind !== 'aloha' && <label>本机文件或目录路径<input value={sourcePath} onChange={(event) => setSourcePath(event.target.value)} placeholder="例如 C:\\datasets\\robot-data" /></label>}
               {sourceKind === 'hdf5' && <label className="file-input-label">或上传 HDF5 文件<input type="file" accept=".h5,.hdf5" onChange={(event) => setUploadFile(event.target.files?.[0] || null)} /></label>}
               {sourceKind === 'aloha' && <div className="source-note"><strong>固定样例</strong><span>4 路相机 · 50 FPS · Episode 0–4</span><span>首次导入需联网下载并逐文件校验。</span></div>}
+              {sourceKind === 'matching_cable' && <div className="source-note"><strong>帧目录</strong><span>68–74 各为一条 Episode</span><span>每个 HDF5 一帧 · 20 FPS · 主臂 action / 从臂 state</span></div>}
               <button className="button primary full-button" disabled={busy || !batchLabel.trim() || (sourceKind !== 'aloha' && !sourcePath.trim() && !uploadFile)} onClick={() => void importBatch()}>
                 <Upload size={16} />{busy ? '正在提交…' : '开始导入'}
               </button>
