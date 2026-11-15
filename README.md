@@ -25,13 +25,27 @@ uv sync
 uv run robodata check --data-root fixtures/known-bad/nan-joint --skip-video
 ```
 
-最后一条返回退出码 `3`，并在 `work/runs/*/reports/` 写出 HTML 与 JSON 报告。`fixtures/known-bad/` 里有六个故意做坏的包，每个都会被指名道姓地拦下，`EXPECTED.md` 写明应当命中哪条判据。
+最后一条返回退出码 `3`，并在 `work/runs/*/reports/` 写出 HTML 与 JSON 报告。
 
-验你自己的数据，把 `--data-root` 换成你的目录，LeRobot v2.0 / v3.0 都认。
+六个反例一次验完，不必跑测试套件：
+
+```bash
+uv run robodata verify-fixtures
+```
+
+它从每个 `EXPECTED.md` 里读出「应当命中哪条判据」，再实跑一遍比对；有判据没命中、或有样本没写期望，就返回非 `0`。当前 `6/6 通过`。
+
+验你自己的数据，把 `--data-root` 换成你的目录，LeRobot v2.0 / v3.0 都认。想让验收结论跟着交付包走：
+
+```bash
+uv run robodata check --data-root <你的数据目录> --emit-contract ./delivery
+```
+
+`./delivery/` 里会多出 `QUALITY_REPORT.json` 和一页纸的 `QUALITY_REPORT.md`，第一行就是「可交付 / 不通过 / 结论不完整」三者之一。
 
 退出码是给 CI 用的：`0` 可交付，`2` 有加载失败，`3` 有数据异常，`1` 运行本身失败。加 `--format junit` 出测试面板，`--format sarif` 出扫描视图，`--fail-on-incomplete` 让没查全也算失败。
 
-判据与阈值写在 [docs/RULES.md](docs/RULES.md)。随包走的验收结论长什么样，见 [docs/DATA_CONTRACT.md](docs/DATA_CONTRACT.md)。
+判据与阈值写在 [docs/RULES.md](docs/RULES.md)。随包走的验收结论长什么样，见 [docs/DATA_CONTRACT.md](docs/DATA_CONTRACT.md)。挂进流水线的完整配置见 [docs/CI_INTEGRATION.md](docs/CI_INTEGRATION.md)。
 
 ## 三个你可能正在经历的场面
 
@@ -315,7 +329,7 @@ v0.9.0 不新增界面，而是把「提交审核后离开一小时，回来看�
 | 交互 | 破坏性操作缺少说明，且后端 409 时前端只能反复点同一个按钮 | 质检重跑 / 恢复质检登记 / 修改筛选决定均二次确认；新增可操作的「确认并重试」，先取服务器真相再带确认标记重发 |
 | 提示 | 用户自己的写操作被误报成「后台处理改了批次」 | 版本基准随写操作同步，提示改为中性归因，并明确说明产物失效 |
 
-验证：后端全量 **290 项**（289 通过；`test_concurrent_starters_cannot_create_two_active_runs` 在全量并发下偶发失败，单独跑三次稳定通过，互斥实现是 OS 字节锁加排他创建，非本次引入），13 项子测试通过；跳过项随环境变化。前端 **26 项单测** 与生产构建通过；真实 `uvicorn` 下终态 SSE 在 8 ms 内结束闭环。完整根因链、逐条修复位置与剩余风险见 [上线级审计报告](docs/LAUNCH_AUDIT_REPORT.md) 与 [v0.9.0 发布说明](RELEASE_NOTES_v0.9.0.md)。
+验证：后端全量 **320 项**，本机本轮 **306 通过 / 15 跳过 / 13 项子测试**；前端 **26 项单测** 与生产构建通过。`test_concurrent_starters_cannot_create_two_active_runs` 在高负载下偶发失败，本轮通过，单独跑三次也稳定通过——互斥实现是 OS 字节锁加排他创建，不是产品 bug，所以没放宽断言。跳过项随环境变化。真实 `uvicorn` 下终态 SSE 在 8 ms 内结束闭环。完整根因链、逐条修复位置与剩余风险见 [上线级审计报告](docs/LAUNCH_AUDIT_REPORT.md) 与 [v0.9.0 发布说明](RELEASE_NOTES_v0.9.0.md)。
 
 > 运行边界不变：本机单用户、仅 `127.0.0.1` loopback。报告第 8 节列出的产品语义决策项与公网化前置项未在本版处理，因此本版不宣称「公网多用户可上线」。
 

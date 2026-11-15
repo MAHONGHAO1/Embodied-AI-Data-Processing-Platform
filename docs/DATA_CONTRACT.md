@@ -5,6 +5,8 @@
 
 叫它契约，是因为它同时约束两件事：交出包的人要如实写清楚查了什么、没查什么；拿到包的人不用重新跑一遍，就能判断这份数据能不能用。
 
+生成它的代码是 `robodata/contract.py`，由 `check --emit-contract <目录>` 调用。文档与代码同源，字段以代码为准。
+
 ---
 
 ## 文件
@@ -36,6 +38,9 @@ source.integrity_status 完整性比对结果
 summary                 各类计数
 limitations             明确不判的项
 issues                  逐条问题
+contract_version        契约结构版本
+verdict                 结论，三者之一
+contract_digest         本文件自身的可重算摘要
 ```
 
 `episodes` 数组和 `runtime_seconds`、`started_at_utc` 可以留着，但契约的最低要求是上面这些。少了任何一项，这份文件不构成契约，只是一份日志。
@@ -64,11 +69,28 @@ issues                  逐条问题
 
 另外，`not_checked` 类的 issue 逐条保留。每一项都是一句"这项我没查"，它们让下游知道边界在哪，而不是靠猜。
 
+## 生成
+
+```bash
+robodata check --data-root <你的数据目录> --emit-contract ./delivery
+```
+
+跑完 `./delivery/` 里会出现上面两个文件。不写 `--emit-contract` 就不生成——契约跟着包走，不是每次检查都往工作目录里丢东西。
+
 ## 校验
 
-`result_digest` 是报告去掉时间与运行信息后按固定顺序序列化、再取 SHA-256 的结果。收到包的人可以对 `QUALITY_REPORT.json` 重算一次，确认结论没被改过。
+两个摘要，用途不同：
 
-它证明的是"结论没被篡改"，不证明"结论是对的"。判据本身错没错，看 `docs/RULES.md` 和 `fixtures/known-bad/`。
+| 字段 | 算的是 | 能怎么验 |
+|---|---|---|
+| `result_digest` | **完整质检报告**（去掉时间、运行信息等易变字段）的 SHA-256 | 拿到那份完整报告时，和它对账 |
+| `contract_digest` | **本契约文件本身**去掉 `contract_digest` 后的 SHA-256 | 任何人拿到 `QUALITY_REPORT.json` 都能重算 |
+
+早先这里写的是「对 `QUALITY_REPORT.json` 重算 `result_digest`」——那算不出来，因为契约只是报告的稳定子集，少掉的字段会让摘要对不上。现在拆成两个摘要：`result_digest` 用来追到原始那次运行，`contract_digest` 用来证明文件本身没被改过。
+
+重算方法：读 JSON，删掉 `contract_digest`，按 `sort_keys=True`、`ensure_ascii=False`、紧凑分隔符序列化，取 SHA-256。`robodata.contract.verify_contract()` 就是这么做的。
+
+它证明的是「结论没被篡改」，不证明「结论是对的」。判据本身错没错，看 `docs/RULES.md` 和 `fixtures/known-bad/`。
 
 ## 边界
 

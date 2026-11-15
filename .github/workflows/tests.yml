@@ -44,3 +44,6 @@ jobs:
         run: uv sync --locked
       - name: Run tests
         run: uv run --locked python -m pytest -q
+      - name: Verify the known-bad fixtures
+        # 判据引擎改坏了，pytest 未必看得出来；这一步直接验六个反例是否仍被拦下。
+        run: uv run --locked robodata verify-fixtures

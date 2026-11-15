@@ -39,6 +39,8 @@ def main(argv=None):
     check.add_argument("--runs-root", type=Path, default=None, help="可选运行记录目录")
     check.add_argument("--format", choices=("json", "junit", "sarif"), default="json",
                        help="额外输出给 CI 的文件：junit 测试面板用，sarif 扫描视图用")
+    check.add_argument("--emit-contract", type=Path, default=None,
+                       help="把验收结论写进指定目录（QUALITY_REPORT.json/.md），随交付包一起走")
     check.add_argument("--fail-on-incomplete", action="store_true",
                        help="有未执行的判据时也返回非 0（用于把不完整的检查当失败）")
     for name in ('convert', 'verify-export'):
@@ -54,6 +56,9 @@ def main(argv=None):
     show.add_argument("run_id")
     show.add_argument("--runs-root", type=Path, default=None)
     show.add_argument("--events", action="store_true", help="输出事件日志")
+    suites = sub.add_parser("verify-fixtures", help="一条命令验完全部 known-bad 反例集")
+    suites.add_argument("--root", type=Path, default=None, help="故障样本目录，缺省用仓库自带的")
+    suites.add_argument("--json", action="store_true", dest="as_json", help="输出机器可读结果")
     demo = sub.add_parser("make-failure-demo", help="从原始样本生成明确标注的故障演示副本")
     demo.add_argument("--data-root", type=Path, default=DEFAULT_DATA_ROOT, help="完整原始样本目录")
     demo.add_argument("--target", type=Path, default=None, help="独立的空目标目录；默认位于 work 下")
@@ -132,6 +137,14 @@ def main(argv=None):
                 return (2 if state.get('outcome')=='rejected' else 0) if state['status'] == 'completed' else 1
             print(json.dumps(value, ensure_ascii=False, indent=2, default=str))
             return 0
+        if args.command == "verify-fixtures":
+            from .fixture_check import render_table, run_suite
+            result = run_suite(args.root)
+            if args.as_json:
+                print(json.dumps(result, ensure_ascii=False, indent=2, default=str))
+            else:
+                print(render_table(result))
+            return 0 if result["ok"] else 1
         if args.command in {'inspect', 'check'} and args.data_root is None:
             if args.source == 'converted':
                 from .conversion import latest_export
@@ -207,6 +220,10 @@ def main(argv=None):
             if state["status"] in {"failed", "interrupted"} or report is None:
                 return 1
             summary = report["summary"]
+            if args.emit_contract:
+                from .contract import write_contract
+                written = write_contract(report, args.emit_contract)
+                print(json.dumps({"contract": written}, ensure_ascii=False))
             if args.format in {"junit", "sarif"}:
                 from .ci_output import to_junit, to_sarif
                 rendered = to_junit(report) if args.format == "junit" else to_sarif(report)
