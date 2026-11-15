@@ -14,6 +14,7 @@ import sys
 
 from robodata_business import BatchStore, ConflictError, WorkflowError
 from .config import PROJECT_ROOT, RULE_VERSION
+from .matching import SOURCE_KIND as MATCHING_SOURCE_KIND
 
 BUSINESS_STAGES = {
     "import": ("copy", "preview", "inventory", "import_registration", "quality", "registration"),
@@ -21,16 +22,18 @@ BUSINESS_STAGES = {
     "conversion": ("source_verify", "final_quality", "final_registration", "file_validation", "hdf5_validation", "field_mapping", "format_write", "official_verify", "output_quality", "registration"),
     "conversion_so100": ("source_verify", "final_quality", "final_registration", "file_validation", "metadata_upgrade", "field_mapping", "format_write", "official_verify", "output_quality", "registration"),
     "conversion_aloha": ("source_verify", "final_quality", "final_registration", "file_validation", "field_mapping", "format_write", "official_verify", "output_quality", "registration"),
+    "conversion_matching_cable": ("source_verify", "final_quality", "final_registration", "file_validation", "matching_validation", "field_mapping", "format_write", "official_verify", "output_quality", "registration"),
     "final_quality": ("source_verify", "final_quality", "final_registration", "file_validation", "hdf5_validation", "field_mapping", "format_write", "official_verify", "output_quality", "conversion_registration", "package", "verify", "archive_verify", "registration"),
     "final_quality_so100": ("source_verify", "final_quality", "final_registration", "file_validation", "metadata_upgrade", "field_mapping", "format_write", "official_verify", "output_quality", "conversion_registration", "package", "verify", "archive_verify", "registration"),
     "final_quality_aloha": ("source_verify", "final_quality", "final_registration", "file_validation", "field_mapping", "format_write", "official_verify", "output_quality", "conversion_registration", "package", "verify", "archive_verify", "registration"),
+    "final_quality_matching_cable": ("source_verify", "final_quality", "final_registration", "file_validation", "matching_validation", "field_mapping", "format_write", "official_verify", "output_quality", "conversion_registration", "package", "verify", "archive_verify", "registration"),
     "delivery": ("source_verify", "package", "verify", "archive_verify", "registration"),
     "verify_delivery": ("verify", "archive_verify"),
 }
 BUSINESS_LABELS = {"copy": "复制与校验输入", "preview": "原始数据预览解析", "inventory": "登记前核对清单",
                    "import_registration": "登记导入批次", "final_quality": "最终数据与标注质检", "final_registration": "最终质检证据登记", "conversion_registration": "转换产物登记",
                    "quality": "批次基础质检", "source_verify": "管理副本完整性复核",
-                   "file_validation": "文件校验", "hdf5_validation": "HDF5 结构与数值检查",
+                   "file_validation": "文件校验", "hdf5_validation": "HDF5 结构与数值检查", "matching_validation": "Matching Cable 帧序列检查",
                    "metadata_upgrade": "SO-100 元数据升级（v2.0 → v2.1）",
                    "field_mapping": "审核候选集字段映射", "format_write": "官方格式写入",
                    "official_verify": "官方加载与全量数值验证", "output_quality": "输出质检",
@@ -40,6 +43,9 @@ BUSINESS_TIMEOUTS = {"preview": 120, "quality": 300, "format_write": 240,
                      "metadata_upgrade": 240, "final_quality": 300,
                      "official_verify": 120, "output_quality": 120, "archive_verify": 120,
                      "package": 120, "verify": 120}
+MATCHING_TIMEOUTS = {"preview": 14400, "quality": 7200, "final_quality": 3600, "file_validation": 600,
+                    "matching_validation": 1200, "field_mapping": 1200, "format_write": 1800,
+                    "official_verify": 1200, "output_quality": 1200, "package": 1800, "verify": 1800, "archive_verify": 1800}
 ALOHA_TIMEOUTS = {"preview": 900, "quality": 1800, "final_quality": 1800,
                   "format_write": 7200, "official_verify": 1800,
                   "output_quality": 1800, "package": 1800,
@@ -47,6 +53,7 @@ ALOHA_TIMEOUTS = {"preview": 900, "quality": 1800, "final_quality": 1800,
 from .conversion import CONVERSION_TOOL_ROOT  # noqa: E402  必须在 SO100_WORKER 之前
 SO100_WORKER = CONVERSION_TOOL_ROOT / "so100_worker.py"
 ALOHA_WORKER = CONVERSION_TOOL_ROOT / "aloha_worker.py"
+MATCHING_WORKER = CONVERSION_TOOL_ROOT / "matching_worker.py"
 
 
 def _so100_worker_path() -> Path:
@@ -55,6 +62,10 @@ def _so100_worker_path() -> Path:
 
 def _aloha_worker_path() -> Path:
     return ALOHA_WORKER
+
+
+def _matching_worker_path() -> Path:
+    return MATCHING_WORKER
 
 
 def get_store(root=None) -> BatchStore:
@@ -71,9 +82,9 @@ FINAL_RULES = ("candidate_nonempty", "selection_confirmed", "basic_coverage", "b
 
 
 def business_stages(operation, request=None):
-    if operation == "conversion" and request and request.get("source_kind") in {"so100", "aloha"}:
+    if operation == "conversion" and request and request.get("source_kind") in {"so100", "aloha", MATCHING_SOURCE_KIND}:
         stages = BUSINESS_STAGES[f"conversion_{request['source_kind']}"]
-    elif operation == "final_quality" and request and request.get("source_kind") in {"so100", "aloha"}:
+    elif operation == "final_quality" and request and request.get("source_kind") in {"so100", "aloha", MATCHING_SOURCE_KIND}:
         stages = BUSINESS_STAGES[f"final_quality_{request['source_kind']}"]
     else:
         stages = BUSINESS_STAGES[operation]
@@ -93,6 +104,8 @@ def _snapshot_digest(value):
 
 def _base(operation, business_root=None, **options):
     timeouts = {**BUSINESS_TIMEOUTS}
+    if options.get("source_kind") == MATCHING_SOURCE_KIND:
+        timeouts.update(MATCHING_TIMEOUTS)
     if options.get("source_kind") == "aloha":
         timeouts.update(ALOHA_TIMEOUTS)
     timeouts.update(options.pop("timeouts", {}))
@@ -102,8 +115,8 @@ def _base(operation, business_root=None, **options):
 
 def start_import(path, source_kind, label, test_label=None, *, runs_root=None, business_root=None, **options):
     from .runtime import start_run
-    if source_kind not in {"hdf5", "so100", "aloha"}:
-        raise WorkflowError("本版本仅支持固定 HDF5、SO-100 和 ALOHA Coffee 配置")
+    if source_kind not in {"hdf5", "so100", "aloha", MATCHING_SOURCE_KIND}:
+        raise WorkflowError("本版本仅支持固定 HDF5、SO-100、ALOHA Coffee 和 Matching Cable 帧目录")
     if not isinstance(label, str) or not label.strip():
         raise WorkflowError("请填写批次名称")
     if test_label is not None and (not isinstance(test_label, str) or not test_label.strip()):
@@ -136,8 +149,8 @@ def start_batch_quality(batch_id, expected_revision, *, runs_root=None, business
 def start_batch_conversion(batch_id, expected_revision, *, runs_root=None, business_root=None, **options):
     from .runtime import start_run
     request = _batch_request("conversion", batch_id, expected_revision, business_root, **options)
-    if request["source_kind"] not in {"hdf5", "so100", "aloha"}:
-        raise WorkflowError("当前审核候选集转换仅支持固定 HDF5、SO-100 与 ALOHA Coffee 配置")
+    if request["source_kind"] not in {"hdf5", "so100", "aloha", MATCHING_SOURCE_KIND}:
+        raise WorkflowError("当前审核候选集转换仅支持固定 HDF5、SO-100、ALOHA Coffee 与 Matching Cable 配置")
     request["snapshot"] = get_store(business_root).conversion_spec(batch_id)
     request["batch_snapshot"] = get_store(business_root).get_batch(batch_id)
     request["input_path"] = (request["source"]["hdf5_path"] if request["source_kind"] == "hdf5"
@@ -409,6 +422,15 @@ def _validated_output(directory, request):
         source_sha = file_sha256(Path(request["source"]["hdf5_path"]))
         if official.get("input_sha256") != source_sha or details.get("source_sha256") != source_sha:
             raise WorkflowError("官方验证所对应的源文件哈希不一致")
+    elif source_kind == MATCHING_SOURCE_KIND:
+        if details.get("source_numeric_consistency_rechecked") is not True:
+            raise WorkflowError("Matching Cable 官方验证缺少源数值一致性重核")
+        if details.get("source_fingerprint") != request["source"].get("input_fingerprint"):
+            raise WorkflowError("Matching Cable 官方验证所对应的源指纹不一致")
+        details = {**details, "manifest_sha256": file_sha256(Path(request["output_path"]) / "source_manifest.json"),
+                   "source_repo": request["source"].get("repo_id"),
+                   "source_revision": request["source"].get("revision")}
+        _atomic_json(directory / "steps" / "official_verify.json", {**official, "details": details})
     else:
         if details.get("output_numeric_frames_checked") != expected_rows:
             raise WorkflowError("SO-100 官方验证未核对全量数值帧数")
@@ -659,14 +681,16 @@ def coordinate_business(directory, state):
             elif stage == "archive_verify":
                 unpacked = _read_step(directory, "verify")["details"]["dataset_path"]
                 worker = (_so100_worker_path() if request.get("source_kind") == "so100" else
-                          _aloha_worker_path() if request.get("source_kind") == "aloha" else CONVERSION_WORKER)
+                          _aloha_worker_path() if request.get("source_kind") == "aloha" else
+                          _matching_worker_path() if request.get("source_kind") == MATCHING_SOURCE_KIND else CONVERSION_WORKER)
                 command = [str(CONVERSION_PYTHON), str(worker), "--stage", stage,
                            "--output", unpacked, "--artifacts", str(directory)]
             else:
                 _assert_frozen_batch(request)
                 _require_final_quality(directory, request)
                 worker = (_so100_worker_path() if request.get("source_kind") == "so100" else
-                          _aloha_worker_path() if request.get("source_kind") == "aloha" else CONVERSION_WORKER)
+                          _aloha_worker_path() if request.get("source_kind") == "aloha" else
+                          _matching_worker_path() if request.get("source_kind") == MATCHING_SOURCE_KIND else CONVERSION_WORKER)
                 command = [str(CONVERSION_PYTHON), str(worker), "--stage", stage,
                            "--input", request["input_path"], "--output", request["output_path"],
                            "--artifacts", str(directory), "--spec", str(directory / "conversion_spec.json")]
