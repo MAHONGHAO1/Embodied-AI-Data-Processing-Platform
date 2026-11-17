@@ -1,0 +1,85 @@
+{
+  "benchmark": "robodata.quality.run_checks table-only scale experiment",
+  "scope": "synthetic fixed-width Episode records; check_video=False; excludes fixture construction, Parquet IO, video decoding, conversion and packaging",
+  "seed": "deterministic zero/one vectors; no random values",
+  "environment": {
+    "python": "3.12.10",
+    "platform": "Windows-11-10.0.26300-SP0",
+    "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+    "cpu_count": 20,
+    "pandas": "3.0.5",
+    "numpy": "2.5.3"
+  },
+  "results": [
+    {
+      "rows": 1000,
+      "repeats": 3,
+      "median_seconds": 0.012595,
+      "min_seconds": 0.012423,
+      "max_seconds": 0.013532,
+      "rows_per_second": 79395.33,
+      "data_issues": [
+        0,
+        0,
+        0
+      ],
+      "video_checks": "not run"
+    },
+    {
+      "rows": 5000,
+      "repeats": 3,
+      "median_seconds": 0.059322,
+      "min_seconds": 0.059169,
+      "max_seconds": 0.059673,
+      "rows_per_second": 84286.05,
+      "data_issues": [
+        0,
+        0,
+        0
+      ],
+      "video_checks": "not run"
+    },
+    {
+      "rows": 10000,
+      "repeats": 3,
+      "median_seconds": 0.119009,
+      "min_seconds": 0.118712,
+      "max_seconds": 0.119878,
+      "rows_per_second": 84027.12,
+      "data_issues": [
+        0,
+        0,
+        0
+      ],
+      "video_checks": "not run"
+    },
+    {
+      "rows": 100000,
+      "repeats": 3,
+      "median_seconds": 4.719314,
+      "min_seconds": 1.210178,
+      "max_seconds": 5.166282,
+      "rows_per_second": 21189.52,
+      "data_issues": [
+        0,
+        0,
+        0
+      ],
+      "video_checks": "not run"
+    },
+    {
+      "rows": 1000000,
+      "repeats": 1,
+      "median_seconds": 61.245329,
+      "min_seconds": 61.245329,
+      "max_seconds": 61.245329,
+      "rows_per_second": 16327.78,
+      "data_issues": [
+        0
+      ],
+      "video_checks": "not run"
+    }
+  ],
+  "real_sample": null,
+  "interpretation": "Current table-check path only. Does not establish full-pipeline capacity or a before/after speedup."
+}

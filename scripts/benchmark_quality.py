@@ -115,13 +115,21 @@ def measure_real_sample(root: Path, repeats: int) -> dict:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--rows", default="1000,5000,10000", help="Comma-separated synthetic table sizes")
-    parser.add_argument("--repeats", type=int, default=3)
+    parser.add_argument(
+        "--repeats",
+        default="3",
+        help="Repeats per size: one value for all sizes, or a comma-separated list matching --rows",
+    )
     parser.add_argument("--dataset-root", type=Path, help="Optional local LeRobot dataset root; checks Episode 0 once loaded")
     parser.add_argument("--output", type=Path, help="Optional JSON output path")
     args = parser.parse_args()
     row_counts = [int(value) for value in args.rows.split(",")]
-    if args.repeats < 1 or not row_counts or any(rows < 1 for rows in row_counts):
-        parser.error("rows and repeats must be positive")
+    repeat_counts = [int(value) for value in str(args.repeats).split(",")]
+    if len(repeat_counts) == 1:
+        repeat_counts *= len(row_counts)
+    if (not row_counts or len(repeat_counts) != len(row_counts)
+            or any(rows < 1 for rows in row_counts) or any(repeats < 1 for repeats in repeat_counts)):
+        parser.error("rows and repeats must be positive; repeats must be one value or match rows")
     report = {
         "benchmark": "robodata.quality.run_checks table-only scale experiment",
         "scope": "synthetic fixed-width Episode records; check_video=False; excludes fixture construction, Parquet IO, video decoding, conversion and packaging",
@@ -134,7 +142,7 @@ def main() -> None:
             "pandas": pd.__version__,
             "numpy": np.__version__,
         },
-        "results": [measure(rows, args.repeats) for rows in row_counts],
+        "results": [measure(rows, repeats) for rows, repeats in zip(row_counts, repeat_counts)],
         "real_sample": measure_real_sample(args.dataset_root, args.repeats) if args.dataset_root else None,
         "interpretation": "Current table-check path only. Does not establish full-pipeline capacity or a before/after speedup.",
     }

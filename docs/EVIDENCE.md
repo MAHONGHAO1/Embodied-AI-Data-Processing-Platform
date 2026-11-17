@@ -1,0 +1,112 @@
+# 证据总表 · v0.10.0
+
+本文件是 README 中版本、测试数量、规模实验和训练冒烟的统一出处。README 只指向这里，不再复制会漂移的数字。
+
+最后更新：2026-11-18。环境：Windows 11、Python 3.12.10、Node.js 24、本地单用户。
+
+## 1. 版本链
+
+| 位置 | 值 | 校验 |
+| --- | --- | --- |
+| README 首行 | 0.10.0 | `tests/test_version_consistency.py` |
+| README release 徽章 | 0.10.0 | 同上 |
+| `pyproject.toml` | 0.10.0 | 同上 |
+| `robodata/config.py` `APP_VERSION` | 0.10.0 | 同上 |
+| `robodata/web.py` FastAPI | 0.10.0 | 同上 |
+| `robodata/web.py` 健康检查 | 0.10.0 | 同上 |
+| `frontend/package.json` | 0.10.0 | 同上 |
+| `frontend/src/App.tsx` 版本条 | 0.10.0 | 同上 |
+| `RELEASE_NOTES_v0.10.0.md` | 存在 | 同上 |
+
+`APP_VERSION` 会写进质量报告；版本链漂移会让报告声称自己来自一个从未发布的版本，因此用测试而不是人工纪律守住。
+
+## 2. 自动化测试
+
+```powershell
+uv sync --locked
+uv run --locked python -m pytest -q
+uv run --locked robodata verify-fixtures
+Push-Location frontend
+npm ci
+npm test
+npm run build
+npx playwright install chromium
+npm run test:e2e
+Pop-Location
+```
+
+本机本轮（2026-11-18）：
+
+| 套件 | 结果 |
+| --- | --- |
+| Python 全量（Windows） | **308 passed / 16 skipped / 13 subtests passed** |
+| 已知坏样本 `verify-fixtures` | **6/6 通过** |
+| 前端单测（Vitest） | **26 passed** |
+| 前端生产构建 | 通过 |
+| Chromium 浏览器流程 | 通过 |
+
+跳过项主要来自：需要 `tools/conversion/` 独立环境或固定真实数据的用例、可选 ROS2 MCAP 依赖，以及默认不启用的 Git tag 校验（`CHECK_RELEASE_TAG=1`）。跳过不等于通过。
+
+CI：
+
+- `.github/workflows/tests.yml`：Windows 全量 Python 测试 + 前端单测、构建、Chromium；`verify-fixtures` 同 job 执行。
+- `.github/workflows/linux-smoke.yml`：`ubuntu-latest` 安装锁定依赖，运行版本一致性、表格质检、数据集读取、坏样本校验、100 步冒烟和 `verify-fixtures`。
+
+## 3. 已知坏样本
+
+`uv run --locked robodata verify-fixtures` 从每个 `EXPECTED.md` 读取「应命中哪条判据」，再实跑比对：
+
+| 样本 | 期望命中 | 实测 |
+| --- | --- | --- |
+| frame-gap | `frame_index` | 命中 |
+| length-mismatch | `row_count` | 命中 |
+| missing-camera | `video_decode` | 命中 |
+| nan-joint | `numeric_finite` | 命中 |
+| timestamp-jump | `timestamp_interval`, `video_timestamp_mapping` | 命中 |
+| video-length | `video_frame_count` | 命中 |
+
+结果：**6/6 通过**。这是规则命中验证，不是模型训练或硬件测试。
+
+## 4. 真实数据验收（历史记录）
+
+以下记录来自对应版本的验收文档，原始数据与 `work/` 产物不随仓库分发，需自行复现。
+
+| 数据集 | 范围 | 结果 | 文档 |
+| --- | --- | --- | --- |
+| ALOHA Coffee | Episode 0–4，每条 1,100 帧；四路相机合计每路 5,500 帧；50 FPS；640×480 | 官方离线加载与全量数值一致性通过；输出质检 55/55；ZIP 独立解包与加载通过 | [v0.9 审计](LAUNCH_AUDIT_REPORT.md)、[时间轴 manifest](assets/timeline/manifest.json) |
+| SO-100 sweet_pick | 固定子集 Episode 0–4，5 条 / 3,562 帧 | 转换、55/55 输出质检、15 个采样位置、53,034,503 字节交付 ZIP 独立验证通过 | [V0.5 验收](VALIDATION_v05.md) |
+| robomimic HDF5 | 源任务 0、2 → 输出 2 条 / 116 帧 | float32 全量比对、6 个图像位置、22/22 输出质检、DataLoader(batch_size=2) 与离线加载通过；端到端 29.26 秒 | [V0.4 验收](VALIDATION_v04.md) |
+
+边界：这些是特定机器、特定版本上的历史运行记录；不证明任意 HDF5、全部 LeRobot 版本、硬件同步或机器人执行成功率。
+
+## 5. 规模实验
+
+| 行数 | 重复 | 中位数 | 最小–最大 | 表格行/秒 |
+| ---: | ---: | ---: | ---: | ---: |
+| 1,000 | 3 | 0.012552 秒 | 0.012324–0.012738 秒 | 79,669 |
+| 5,000 | 3 | 0.060519 秒 | 0.060111–0.061008 秒 | 82,619 |
+| 10,000 | 3 | 0.119009 秒 | 0.118712–0.119878 秒 | 84,027 |
+| 100,000 | 3 | 4.719314 秒 | 1.210178–5.166282 秒 | 21,190 |
+| 1,000,000 | 1 | 61.245329 秒 | 61.245329 秒 | 16,328 |
+
+范围：只测 `run_checks(check_video=False)` 的表格路径，合成 6 维状态/动作，视频关闭，数据构造不计时。**不含** Parquet 读取、视频解码、LeRobot 转换、打包、并发或服务开销。100,000 行档方差很大，100 万行档只跑 1 次；不据此拟合复杂度曲线或宣称生产容量。
+
+复现与完整边界见 [2026-11-18 规模实验](benchmarks/2026-11-18-scale-experiment.md)，原始结果见 [JSON](benchmarks/quality-table-2026-11-18.json)。
+
+## 6. 100 步训练输入冒烟
+
+```powershell
+uv run --locked python scripts\train_smoke.py --synthetic --steps 100
+```
+
+本机结果：2,048 行合成数据，初始 MSE `0.71632246`，100 步后 `0.00012241`，损失比 `0.000171`，参数全部有限，CPU 耗时 `0.003 秒`。
+
+这**不是策略训练**：不使用 ACT / Diffusion Policy / VLA，不证明任务成功率、泛化或硬件安全。仓库不包含已验收的 ALOHA / SO-100 产物，因此没有在这里重跑真实数据集；拿到数据后可用 `--dataset-root` 复现。详见 [TRAINING_SMOKE.md](TRAINING_SMOKE.md) 与 [原始 JSON](benchmarks/train-smoke-2026-11-18.json)。
+
+## 7. 未验证 / 不宣称
+
+- 不宣称训练效果、策略成功率、硬件同步或真实机器人执行安全。
+- 不宣称 100 万行表格检查等于 100 万行端到端转换。
+- 不宣称 Docker、Linux 桌面启动或 Linux 真实数据转换可用；Linux CI 只覆盖核心 Python 检查。
+- 不宣称公网多用户可上线；服务仍只监听 `127.0.0.1`，本机单用户。
+- 真实数据历史记录不可在无原始数据时复跑；跳过项不等于通过。

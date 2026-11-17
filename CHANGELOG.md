@@ -1,5 +1,17 @@
 # 变更记录
 
+## v0.10.0（2026-11-18 发布）· Evidence-grade
+
+**只做可信度收口，不加导入格式、页面或适配器。**
+
+- **版本链**：`pyproject.toml` 0.6.0 → 0.10.0，`config.py` 0.8.0 → 0.10.0，与 README、release 徽章、`frontend/package.json` 对齐；新增 `tests/test_version_consistency.py`，版本漂移或缺少发布说明即失败。
+- **运行列表**：抽出 `_state_from_directory()`，`list_runs` 不再对每条记录重复 `resolve()` 运行根目录；300 条运行记录的 `/api/runs` 恢复到 5 秒阈值内，只读与中断派生语义不变。
+- **规模证据**：`scripts/benchmark_quality.py` 支持按规模指定重复次数；新增 10 万行 ×3 与 100 万行 ×1 实测，原始 JSON 与边界见 `docs/benchmarks/2026-11-18-scale-experiment.md`。100 万行为 61.245 秒、16,328 行/秒，仅表格检查。
+- **训练输入冒烟**：新增 `scripts/train_smoke.py` 与 `docs/TRAINING_SMOKE.md`；合成数据 100 步线性动作探针 MSE 0.71632246 → 0.00012241，明确不宣称策略训练效果。
+- **Linux**：新增 `.github/workflows/linux-smoke.yml`，在 ubuntu-latest 跑核心 Python 检查与 `verify-fixtures`；Docker 与 Linux 桌面未验证。
+- **README**：首屏增加「60 秒证据」，测试数量移入 `docs/EVIDENCE.md` 单一出处；v0.9.0 段落保留发布时 289 passed / 7 skipped 的历史记录。
+- 发布说明：[RELEASE_NOTES_v0.10.0.md](RELEASE_NOTES_v0.10.0.md)
+
 ## v0.9.0（2026-11-14 发布）· 上线级审计与状态回退修复
 
 针对「提交审核后离开一小时，回来发现页面全部回退到导入阶段」的反馈，完成前后端上线级审计、复现、修复与全量回归：

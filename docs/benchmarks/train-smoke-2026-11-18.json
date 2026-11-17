@@ -1,0 +1,24 @@
+{
+  "benchmark": "100-step linear action probe",
+  "scope": "training-input smoke only; not a policy, not task success, not hardware validation",
+  "dataset": {
+    "kind": "synthetic_linear_relation",
+    "rows": 2048,
+    "seed": 7
+  },
+  "result": {
+    "steps": 100,
+    "batch_size": 128,
+    "learning_rate": 0.05,
+    "rows": 2048,
+    "input_dim": 6,
+    "output_dim": 6,
+    "initial_mse": 0.71632246,
+    "final_mse": 0.00012241,
+    "loss_ratio": 0.000171,
+    "finite": true,
+    "parameter_delta": 8.73518815,
+    "seconds": 0.003
+  },
+  "interpretation": "A finite decreasing loss shows the exported arrays can drive an optimization loop. It does not show that a robot policy learns or that the task succeeds."
+}

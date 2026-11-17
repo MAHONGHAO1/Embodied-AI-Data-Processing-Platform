@@ -1,0 +1,30 @@
+name: linux-smoke
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  linux-core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - name: Set up Python 3.12
+        run: uv python install 3.12
+      - name: Install locked dependencies
+        run: uv sync --locked
+      - name: Version chain and core checks
+        run: |
+          uv run --locked python -m pytest -q \
+            tests/test_version_consistency.py \
+            tests/test_quality.py \
+            tests/test_dataset.py \
+            tests/test_fixture_check.py \
+            tests/test_train_smoke.py
+      - name: Verify the known-bad fixtures
+        run: uv run --locked robodata verify-fixtures

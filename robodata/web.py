@@ -224,7 +224,7 @@ def _load_state(run_id: str) -> dict:
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="RoboData local workbench", version="0.9.0", docs_url=None, redoc_url=None,
+    app = FastAPI(title="RoboData local workbench", version="0.10.0", docs_url=None, redoc_url=None,
                   redirect_slashes=False)
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost", "testserver"])
 
@@ -244,7 +244,7 @@ def create_app() -> FastAPI:
 
     @app.get("/api/health")
     def health():
-        return {"status": "ok", "app": "RoboData Workbench", "version": "0.9.0", "scope": "loopback"}
+        return {"status": "ok", "app": "RoboData Workbench", "version": "0.10.0", "scope": "loopback"}
 
     @app.get("/api/batches")
     def batches():

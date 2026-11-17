@@ -408,20 +408,14 @@ def _terminate_identity(pid: int, identity: str | None) -> None:
         os.kill(pid, signal.SIGKILL)
 
 
-def get_run(run_id: str, runs_root: Path | None = None, *, mark_interrupted: bool = True) -> dict:
-    """读取运行状态。
-
-    mark_interrupted=False 供只读接口（/api/runs、SSE）使用：对已死亡的协调进程
-    返回「中断」的派生视图，但绝不写盘、绝不杀进程。写盘清理只在启动新运行和
-    显式恢复登记时进行，避免一次 GET 改变系统状态。
-    """
-    directory = _run_dir(run_id, runs_root)
+def _state_from_directory(directory: Path, *, mark_interrupted: bool = True) -> dict:
+    """Read one run directory without re-resolving the runs root per item."""
     try:
         state = _read_json(directory / "state.json")
     except (json.JSONDecodeError, UnicodeDecodeError) as exc:
-        raise ValueError(f"运行记录损坏，请保留该目录排查：{run_id}") from exc
+        raise ValueError(f"运行记录损坏，请保留该目录排查：{directory.name}") from exc
     if state is None:
-        raise FileNotFoundError(f"运行记录不存在：{run_id}")
+        raise FileNotFoundError(f"运行记录不存在：{directory.name}")
     if state["status"] in ACTIVE_STATUSES:
         pid = state.get("coordinator_pid")
         age = (datetime.now(timezone.utc) - datetime.fromisoformat(state["started_at"])).total_seconds()
@@ -451,12 +445,22 @@ def get_run(run_id: str, runs_root: Path | None = None, *, mark_interrupted: boo
     return state
 
 
+def get_run(run_id: str, runs_root: Path | None = None, *, mark_interrupted: bool = True) -> dict:
+    """读取运行状态。
+
+    mark_interrupted=False 供只读接口（/api/runs、SSE）使用：对已死亡的协调进程
+    返回「中断」的派生视图，但绝不写盘、绝不杀进程。写盘清理只在启动新运行和
+    显式恢复登记时进行，避免一次 GET 改变系统状态。
+    """
+    return _state_from_directory(_run_dir(run_id, runs_root), mark_interrupted=mark_interrupted)
+
+
 def list_runs(runs_root: Path | None = None, *, mark_interrupted: bool = True) -> list[dict]:
     root = _root(runs_root)
     result = []
     for path in sorted(root.glob("*/state.json"), reverse=True):
         try:
-            result.append(get_run(path.parent.name, root, mark_interrupted=mark_interrupted))
+            result.append(_state_from_directory(path.parent, mark_interrupted=mark_interrupted))
         except (OSError, ValueError):
             continue
     return result

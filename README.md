@@ -2,9 +2,9 @@
 
 **把机器人演示数据，做成敢交给下游的训练集。**
 
-v0.9.0 · Windows / Python 3.12 / Node.js 24 · 本地单用户
+v0.10.0 · Windows / Linux CI / Python 3.12 / Node.js 24 · 本地单用户
 
-[![tests](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/tests.yml/badge.svg)](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/tests.yml) [![release](https://img.shields.io/badge/release-v0.9.0-blue.svg)](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/releases/tag/v0.9.0) [![license](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE) [![portfolio](https://img.shields.io/badge/portfolio-live-1677ff.svg)](https://mahonghao1.github.io/)
+[![tests](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/tests.yml/badge.svg)](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/tests.yml) [![linux](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/linux-smoke.yml/badge.svg)](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/linux-smoke.yml) [![release](https://img.shields.io/badge/release-v0.10.0-blue.svg)](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/releases/tag/v0.10.0) [![license](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE) [![portfolio](https://img.shields.io/badge/portfolio-live-1677ff.svg)](https://mahonghao1.github.io/)
 
 采集现场四路相机各录一份，导出时每个批次的目录结构都不一样，交接时对方只问一句：这个包能训吗。
 
@@ -15,6 +15,8 @@ RoboData 就是回答这一句的工具。导入、清洗筛选、标注审核�
 ![v0.8.0 工作台：SO-100 单相机批次、状态曲线、底部时间轴与右侧检视面板](docs/assets/workbench-v0.8.0.png)
 
 > 2026-11-11 从本机 FastAPI 服务（同源托管构建后的 `frontend/dist`）截取。视频是真能播的：时间轴跳到 8.37 s，视频 `currentTime` 也走到 8.37，曲线游标跟着帧动。
+
+> **60 秒证据（v0.10.0）**：版本链 8 处由测试锁定；已知坏样本 `6/6` 命中预期判据；100 万行表格质检单次 61.25 秒、0 个数据问题（仅表格检查，不是端到端）；100 步线性动作探针损失 `0.716 → 0.000122`（合成数据，只证明训练输入能驱动优化循环）；Linux 核心检查已加入 CI。逐条命令、原始 JSON 与未验证边界见 [docs/EVIDENCE.md](docs/EVIDENCE.md)。
 
 ## 三十秒，自己验一遍
 
@@ -104,8 +106,9 @@ uv run robodata check --data-root <你的数据目录> --emit-contract ./deliver
 
 - **只想看效果**：打开[作品集首页](https://mahonghao1.github.io/)或[项目深度页](https://mahonghao1.github.io/robodata/)，拖时间轴、翻九个界面视角
 - **想跑起来**：装好 Node.js 24 LTS，双击 `首次安装.cmd`，再用桌面快捷方式启动 —— 见[安装与启动](#安装与启动)
+- **想核数字**：[证据总表](docs/EVIDENCE.md)、[100 万行规模实验](docs/benchmarks/2026-11-18-scale-experiment.md)、[100 步训练输入冒烟](docs/TRAINING_SMOKE.md)
 - **想读实现**：[数据字典](docs/data_dictionary.md)、[V0.5 状态](docs/STATUS_v05.md)、[导航验收](docs/VALIDATION_navigation.md)
-- **想看迭代**：[v0.9.0 发布说明](RELEASE_NOTES_v0.9.0.md)、[上线级审计报告](docs/LAUNCH_AUDIT_REPORT.md)、[变更记录](CHANGELOG.md)
+- **想看迭代**：[v0.10.0 发布说明](RELEASE_NOTES_v0.10.0.md)、[v0.9.0 上线级审计](docs/LAUNCH_AUDIT_REPORT.md)、[变更记录](CHANGELOG.md)
 - **想照着操作**：[标准操作 SOP](docs/SOP.md)，[HTML 手册](docs/SOP.html) 可离线打开
 
 默认服务地址 [http://127.0.0.1:8765/](http://127.0.0.1:8765/)，FastAPI 在本机托管构建后的 React 页面和 API。GitHub Pages 不提供这个 Python 服务；旧版 Streamlit 用 `启动Streamlit旧版.cmd` 单独跑在 8501。
@@ -329,7 +332,7 @@ v0.9.0 不新增界面，而是把「提交审核后离开一小时，回来看�
 | 交互 | 破坏性操作缺少说明，且后端 409 时前端只能反复点同一个按钮 | 质检重跑 / 恢复质检登记 / 修改筛选决定均二次确认；新增可操作的「确认并重试」，先取服务器真相再带确认标记重发 |
 | 提示 | 用户自己的写操作被误报成「后台处理改了批次」 | 版本基准随写操作同步，提示改为中性归因，并明确说明产物失效 |
 
-验证：后端全量 **320 项**，本机本轮 **306 通过 / 15 跳过 / 13 项子测试**；前端 **26 项单测** 与生产构建通过。`test_concurrent_starters_cannot_create_two_active_runs` 在高负载下偶发失败，本轮通过，单独跑三次也稳定通过——互斥实现是 OS 字节锁加排他创建，不是产品 bug，所以没放宽断言。跳过项随环境变化。真实 `uvicorn` 下终态 SSE 在 8 ms 内结束闭环。完整根因链、逐条修复位置与剩余风险见 [上线级审计报告](docs/LAUNCH_AUDIT_REPORT.md) 与 [v0.9.0 发布说明](RELEASE_NOTES_v0.9.0.md)。
+验证：发布时后端全量 **289 passed / 7 skipped / 13 subtests**，前端 **26 项单测** 与生产构建通过（[v0.9.0 发布说明](RELEASE_NOTES_v0.9.0.md)）。当前主线在新增版本护栏、规模实验和训练冒烟后，测试数量与原始汇总统一记录在 [证据总表](docs/EVIDENCE.md)，不在 README 里重复。`test_concurrent_starters_cannot_create_two_active_runs` 在高负载下偶发失败；互斥实现是 OS 字节锁加排他创建，不是产品 bug，所以没放宽断言。真实 `uvicorn` 下终态 SSE 在 8 ms 内结束闭环。完整根因链、逐条修复位置与剩余风险见 [上线级审计报告](docs/LAUNCH_AUDIT_REPORT.md)。
 
 > 运行边界不变：本机单用户、仅 `127.0.0.1` loopback。报告第 8 节列出的产品语义决策项与公网化前置项未在本版处理，因此本版不宣称「公网多用户可上线」。
 
