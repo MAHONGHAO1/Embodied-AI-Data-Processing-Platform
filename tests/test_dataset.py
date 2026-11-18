@@ -6,8 +6,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from robodata.config import CAMERA
-from robodata.dataset import dataset_fingerprint, load_episode, load_metadata
+from robodata.config import CAMERA, REPO_ID, REVISION
+from robodata.dataset import dataset_fingerprint, input_relative_paths, load_episode, load_metadata
 from robodata.video import inspect_video, read_video_frame
 
 
@@ -45,6 +45,35 @@ def test_invalid_metadata_fails_explicitly(tmp_path):
     info["fps"] = 0
     path.write_text(json.dumps(info))
     with pytest.raises(ValueError, match="FPS"):
+        load_metadata(tmp_path)
+
+
+def test_source_manifest_episode_subset_controls_metadata_range(tmp_path):
+    make_dataset(tmp_path)
+    (tmp_path / "meta/episodes.jsonl").write_text(
+        "\n".join(json.dumps({"episode_index": index, "length": 3, "tasks": ["sample"]})
+                  for index in (0, 1, 2)) + "\n", encoding="utf-8")
+    files = ["README.md", "meta/info.json", "meta/episodes.jsonl", "meta/tasks.jsonl",
+             "meta/stats.json", "data/chunk-000/episode_000000.parquet",
+             "data/chunk-000/episode_000002.parquet"]
+    (tmp_path / "source_manifest.json").write_text(json.dumps({
+        "repo_id": REPO_ID, "revision": REVISION, "episodes": [0, 2],
+        "files": [{"path": name, "size": 0, "sha256": "0" * 64} for name in files],
+    }), encoding="utf-8")
+    metadata = load_metadata(tmp_path)
+    assert metadata["episode_indices"] == [0, 2]
+    relative = input_relative_paths(tmp_path, metadata)
+    assert "data/chunk-000/episode_000000.parquet" in relative
+    assert "data/chunk-000/episode_000002.parquet" in relative
+    assert "data/chunk-000/episode_000001.parquet" not in relative
+
+
+def test_source_manifest_revision_must_match_fixed_source(tmp_path):
+    make_dataset(tmp_path)
+    (tmp_path / "source_manifest.json").write_text(json.dumps({
+        "repo_id": REPO_ID, "revision": "0" * 40, "episodes": [0], "files": [],
+    }), encoding="utf-8")
+    with pytest.raises(ValueError, match="revision"):
         load_metadata(tmp_path)
 
 

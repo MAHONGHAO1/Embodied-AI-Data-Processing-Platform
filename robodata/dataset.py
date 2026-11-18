@@ -174,9 +174,22 @@ def load_metadata(root: Path) -> dict:
     else:
         if info.get('codebase_version', 'v2.0') != 'v2.0':
             raise ValueError('当前仅验证 SO-100 v2.0 和本项目 Panda/Lift v3.0 数据配置')
+        if manifest and (manifest.get('repo_id') != REPO_ID or manifest.get('revision') != REVISION):
+            raise ValueError('SO-100 来源清单的仓库或 revision 与固定配置不一致')
         episodes = _json_lines(root / 'meta/episodes.jsonl', 'episode_index')
         tasks = _json_lines(root / 'meta/tasks.jsonl', 'task_index')
-        indices = list(EPISODES)
+        declared = manifest.get('episodes')
+        if declared is not None:
+            if (not isinstance(declared, list) or not declared
+                    or any(isinstance(i, bool) or not isinstance(i, int) for i in declared)
+                    or len(set(declared)) != len(declared)):
+                raise ValueError('来源清单的 episode 范围无效')
+            absent = sorted(set(declared) - set(episodes))
+            if absent:
+                raise ValueError(f'来源清单引用了元数据中不存在的 episode：{absent}')
+            indices = sorted(declared)
+        else:
+            indices = list(EPISODES)
     return {'info': info, 'episodes': episodes, 'tasks': tasks, 'manifest': manifest,
             'source': _source(info, manifest), 'episode_indices': indices}
 
@@ -236,6 +249,11 @@ def input_relative_paths(root: Path, metadata: dict | None = None) -> tuple[str,
         except (ValueError, OSError, KeyError):
             metadata = None
     if not metadata or metadata.get('info', {}).get('codebase_version') != 'v3.0':
+        declared = (metadata or {}).get('manifest', {}).get('files')
+        if isinstance(declared, list) and declared:
+            paths = {entry['path'] for entry in declared
+                     if isinstance(entry, dict) and isinstance(entry.get('path'), str)}
+            return tuple(sorted(paths | {MANIFEST_NAME, DEMO_MANIFEST_NAME}))
         return (*SAMPLE_FILES, MANIFEST_NAME, DEMO_MANIFEST_NAME)
     paths = {'meta/info.json', 'meta/tasks.parquet', MANIFEST_NAME}
     for folder in ('meta', 'data', 'videos'):

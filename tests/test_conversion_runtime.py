@@ -34,6 +34,23 @@ def test_bad_source_records_chinese_evidence_and_registers_nothing(tmp_path):
     assert errors[-1]["evidence"]["actual_size"] == source.stat().st_size
 
 
+def test_conversion_failure_finalizes_pending_nodes_before_publishing_status(tmp_path, monkeypatch):
+    from robodata import conversion as conversion_module
+    state = {"status": "running", "message": "", "request": {"timeouts": {"default": 5}},
+             "nodes": [runtime._node("file_validation"), runtime._node("official_verify"), runtime._node("output_quality")]}
+    runtime._set_node(state["nodes"][0], "failed", "explicit failure fixture")
+    snapshots = []
+    monkeypatch.setattr(runtime, "_save_state", lambda directory, value: snapshots.append(
+        (value["status"], [node["status"] for node in value["nodes"]])))
+    monkeypatch.setattr(runtime, "_event", lambda *args, **kwargs: None)
+
+    conversion_module._finalize_failed(tmp_path, state, "显式失败")
+
+    assert snapshots == [("failed", ["failed", "skipped", "skipped"])]
+    assert state["message"] == "显式失败"
+    assert all(node["status"] != "pending" for node in state["nodes"])
+
+
 def test_conversion_timeout_preserves_timeout_node_and_terminates_process(tmp_path):
     if not conversion.CONVERSION_PYTHON.is_file():
         pytest.skip("requires the separately locked conversion environment")

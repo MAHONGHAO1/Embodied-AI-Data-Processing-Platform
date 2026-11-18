@@ -5,7 +5,7 @@ from pathlib import Path
 import sys
 import time
 
-from .config import DEFAULT_DATA_ROOT, DEFAULT_REPORT_ROOT, EPISODES
+from .config import DEFAULT_DATA_ROOT, DEFAULT_REPORT_ROOT, EPISODES, parse_episode_range
 from .sources import DEFAULT_HDF5_ROOT, HDF5_PATH
 
 
@@ -15,10 +15,18 @@ def main(argv=None):
             stream.reconfigure(encoding='utf-8')
     parser = argparse.ArgumentParser(description="RoboData 具身数据质检工作台")
     sub = parser.add_subparsers(dest="command", required=True)
-    fetch = sub.add_parser("fetch-sample", help="获取固定版本的 5 条公开任务")
+    fetch = sub.add_parser("fetch-sample", help="获取固定版本的公开任务（默认 5 条）")
     fetch.add_argument('--source', choices=('so100', 'robomimic'), default='so100')
     fetch.add_argument("--data-root", type=Path, default=None)
+    fetch.add_argument("--episodes", default=None,
+                       help="SO-100 episode 范围，如 0-1；缺省用 ROBODATA_SO100_EPISODES 或 0-4")
+    fetch.add_argument("--verify-only", action="store_true",
+                       help="只校验本地样本与来源清单，不下载")
+    fetch.add_argument("--verify-upstream", action="store_true",
+                       help="配合 --verify-only，联网复核固定 revision 的上游文件标识")
     fetch.add_argument("--proxy", default=None, help="可选进程级 HTTP(S) 代理；不保存、不修改系统配置")
+    fetch.add_argument("--endpoint", default=None,
+                       help="下载传输端点，默认 huggingface.co；镜像只改变传输路径，revision 与哈希校验不变")
     hdf = sub.add_parser('fetch-hdf5', help='获取固定版本 robomimic 仿真 HDF5 测试样本')
     hdf.add_argument('--data-root', type=Path, default=DEFAULT_HDF5_ROOT)
     hdf.add_argument('--proxy', default=None)
@@ -165,13 +173,27 @@ def main(argv=None):
             state = wait_run(run_id, runs_root=args.runs_root, timeout=900)
             print(json.dumps({k: state.get(k) for k in ('run_id', 'status', 'message', 'output_path', 'report_path', 'verification_path')}, ensure_ascii=False, indent=2))
             return 0 if state['status'] == 'completed' else 1
+        if args.command == 'fetch-sample' and args.source == 'robomimic' and (args.episodes or args.verify_only):
+            raise ValueError("--episodes / --verify-only 仅适用于 SO-100 样本")
         if args.command == 'fetch-hdf5' or (args.command == 'fetch-sample' and args.source == 'robomimic'):
             from .sources import fetch_hdf5
             print(str(fetch_hdf5(args.data_root or DEFAULT_HDF5_ROOT, proxy=args.proxy, progress=print)))
             return 0
         if args.command == "fetch-sample":
-            from .source import fetch_sample
-            manifest = fetch_sample(args.data_root or DEFAULT_DATA_ROOT, proxy=args.proxy, progress=lambda *parts: print(*parts, flush=True))
+            from .source import fetch_sample, verify_manifest, verify_sample
+            root = args.data_root or DEFAULT_DATA_ROOT
+            episodes = parse_episode_range(args.episodes, EPISODES) if args.episodes else None
+            if args.verify_upstream and not args.verify_only:
+                raise ValueError("--verify-upstream 必须与 --verify-only 一起使用")
+            if args.verify_only:
+                report = (verify_sample(root, episodes=episodes, proxy=args.proxy,
+                                        endpoint=args.endpoint)
+                          if args.verify_upstream else verify_manifest(root, episodes=episodes))
+                print(json.dumps(report, ensure_ascii=False, indent=2))
+                return 0 if report["ok"] else 1
+            manifest = fetch_sample(root, proxy=args.proxy, episodes=episodes,
+                                    endpoint=args.endpoint,
+                                    progress=lambda *parts: print(*parts, flush=True))
             print(json.dumps(manifest, ensure_ascii=False, indent=2))
         elif args.command == "inspect":
             from .dataset import load_episode

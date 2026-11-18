@@ -37,7 +37,7 @@ function mockFetch(batches: unknown[] = [makeBatch()]) {
       mapping_claim: '文件级时间映射检查；不代表硬件同步' });
     if (url.includes('/episodes/')) return json(episodeDetail);
     if (url.startsWith('/api/batches/')) return json(batches[0]);
-    return json({ status: 'ok', version: '0.10.0' });
+    return json({ status: 'ok', version: '0.11.0' });
   });
 }
 

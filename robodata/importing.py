@@ -11,7 +11,7 @@ import sys
 from typing import BinaryIO
 import uuid
 
-from .config import HDF5_EPISODES, PROJECT_ROOT
+from .config import HDF5_EPISODES, PROJECT_ROOT, REPO_ID, REVISION
 from .sources import HDF5_SHA256, HDF5_SIZE, HDF5_SOURCE
 from .source import SAMPLE_FILES, MANIFEST_NAME, DEMO_MANIFEST_NAME, file_sha256
 
@@ -112,6 +112,33 @@ def _preview_worker(raw: Path, output: Path, label=None):
         error.details=details
         raise error
 
+def _so100_manifest_entries(source: Path):
+    """Read the download manifest so a complete episode subset can be imported.
+
+    The fallback to the five-episode ``SAMPLE_FILES`` keeps older checkouts and
+    test fixtures working when no manifest is present.
+    """
+    manifest_path = source / MANIFEST_NAME
+    if not manifest_path.is_file():
+        return None, {}
+    manifest = _json(manifest_path)
+    if manifest.get('repo_id') != REPO_ID or manifest.get('revision') != REVISION:
+        raise ValueError('SO-100 来源清单的仓库或 revision 与固定配置不一致')
+    entries = manifest.get('files')
+    if not isinstance(entries, list) or not entries:
+        raise ValueError('SO-100 来源清单没有文件记录')
+    expected = {}
+    for entry in entries:
+        relative = entry.get('path')
+        if not isinstance(relative, str) or not relative or Path(relative).is_absolute() or '..' in Path(relative).parts:
+            raise ValueError('SO-100 来源清单包含不安全路径')
+        digest = entry.get('sha256')
+        if not isinstance(digest, str) or len(digest) != 64:
+            raise ValueError(f'SO-100 来源清单缺少 SHA-256：{relative}')
+        expected[relative] = digest
+    return [entry['path'] for entry in entries], expected
+
+
 def _copy(request,run):
     kind=request['source_kind']
     if kind not in {'hdf5','so100','aloha'}: raise ValueError('只支持固定 HDF5、SO-100 或 ALOHA Coffee 配置')
@@ -145,7 +172,9 @@ def _copy(request,run):
         names=['test.hdf5']
     elif kind == 'so100':
         if not source.is_dir(): raise NotADirectoryError('SO-100 导入入口需要本地数据目录')
-        names=[*SAMPLE_FILES,MANIFEST_NAME]
+        manifest_names, expected_hashes = _so100_manifest_entries(source)
+        names = ([*manifest_names, MANIFEST_NAME] if manifest_names is not None
+                 else [*SAMPLE_FILES, MANIFEST_NAME])
         if (source/DEMO_MANIFEST_NAME).is_file():
             names.append(DEMO_MANIFEST_NAME)
             if not label: raise ValueError('检测到故障副本清单，请填写测试标记再导入')
@@ -156,6 +185,8 @@ def _copy(request,run):
                 if label: continue
                 raise FileNotFoundError(f'固定 SO-100 样本缺少文件：{name}')
             before=file_sha256(file)
+            if not label and name in expected_hashes and before!=expected_hashes[name]:
+                raise ValueError(f'SO-100 文件与来源清单不一致：{name}')
             if not label and name in pinned['files'] and before!=pinned['files'][name]:
                 raise ValueError(f'SO-100 文件与固定来源不一致：{name}')
             destination=raw/name

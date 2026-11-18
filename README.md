@@ -2,9 +2,9 @@
 
 **把机器人演示数据，做成敢交给下游的训练集。**
 
-v0.10.0 · Windows / Linux CI / Python 3.12 / Node.js 24 · 本地单用户
+v0.11.0 · Windows / Linux CI / Python 3.12 / Node.js 24 · 本地单用户
 
-[![tests](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/tests.yml/badge.svg)](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/tests.yml) [![linux](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/linux-smoke.yml/badge.svg)](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/linux-smoke.yml) [![release](https://img.shields.io/badge/release-v0.10.0-blue.svg)](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/releases/tag/v0.10.0) [![license](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE) [![portfolio](https://img.shields.io/badge/portfolio-live-1677ff.svg)](https://mahonghao1.github.io/)
+[![tests](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/tests.yml/badge.svg)](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/tests.yml) [![linux](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/linux-smoke.yml/badge.svg)](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/linux-smoke.yml) [![release](https://img.shields.io/badge/release-v0.11.0-blue.svg)](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/releases/tag/v0.11.0) [![license](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE) [![portfolio](https://img.shields.io/badge/portfolio-live-1677ff.svg)](https://mahonghao1.github.io/)
 
 采集现场四路相机各录一份，导出时每个批次的目录结构都不一样，交接时对方只问一句：这个包能训吗。
 
@@ -16,7 +16,7 @@ RoboData 就是回答这一句的工具。导入、清洗筛选、标注审核�
 
 > 2026-11-11 从本机 FastAPI 服务（同源托管构建后的 `frontend/dist`）截取。视频是真能播的：时间轴跳到 8.37 s，视频 `currentTime` 也走到 8.37，曲线游标跟着帧动。
 
-> **60 秒证据（v0.10.0）**：版本链 8 处由测试锁定；已知坏样本 `6/6` 命中预期判据；100 万行表格质检单次 61.25 秒、0 个数据问题（仅表格检查，不是端到端）；100 步线性动作探针损失 `0.716 → 0.000122`（合成数据，只证明训练输入能驱动优化循环）；Linux 核心检查已加入 CI。逐条命令、原始 JSON 与未验证边界见 [docs/EVIDENCE.md](docs/EVIDENCE.md)。
+> **60 秒证据（v0.11.0）**：版本链 8 处由测试锁定；已知坏样本 `6/6` 命中预期判据；固定 revision 的 2 Episode / 1,300 帧真实样本一条命令跑完 9 个阶段，含官方 `lerobot 0.4.4` DataLoader 探针与独立 ZIP 验证（本机约 106 秒）；Python 全量 318 passed / 14 skipped；Docker/Linux 容器由 CI 构建并检查，不在本机宣称。逐条命令、原始 JSON 与未验证边界见 [docs/EVIDENCE.md](docs/EVIDENCE.md)。
 
 ## 三十秒，自己验一遍
 
@@ -36,6 +36,15 @@ uv run robodata verify-fixtures
 ```
 
 它从每个 `EXPECTED.md` 里读出「应当命中哪条判据」，再实跑一遍比对；有判据没命中、或有样本没写期望，就返回非 `0`。当前 `6/6 通过`。
+
+真实样本也能一条命令复现：从固定 revision 下载完整 Episode 0–1，校验后跑来源、导入、质检、审核、转换、官方 DataLoader、交付与独立 ZIP 验证，全程写出一份分阶段报告：
+
+```bash
+uv run robodata fetch-sample --episodes 0-1 --data-root work/samples/so100-e0-1
+uv run python scripts/verify_pipeline.py --sample work/samples/so100-e0-1 --episodes 0-1 --mode full --output work/acceptance/pipeline-full.json
+```
+
+下载约 19.2 MB；转换与官方加载需要 `uv sync --project tools/conversion --locked`。命令、耗时与边界见 [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md)。
 
 验你自己的数据，把 `--data-root` 换成你的目录，LeRobot v2.0 / v3.0 都认。想让验收结论跟着交付包走：
 
@@ -94,6 +103,8 @@ uv run robodata check --data-root <你的数据目录> --emit-contract ./deliver
 | --- | --- |
 | 新工作台界面 | React + TypeScript 页面、FastAPI 同源托管、批次/运行 API；Node 24 构建、单测与 Chromium 浏览器流程通过 |
 | SO-100 主流程 | 固定子集 5 条 / 3,562 帧通过工作台转换与交付验收，见 [v0.5 验收](docs/VALIDATION_v05.md) |
+| 可复现真实样本 | 固定 revision 的完整 Episode 0–1 / 9 个文件 / 19,215,391 字节；2 Episode / 1,300 帧跑完 9 个阶段，官方 DataLoader 读到 4 个 batch / 32 帧，ZIP 独立解包通过，见 [验收文档](docs/ACCEPTANCE.md) |
+| Linux 容器 | GitHub Actions 在 `ubuntu-latest` 构建镜像，检查健康页与坏样本；**没有本机 Docker 验证**，容器内不安装转换环境，见 [DOCKER.md](docs/DOCKER.md) |
 | HDF5 转换与交付 | 116 帧与源 float32 映射一致，官方离线读取与交付包独立验证通过，见 [v0.4 验收](docs/VALIDATION_v04.md) |
 | 多相机处理 | ALOHA Coffee Episode 0–4 实测：5,500 帧、四路 640×480、50 FPS，各相机帧数与时间映射检查通过 |
 | 转换与交付 | 官方离线加载与 5,500 帧数值一致性检查通过；输出质检 55/55 完成；ZIP 独立解包与加载通过 |
@@ -106,9 +117,11 @@ uv run robodata check --data-root <你的数据目录> --emit-contract ./deliver
 
 - **只想看效果**：打开[作品集首页](https://mahonghao1.github.io/)或[项目深度页](https://mahonghao1.github.io/robodata/)，拖时间轴、翻九个界面视角
 - **想跑起来**：装好 Node.js 24 LTS，双击 `首次安装.cmd`，再用桌面快捷方式启动 —— 见[安装与启动](#安装与启动)
-- **想核数字**：[证据总表](docs/EVIDENCE.md)、[100 万行规模实验](docs/benchmarks/2026-11-18-scale-experiment.md)、[100 步训练输入冒烟](docs/TRAINING_SMOKE.md)
+- **想核数字**：[证据总表](docs/EVIDENCE.md)、[真实样本验收](docs/ACCEPTANCE.md)、[100 万行规模实验](docs/benchmarks/2026-11-18-scale-experiment.md)、[100 步训练输入冒烟](docs/TRAINING_SMOKE.md)
+- **想反馈复现**：[外部复现反馈模板](docs/FEEDBACK.md)：当前 0 条已完成记录；不伪造用户反馈
 - **想读实现**：[数据字典](docs/data_dictionary.md)、[V0.5 状态](docs/STATUS_v05.md)、[导航验收](docs/VALIDATION_navigation.md)
-- **想看迭代**：[v0.10.0 发布说明](RELEASE_NOTES_v0.10.0.md)、[v0.9.0 上线级审计](docs/LAUNCH_AUDIT_REPORT.md)、[变更记录](CHANGELOG.md)
+- **想看迭代**：[v0.11.0 发布说明](RELEASE_NOTES_v0.11.0.md)、[v0.10.0 发布说明](RELEASE_NOTES_v0.10.0.md)、[v0.9.0 上线级审计](docs/LAUNCH_AUDIT_REPORT.md)、[变更记录](CHANGELOG.md)
+- **想看跨领域验证**：[Fund Lens 的跨领域证据](https://github.com/MAHONGHAO1/AI-Fund-Management-Platform/blob/main/docs/CROSS_DOMAIN.md)：同一个「来源—校验—失败可见」结构换到基金净值后的落地与边界
 - **想照着操作**：[标准操作 SOP](docs/SOP.md)，[HTML 手册](docs/SOP.html) 可离线打开
 
 默认服务地址 [http://127.0.0.1:8765/](http://127.0.0.1:8765/)，FastAPI 在本机托管构建后的 React 页面和 API。GitHub Pages 不提供这个 Python 服务；旧版 Streamlit 用 `启动Streamlit旧版.cmd` 单独跑在 8501。

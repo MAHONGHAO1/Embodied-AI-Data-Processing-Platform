@@ -224,7 +224,9 @@ def _load_state(run_id: str) -> dict:
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="RoboData local workbench", version="0.10.0", docs_url=None, redoc_url=None,
+    bind_host = os.getenv("ROBODATA_WEB_HOST", "127.0.0.1").strip() or "127.0.0.1"
+    scope = "loopback" if bind_host in {"127.0.0.1", "localhost", "::1"} else "container"
+    app = FastAPI(title="RoboData local workbench", version="0.11.0", docs_url=None, redoc_url=None,
                   redirect_slashes=False)
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost", "testserver"])
 
@@ -244,7 +246,7 @@ def create_app() -> FastAPI:
 
     @app.get("/api/health")
     def health():
-        return {"status": "ok", "app": "RoboData Workbench", "version": "0.10.0", "scope": "loopback"}
+        return {"status": "ok", "app": "RoboData Workbench", "version": "0.11.0", "scope": scope}
 
     @app.get("/api/batches")
     def batches():
@@ -534,4 +536,5 @@ app = create_app()
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("robodata.web:app", host="127.0.0.1", port=int(os.getenv("ROBODATA_WEB_PORT", "8765")), reload=False)
+    host = os.getenv("ROBODATA_WEB_HOST", "127.0.0.1").strip() or "127.0.0.1"
+    uvicorn.run("robodata.web:app", host=host, port=int(os.getenv("ROBODATA_WEB_PORT", "8765")), reload=False)

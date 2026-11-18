@@ -53,7 +53,8 @@ def configure(monkeypatch, content=b"pinned content"):
     entry = {"path": relative, "size": len(content), "hash_algorithm": "sha256",
              "expected_hash": hashlib.sha256(content).hexdigest()}
     monkeypatch.setattr(source, "SAMPLE_FILES", (relative,))
-    monkeypatch.setattr(source, "_catalog", lambda session: {relative: entry})
+    monkeypatch.setattr(source, "_catalog",
+                        lambda session, files=None, endpoint=None: {relative: entry})
     monkeypatch.setattr(source.requests, "Session", lambda: session)
     monkeypatch.setattr(source.time, "sleep", lambda seconds: None)
     return relative, session
@@ -116,6 +117,67 @@ def test_catalog_requires_every_pinned_file(monkeypatch):
                                       "oid": "f" * 40}])
     with pytest.raises(ValueError, match="missing"):
         source._catalog(CatalogSession())
+
+
+def test_sample_files_selects_whole_episodes_only():
+    files = source.sample_files((0, 1))
+    assert "data/chunk-000/episode_000000.parquet" in files
+    assert "data/chunk-000/episode_000001.parquet" in files
+    assert "data/chunk-000/episode_000002.parquet" not in files
+    assert any("episode_000001.mp4" in item for item in files)
+    with pytest.raises(ValueError):
+        source.sample_files(())
+
+
+def test_fetch_sample_subset_writes_explicit_manifest_range(tmp_path, monkeypatch):
+    relative = "meta/info.json"
+    content = b"subset"
+    entry = {"path": relative, "size": len(content), "hash_algorithm": "sha256",
+             "expected_hash": hashlib.sha256(content).hexdigest()}
+    session = Session(content)
+    monkeypatch.setattr(source, "_catalog",
+                        lambda session, files=None, endpoint=None: {relative: entry})
+    monkeypatch.setattr(source.requests, "Session", lambda: session)
+    manifest = source.fetch_sample(tmp_path, episodes=(0, 1), files=(relative,))
+    assert manifest["episodes"] == [0, 1]
+    assert manifest["file_count"] == 1
+    assert manifest["selection"].startswith("complete upstream episodes")
+    assert (tmp_path / relative).read_bytes() == content
+
+
+def test_verify_manifest_detects_same_size_corruption(tmp_path, monkeypatch):
+    relative = "meta/info.json"
+    content = b"subset"
+    entry = {"path": relative, "size": len(content), "hash_algorithm": "sha256",
+             "expected_hash": hashlib.sha256(content).hexdigest()}
+    session = Session(content)
+    monkeypatch.setattr(source, "_catalog",
+                        lambda session, files=None, endpoint=None: {relative: entry})
+    monkeypatch.setattr(source.requests, "Session", lambda: session)
+    source.fetch_sample(tmp_path, episodes=(0, 1), files=(relative,))
+    assert source.verify_manifest(tmp_path)["ok"] is True
+    (tmp_path / relative).write_bytes(b"SUBSEt")
+    result = source.verify_manifest(tmp_path)
+    assert result["ok"] is False
+    assert result["mismatched"] == [relative]
+    with pytest.raises(ValueError, match="不包含"):
+        source.verify_manifest(tmp_path, episodes=(2,))
+
+
+def test_verify_manifest_reports_missing_file(tmp_path, monkeypatch):
+    relative = "meta/info.json"
+    content = b"subset"
+    entry = {"path": relative, "size": len(content), "hash_algorithm": "sha256",
+             "expected_hash": hashlib.sha256(content).hexdigest()}
+    session = Session(content)
+    monkeypatch.setattr(source, "_catalog",
+                        lambda session, files=None, endpoint=None: {relative: entry})
+    monkeypatch.setattr(source.requests, "Session", lambda: session)
+    source.fetch_sample(tmp_path, episodes=(0, 1), files=(relative,))
+    (tmp_path / relative).unlink()
+    result = source.verify_manifest(tmp_path)
+    assert result["ok"] is False
+    assert result["missing"] == [relative]
 
 
 def test_catalog_extracts_git_and_lfs_hashes(monkeypatch):
