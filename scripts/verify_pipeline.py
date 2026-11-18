@@ -216,6 +216,15 @@ def probe_training_loader(report: dict, conversion_python: Path, output_root: Pa
 
 
 def main() -> int:
+    # Windows CI can default stdout to cp1252; the Chinese stage labels must not
+    # turn a passed acceptance into exit code 1 during the final print.
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            try:
+                reconfigure(encoding="utf-8", errors="replace")
+            except (OSError, ValueError):
+                pass
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--sample", type=Path, default=PROJECT_ROOT / "work/samples/so100-e0-1",
                         help="已下载的 SO-100 样本目录（含 source_manifest.json）")
