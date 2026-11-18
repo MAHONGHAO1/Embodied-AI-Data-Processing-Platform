@@ -47,11 +47,19 @@ Pop-Location
 
 跳过项主要来自：需要 `tools/conversion/` 独立环境或固定真实数据的用例、可选 ROS2 MCAP 依赖，以及默认不启用的 Git tag 校验（`CHECK_RELEASE_TAG=1`）。跳过不等于通过。
 
-CI：
+CI 结果按提交记录（2026-11-18）：
 
-- `.github/workflows/tests.yml`：Windows 全量 Python 测试 + 前端单测、构建、Chromium；`verify-fixtures` 同 job 执行。
-- `.github/workflows/linux-smoke.yml`：`ubuntu-latest` 安装锁定依赖，运行版本一致性、表格质检、数据集读取、坏样本校验、100 步冒烟和 `verify-fixtures`。
-- `.github/workflows/acceptance.yml`：三个 job。`source-linux` 跑 `--mode source`；`full-windows` 下载固定样本并跑 `--mode full`；`docker-linux` 构建镜像、检查健康页与坏样本。本机没有 Docker，容器结论只以该 job 为准。
+| 运行 | 提交 | 结果 |
+| --- | --- | --- |
+| [tests #44](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/runs/44326128873) | `a481caf` | success：前端单测、构建、Chromium 流程；Python 全量；`verify-fixtures` |
+| [linux-smoke #7](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/runs/44326128974) | `a481caf` | success：Ubuntu 版本一致性、表格质检、坏样本校验、100 步冒烟 |
+| [acceptance #2](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/runs/44326142455) | `a481caf` | success：`source-linux`、`full-windows`、`docker-linux` 三个 job 全部通过 |
+
+`acceptance #1`（run 44325548369）的 `full-windows` 在 9 个阶段全部通过后，因 Windows 控制台 cp1252 无法打印中文「报告：」而退出 1；`a481caf` 把输出改为 UTF-8 后重跑得到 #2。失败记录保留；修复前的运行不算通过。
+
+`v0.11.0` tag 指向本文件更新后的提交；它与 `a481caf` 的差异仅为文档，未改代码。
+
+`acceptance.yml` 的三个 job 分别验证：Linux 上跑 `--mode source`；Windows 上下载固定样本并跑 `--mode full`（含转换与 DataLoader）；Linux 容器构建、健康页与坏样本。本机没有 Docker，容器结论只以 `docker-linux` 为准。
 
 ## 3. 已知坏样本
 
