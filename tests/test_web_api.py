@@ -11,6 +11,11 @@ def test_health_and_loopback_origin_guard():
     assert denied.status_code == 403
 
 
+def test_container_bind_reports_container_scope(monkeypatch):
+    monkeypatch.setenv("ROBODATA_WEB_HOST", "0.0.0.0")
+    assert TestClient(create_app()).get("/api/health").json()["scope"] == "container"
+
+
 def test_batch_list_does_not_expose_local_filesystem_paths(monkeypatch):
     batch = {
         'batch_id': 'batch_' + 'a' * 32,

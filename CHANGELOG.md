@@ -1,5 +1,19 @@
 # 变更记录
 
+## v0.11.0（2026-11-18 发布）· 可复现验收
+
+**不加格式、不加页面。** 把固定来源的真实样本验收做成一条可重跑命令，并接入官方 DataLoader 与 Docker/Linux CI。
+
+- **真实样本**：`robodata fetch-sample` 支持 `--episodes` 子集、`--verify-only`、`--verify-upstream`、`--endpoint`；逐文件核对上游清单哈希，写出 `source_manifest.json`。本机固定 revision 的 Episode 0–1 共 9 个文件 / 19,215,391 字节。
+- **一条命令**：`scripts/verify_pipeline.py` 串联来源、导入、质检、审核、转换、输出抽帧、DataLoader、交付和独立 ZIP 验证；`--mode source|fast|full` 按需选择。
+- **终态一致性**：转换失败时先把未执行节点收口为 `skipped`，再写入 `failed` 终态；轮询方不会读到「已失败但后续节点仍 pending」的中间状态，新增回归测试。
+- **官方加载器**：`scripts/probe_dataloader.py` 在 `lerobot 0.4.4` + `torch 2.7.1+cpu` 下检查动作/状态 `float32 [B,6]`、图像 `float32 [B,3,480,640]`、task 文本与不打乱顺序。
+- **实测**：`--mode full` 跑完 9 个阶段约 106.1 秒；2 Episode / 1,300 帧；DataLoader 读取 4 个 batch / 32 帧；ZIP 独立解包通过。
+- **Docker/Linux**：新增 `Dockerfile`、`.dockerignore` 与 `acceptance.yml` 的 `source-linux`、`full-windows`、`docker-linux` 三个 job；本机无 Docker，容器结论仅来自 CI。
+- **文档**：新增 `docs/ACCEPTANCE.md`、`docs/DOCKER.md`、`docs/SCORECARD.md` 与流水线性能基线。
+- 版本链统一到 0.11.0，并补齐 `RELEASE_NOTES_v0.11.0.md`。
+- 发布说明：[RELEASE_NOTES_v0.11.0.md](RELEASE_NOTES_v0.11.0.md)
+
 ## v0.10.0（2026-11-18 发布）· Evidence-grade
 
 **只做可信度收口，不加导入格式、页面或适配器。**

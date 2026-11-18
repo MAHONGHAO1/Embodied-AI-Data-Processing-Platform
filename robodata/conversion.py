@@ -52,8 +52,24 @@ def latest_export(output_root: Path | None = None) -> dict | None:
     return exports[0] if exports else None
 
 
+def _finalize_failed(directory: Path, state: dict, message: str) -> None:
+    """Close out pending nodes before publishing a terminal state.
+
+    Readers poll state.json; writing ``status=failed`` first would briefly expose a
+    failed run whose later nodes still read ``pending``. The coordinator's own
+    ``finally`` also does this, but only after the first write is already visible.
+    """
+    from .runtime import _event, _save_state, _set_node
+    for node in state["nodes"]:
+        if node["status"] == "pending":
+            _set_node(node, "skipped", "前置步骤失败，未执行")
+            _event(directory, node["node_id"], "skipped", node["message"], node["episode_index"])
+    state.update(status="failed", message=message)
+    _save_state(directory, state)
+
+
 def _step_failed(directory: Path, state: dict, stage: str, message: str, diagnostics=None) -> None:
-    from .runtime import _event, _node_for, _save_state, _set_node
+    from .runtime import _event, _node_for, _set_node
     node = _node_for(state, stage)
     evidence = {}
     if diagnostics:
@@ -64,8 +80,7 @@ def _step_failed(directory: Path, state: dict, stage: str, message: str, diagnos
         node["input_path"] = diagnostics["file"]
     _event(directory, stage, "failed", message, level="ERROR", evidence=evidence,
            **({"diagnostics": diagnostics} if diagnostics else {}))
-    state.update(status="failed", message=f"{CONVERSION_STAGES[stage]}失败，输出未登记为可用；请查看该节点日志")
-    _save_state(directory, state)
+    _finalize_failed(directory, state, f"{CONVERSION_STAGES[stage]}失败，输出未登记为可用；请查看该节点日志")
 
 
 def _read_step(directory: Path, state: dict, stage: str, success: bool) -> dict | None:
@@ -75,8 +90,7 @@ def _read_step(directory: Path, state: dict, stage: str, success: bool) -> dict 
     if not success:
         node = _node_for(state, stage)
         if node["status"] == "timed_out":
-            state.update(status="failed", message=f"{CONVERSION_STAGES[stage]}超时，工作进程已终止；输出未登记为可用")
-            _save_state(directory, state)
+            _finalize_failed(directory, state, f"{CONVERSION_STAGES[stage]}超时，工作进程已终止；输出未登记为可用")
             return None
         diagnostic = _read_json(directory / "diagnostic.json", {})
         if diagnostic and diagnostic.get("stage") == stage:
@@ -84,8 +98,7 @@ def _read_step(directory: Path, state: dict, stage: str, success: bool) -> dict 
             _step_failed(directory, state, stage, message, diagnostic)
         else:
             node = _node_for(state, stage)
-            state.update(status="failed", message=f"{CONVERSION_STAGES[stage]}未完成，输出未登记为可用；{node['message']}")
-            _save_state(directory, state)
+            _finalize_failed(directory, state, f"{CONVERSION_STAGES[stage]}未完成，输出未登记为可用；{node['message']}")
         return None
     if not isinstance(result, dict) or result.get("stage") != stage or result.get("status") != "passed":
         _step_failed(directory, state, stage, "工作进程没有生成有效的成功记录；不能把退出码为零等同于验证通过")
