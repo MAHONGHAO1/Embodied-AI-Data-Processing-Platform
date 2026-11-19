@@ -1,5 +1,16 @@
 # 变更记录
 
+## v0.12.1（2026-11-19 发布）· 大样本编码提速与超时校准
+
+**不改变字段语义，只让 10 GB 量级的 Matching Cable 数据跑得完。**
+
+- **默认编码线程**：四路相机每路编码器线程数改为 `max(1, min(4, CPU//4))`，给解码和 I/O 留余量；本机 500 帧预览 75.73 s → 64.74 s（约 15%）。
+- **可选硬件编码**：新增 `ROBODATA_MATCHING_VCODEC`，本机 `h264_nvenc` 500 帧 63.59 s，仅比 4 线程 x264 快约 2%；没有 NVENC 的机器保持 `h264`。
+- **超时校准**：`format_write` 30→60 分钟，`official_verify` 20→30 分钟，`output_quality` 20→40 分钟，打包/验包 30→60 分钟，`file_validation` 10→20 分钟，`matching_validation`/`field_mapping` 20→30 分钟。
+- **真实数据基线**：电信 7 Episode / 11,879 帧 / 10.04 GB 结构兼容；2 Episode × 2 帧完整业务链与 500 帧格式写入/官方加载通过。
+- 文档更新：`docs/MATCHING_CABLE.md` 增加速度、环境变量与全量运行建议。
+- 发布说明：[RELEASE_NOTES_v0.12.1.md](RELEASE_NOTES_v0.12.1.md)
+
 ## v0.12.0（2026-11-19 发布）· Matching Cable 缺失流可见
 
 **不要求数据完整才配进流程。** 在 PR #2 的 Matching Cable 适配器上，把缺失相机、深度和可选字段改成逐条可见的来源事实，并补合成回归。

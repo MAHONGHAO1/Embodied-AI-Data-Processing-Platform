@@ -2,9 +2,9 @@
 
 **把机器人演示数据，做成敢交给下游的训练集。**
 
-v0.12.0 · Windows / Linux CI / Python 3.12 / Node.js 24 · 本地单用户
+v0.12.1 · Windows / Linux CI / Python 3.12 / Node.js 24 · 本地单用户
 
-[![tests](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/tests.yml/badge.svg)](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/tests.yml) [![linux](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/linux-smoke.yml/badge.svg)](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/linux-smoke.yml) [![release](https://img.shields.io/badge/release-v0.12.0-blue.svg)](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/releases/tag/v0.12.0) [![license](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE) [![portfolio](https://img.shields.io/badge/portfolio-live-1677ff.svg)](https://mahonghao1.github.io/)
+[![tests](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/tests.yml/badge.svg)](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/tests.yml) [![linux](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/linux-smoke.yml/badge.svg)](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/linux-smoke.yml) [![release](https://img.shields.io/badge/release-v0.12.1-blue.svg)](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/releases/tag/v0.12.1) [![license](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE) [![portfolio](https://img.shields.io/badge/portfolio-live-1677ff.svg)](https://mahonghao1.github.io/)
 
 采集现场四路相机各录一份，导出时每个批次的目录结构都不一样，交接时对方只问一句：这个包能训吗。
 
@@ -12,11 +12,11 @@ RoboData 就是回答这一句的工具。导入、清洗筛选、标注审核�
 
 界面是 React + TypeScript，服务是 FastAPI，全跑在你自己机器上。Python 侧的数据处理、质检和验包才是业务权威实现——界面只是它的一层皮，不会替它做决定。
 
-![v0.12.0 工作台：固定 revision 的 SO-100 2 Episode，t=8.37 s / 帧 251，右侧检视显示来源锁定与质检结果](docs/assets/workbench-v0.12.0.png)
+![v0.12.1 工作台：固定 revision 的 SO-100 2 Episode，t=8.37 s / 帧 251，右侧检视显示来源锁定与质检结果](docs/assets/workbench-v0.12.1.png)
 
 > 2026-11-19 从本机 FastAPI 服务（同源托管构建后的 `frontend/dist`）截取。视频是真能播的：时间轴跳到 8.37 s，视频 `currentTime` 也走到 8.37，曲线游标跟着帧动。
 
-> **60 秒证据（v0.12.0）**：版本链 8 处由测试锁定；已知坏样本 `6/6` 命中预期判据；固定 revision 的 2 Episode / 1,300 帧真实样本一条命令跑完 9 个阶段，含官方 `lerobot 0.4.4` DataLoader 探针与独立 ZIP 验证；Matching Cable 缺少深度/夹爪相机时记录 `not_provided`，合成 2×2 夹具六阶段通过。Python 全量、前端单测与浏览器流程均通过。逐条命令、计数、耗时与未验证边界见 [docs/EVIDENCE.md](docs/EVIDENCE.md)。
+> **60 秒证据（v0.12.1）**：版本链 8 处由测试锁定；已知坏样本 `6/6` 命中预期判据；固定 revision 的 2 Episode / 1,300 帧真实样本一条命令跑完 9 个阶段，含官方 `lerobot 0.4.4` DataLoader 探针与独立 ZIP 验证；Matching Cable 缺少深度/夹爪相机时记录 `not_provided`，合成 2×2 夹具六阶段通过；电信 10 GB 真实数据的 500 帧编码从 75.7 s 降到 63.6 s。Python 全量、前端单测与浏览器流程均通过。逐条命令、计数、耗时与未验证边界见 [docs/EVIDENCE.md](docs/EVIDENCE.md)。
 
 ## 三十秒，自己验一遍
 
@@ -123,7 +123,7 @@ uv run --locked robodata check --data-root <你的数据目录> --emit-contract 
 - **想快速复现**：[五分钟复现](docs/REPRODUCTION.md)：先跑无网络的 6/6，再决定是否下载样本
 - **想反馈复现**：[外部复现反馈模板](docs/FEEDBACK.md)：当前 0 条已完成记录；不伪造用户反馈
 - **想读实现**：[数据字典](docs/data_dictionary.md)、[V0.5 状态](docs/STATUS_v05.md)、[导航验收](docs/VALIDATION_navigation.md)
-- **想看迭代**：[v0.12.0 发布说明](RELEASE_NOTES_v0.12.0.md)、[v0.11.0 发布说明](RELEASE_NOTES_v0.11.0.md)、[v0.10.0 发布说明](RELEASE_NOTES_v0.10.0.md)、[v0.9.0 上线级审计](docs/LAUNCH_AUDIT_REPORT.md)、[变更记录](CHANGELOG.md)
+- **想看迭代**：[v0.12.1 发布说明](RELEASE_NOTES_v0.12.1.md)、[v0.12.0 发布说明](RELEASE_NOTES_v0.12.0.md)、[v0.11.0 发布说明](RELEASE_NOTES_v0.11.0.md)、[v0.10.0 发布说明](RELEASE_NOTES_v0.10.0.md)、[变更记录](CHANGELOG.md)
 - **想看跨领域验证**：[Fund Lens 的跨领域证据](https://github.com/MAHONGHAO1/AI-Fund-Management-Platform/blob/main/docs/CROSS_DOMAIN.md)：同一个「来源—校验—失败可见」结构换到基金净值后的落地与边界
 - **想照着操作**：[标准操作 SOP](docs/SOP.md)，[HTML 手册](docs/SOP.html) 可离线打开
 
@@ -317,7 +317,7 @@ CI 在 `windows-latest` 上执行同一组测试（[`.github/workflows/tests.yml
 
 原始数据、管理副本、运行日志、报告和交付 ZIP 默认保存在被 Git 忽略的 `data/`、`work/`、`reports/`。历史证据中引用的本地产物需自行复现，不随源码自动下载。
 
-当前首屏 `docs/assets/workbench-v0.12.0.png` 来自本机 FastAPI 服务，批次为固定 revision 的 2 Episode 样本，时间轴定位 8.37 s / 帧 251；`docs/assets/matching-cable-v0.12.0.png` 是 Matching Cable 缺失流合成夹具的界面证据。以下为历史截图，仅作迭代对照，已不作为 README 首屏：`docs/assets/workbench-v0.6.0-aloha.png` 来自通过验收的真实 ALOHA Episode 0 四路相机浏览；`docs/assets/workbench-v0.6.0.png` 展示 SO-100 工作台界面，不把它描述为 ALOHA 转换证据。v0.8.0 的 `workbench-v0.8.0.png` 与 `fund-v0.3.0.png` 来自本机真实 FastAPI 服务；`workbench-v0.8.0-aloha.png` 是 16:9 布局验证截图，镜头画面取自真实交付帧但批次元数据为构造数据，不作为 ALOHA 转换或业务状态证据。
+当前首屏 `docs/assets/workbench-v0.12.1.png` 来自本机 FastAPI 服务，批次为固定 revision 的 2 Episode 样本，时间轴定位 8.37 s / 帧 251；`docs/assets/matching-cable-v0.12.0.png` 是 Matching Cable 缺失流合成夹具的界面证据。以下为历史截图，仅作迭代对照，已不作为 README 首屏：`docs/assets/workbench-v0.6.0-aloha.png` 来自通过验收的真实 ALOHA Episode 0 四路相机浏览；`docs/assets/workbench-v0.6.0.png` 展示 SO-100 工作台界面，不把它描述为 ALOHA 转换证据。v0.8.0 的 `workbench-v0.8.0.png` 与 `fund-v0.3.0.png` 来自本机真实 FastAPI 服务；`workbench-v0.8.0-aloha.png` 是 16:9 布局验证截图，镜头画面取自真实交付帧但批次元数据为构造数据，不作为 ALOHA 转换或业务状态证据。
 
 ## 为什么这么设计
 

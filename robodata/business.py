@@ -43,9 +43,9 @@ BUSINESS_TIMEOUTS = {"preview": 120, "quality": 300, "format_write": 240,
                      "metadata_upgrade": 240, "final_quality": 300,
                      "official_verify": 120, "output_quality": 120, "archive_verify": 120,
                      "package": 120, "verify": 120}
-MATCHING_TIMEOUTS = {"preview": 14400, "quality": 7200, "final_quality": 3600, "file_validation": 600,
-                    "matching_validation": 1200, "field_mapping": 1200, "format_write": 1800,
-                    "official_verify": 1200, "output_quality": 1200, "package": 1800, "verify": 1800, "archive_verify": 1800}
+MATCHING_TIMEOUTS = {"preview": 14400, "quality": 7200, "final_quality": 3600, "file_validation": 1200,
+                    "matching_validation": 1800, "field_mapping": 1800, "format_write": 3600,
+                    "official_verify": 1800, "output_quality": 2400, "package": 3600, "verify": 3600, "archive_verify": 3600}
 ALOHA_TIMEOUTS = {"preview": 900, "quality": 1800, "final_quality": 1800,
                   "format_write": 7200, "official_verify": 1800,
                   "output_quality": 1800, "package": 1800,

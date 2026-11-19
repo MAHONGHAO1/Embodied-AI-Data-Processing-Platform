@@ -1,4 +1,4 @@
-# 证据总表 · v0.12.0
+# 证据总表 · v0.12.1
 
 本文件是 README 中版本、测试数量、规模实验和训练冒烟的统一出处。README 只指向这里，不再复制会漂移的数字。
 
@@ -8,15 +8,15 @@
 
 | 位置 | 值 | 校验 |
 | --- | --- | --- |
-| README 首行 | 0.12.0 | `tests/test_version_consistency.py` |
-| README release 徽章 | 0.12.0 | 同上 |
-| `pyproject.toml` | 0.12.0 | 同上 |
-| `robodata/config.py` `APP_VERSION` | 0.12.0 | 同上 |
-| `robodata/web.py` FastAPI | 0.12.0 | 同上 |
-| `robodata/web.py` 健康检查 | 0.12.0 | 同上 |
-| `frontend/package.json` | 0.12.0 | 同上 |
-| `frontend/src/App.tsx` 版本条 | 0.12.0 | 同上 |
-| `RELEASE_NOTES_v0.12.0.md` | 存在 | 同上 |
+| README 首行 | 0.12.1 | `tests/test_version_consistency.py` |
+| README release 徽章 | 0.12.1 | 同上 |
+| `pyproject.toml` | 0.12.1 | 同上 |
+| `robodata/config.py` `APP_VERSION` | 0.12.1 | 同上 |
+| `robodata/web.py` FastAPI | 0.12.1 | 同上 |
+| `robodata/web.py` 健康检查 | 0.12.1 | 同上 |
+| `frontend/package.json` | 0.12.1 | 同上 |
+| `frontend/src/App.tsx` 版本条 | 0.12.1 | 同上 |
+| `RELEASE_NOTES_v0.12.1.md` | 存在 | 同上 |
 
 `APP_VERSION` 会写进质量报告；版本链漂移会让报告声称自己来自一个从未发布的版本，因此用测试而不是人工纪律守住。
 
@@ -115,7 +115,7 @@ DataLoader 探针使用独立转换环境中的 `lerobot 0.4.4` + `torch 2.7.1+c
 
 这是「官方训练加载器能消费这份交付物」和「交付包可独立验证」的证据，不是训练效果、任务成功率、硬件同步或生产容量。
 
-首屏截图 `docs/assets/workbench-v0.12.0.png` 来自本机 FastAPI 服务（同源托管 `frontend/dist`），批次为固定 revision 的 2 Episode 样本，时间轴定位 `t = 8.37 s / 帧 251`，右侧检视显示来源锁定与质检结果；`docs/assets/matching-cable-v0.12.0.png` 是 2 Episode × 2 帧合成夹具，右侧显示缺失相机/深度与触觉 `not_provided`。两者都不是设计稿或合成图；Matching Cable 图只证明缺失流可见，不代表真实数据效果。`workbench-v0.11.0.png` 与 `workbench-v0.8.0.png` 保留作旧版对照。
+首屏截图 `docs/assets/workbench-v0.12.1.png` 来自本机 FastAPI 服务（同源托管 `frontend/dist`），批次为固定 revision 的 2 Episode 样本，时间轴定位 `t = 8.37 s / 帧 251`，右侧检视显示来源锁定与质检结果；`docs/assets/matching-cable-v0.12.0.png` 是 2 Episode × 2 帧合成夹具，右侧显示缺失相机/深度与触觉 `not_provided`。两者都不是设计稿或合成图；Matching Cable 图只证明缺失流可见，不代表真实数据效果。`workbench-v0.11.0.png` 与 `workbench-v0.8.0.png` 保留作旧版对照。
 
 只判断环境能否跑通时，按 [五分钟复现](REPRODUCTION.md) 走 Tier 1：不联网、不下载样本、不装 Docker；预期 `6/6` 坏样本命中。Tier 2 才下载 19.2 MB 固定样本并跑 `--mode source`。
 
@@ -143,6 +143,18 @@ uv run --locked python scripts/verify_matching_optional.py
 原始报告写在 `work/matching-optional/report.json`，不随仓库分发。字段与命令见 [MATCHING_CABLE.md](MATCHING_CABLE.md)。
 
 这不是真实 9 GB Matching Cable 数据的验收，也不证明相机硬件同步、策略训练或生产容量；它证明的是「缺深度/缺夹爪相机/缺可选字段时，平台按事实记录并继续」。
+
+### 5.1 电信 Matching Cable 真实数据（v0.12.1）
+
+本机收到一份约 10 GB 的 Matching Cable ZIP，只读取清单并抽取小样本，未把原始数据复制进仓库：
+
+- 7 Episode（68–74），11,879 个 HDF5，解压后 10,038,385,032 字节；
+- 每帧 4 路 RGB、2 路深度、eef/关节力矩/六维力齐全；触觉字段不存在，记录 `not_provided`；
+- 帧号连续；抽样 7×207 个相邻时间戳全部 49–51 ms；
+- 2 Episode × 2 帧真实子集跑完导入、质检、审核、最终质检、转换、交付，官方加载通过，交付 ZIP 158,199 字节；
+- 500 帧编码实测：默认 75.73 s，四线程 64.74 s，`h264_nvenc` + 四线程 63.59 s；500 帧 `format_write` 62.79 s、`official_verify` 17.71 s。
+
+按 500 帧外推，11,879 帧全量 `format_write` 约 25 分钟、official 加载约 7 分钟量级；`MATCHING_TIMEOUTS` 已按此调整。这是本机单次测量，不是全量 11,879 帧实测，也不证明硬件同步或策略效果。数据与 `work/` 产物不随仓库分发；结构明细见本机 `work/telecom-compatibility.md`。
 
 ## 6. 历史真实数据验收
 

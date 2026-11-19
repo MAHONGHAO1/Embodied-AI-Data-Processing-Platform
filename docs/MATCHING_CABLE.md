@@ -66,6 +66,41 @@ uv run --project tools/conversion --locked python tools/conversion/matching_prev
   --input "E:/遥操数据/matching_cable" --output work/matching-preview
 ```
 
+## 速度与全量运行
+
+真实 10 GB 数据的瓶颈是 4 路 RGB 的 H.264 编码，不是 HDF5 读取。合成夹具无法代表这个量级，下面是对电信数据 Episode 68 做的实测（同一台机器，20 个逻辑 CPU）：
+
+| 样本 | 配置 | 耗时 |
+| --- | ---: | ---: |
+| 10 帧 | 默认（编码线程 auto） | 13.24 s |
+| 100 帧 | 默认 | 27.08 s |
+| 500 帧 | 默认 | 75.73 s |
+| 500 帧 | `ROBODATA_MATCHING_ENCODER_THREADS=4` | 64.74 s |
+| 500 帧 | 4 线程 + `h264_nvenc` | 63.59 s |
+| 500 帧 format_write | 4 线程 + `h264_nvenc` | 62.79 s |
+| 500 帧 official_verify | 同上输出 | 17.71 s |
+
+按 500 帧的稳态粗略外推，11,879 帧全量 `format_write` 约 **25 分钟量级**，official 加载约 **7 分钟量级**；实际会受磁盘、Episode 边界和系统负载影响。
+
+默认编码线程现在按 `max(1, min(4, CPU//4))` 计算，四路相机共享 CPU 时给解码和 I/O 留余量。也可以显式覆盖：
+
+```powershell
+$env:ROBODATA_MATCHING_ENCODER_THREADS='4'
+$env:ROBODATA_MATCHING_VCODEC='h264_nvenc'   # 可选；先用 detect_available_hw_encoders() 确认
+uv run --locked robodata import-batch ...
+```
+
+`h264_nvenc` 必须实际存在于本机；没有 NVENC 时保持默认 `h264`。本机实测 NVENC 只比 4 线程 x264 快约 2%，主要收益来自**限制每路编码线程数**，不要把 NVENC 当成数量级提升。
+
+全量 11 GB 数据建议：
+
+1. 先把 ZIP 解压到本机磁盘，不要直接在 ZIP 内跑；
+2. 先用 `ROBODATA_MATCHING_EPISODES=68` + `ROBODATA_MATCHING_MAX_FRAMES_PER_EPISODE=100` 做烟测；
+3. 全量跑时确认磁盘至少还有 30–40 GB 空间（预览 + 输出 + 临时视频）；
+4. `MATCHING_TIMEOUTS` 已按 10 GB 量级调整：`format_write` 1 小时、`official_verify` 30 分钟、`output_quality` 40 分钟、打包/验包各 1 小时。超时仍不是“无限等待”，失败会停在对应节点。
+
+进一步的数量级优化（复用预览视频、只编码一次、按 Episode 并行）属于架构改动，不在当前适配器内；现在的可复现路径是“预览 + 转换各编码一次”，用线程数和可选 NVENC 把单次编码压到可接受范围。
+
 ## 合成回归
 
 不需要 9 GB 真实数据。下面的脚本会生成 2 条 Episode × 2 帧、只有一路 RGB、没有深度/触觉/可选数值的夹具，跑完预览、六个转换/验证阶段并断言缺失流可见：

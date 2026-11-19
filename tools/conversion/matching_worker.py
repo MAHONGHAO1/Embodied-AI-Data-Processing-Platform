@@ -85,8 +85,8 @@ def write_dataset(preview: Path, output: Path, spec: dict, manifest: dict) -> di
     import h5py
     import numpy as np
     from lerobot.datasets.lerobot_dataset import LeRobotDataset
-    from matching_preview import (ACTION_FIELD, CAMERA_SOURCE_FIELDS, FPS, STATE_FIELD,
-                                  decode_rgb, feature_definitions, inspect_frame_capabilities,
+    from matching_preview import (ACTION_FIELD, CAMERA_SOURCE_FIELDS, ENCODER_THREADS, FPS, STATE_FIELD,
+                                  VCODEC, decode_rgb, feature_definitions, inspect_frame_capabilities,
                                   inspect_shapes, read_numeric, validate_depth)
 
     source_root = Path(manifest["source"]["source_root"])
@@ -114,8 +114,9 @@ def write_dataset(preview: Path, output: Path, spec: dict, manifest: dict) -> di
     dataset = LeRobotDataset.create(
         repo_id="local/matching-cable-reviewed", root=output, fps=FPS,
         features=feature_definitions(shapes, capabilities["optional_present"]), robot_type="dual_arm_teleoperation",
-        video_backend="pyav", vcodec="h264", image_writer_processes=0,
+        video_backend="pyav", vcodec=VCODEC, image_writer_processes=0,
         image_writer_threads=0, batch_encoding_size=1, streaming_encoding=True,
+        encoder_threads=ENCODER_THREADS,
     )
     output_episodes = []
     source_files = []

@@ -21,6 +21,16 @@ from robodata.matching import (ACTION_FIELD, CAMERA_SOURCE_FIELDS, FPS,
                                discover_episodes, inspect_frame_capabilities)
 
 PREVIEW_PROFILE = "matching_cable_frames_v1"
+VCODEC = (os.environ.get("ROBODATA_MATCHING_VCODEC") or "h264").strip() or "h264"
+
+
+def _default_encoder_threads() -> int:
+    """Four camera encoders share the CPU; leave headroom for decode and I/O."""
+    return max(1, min(4, (os.cpu_count() or 4) // 4))
+
+
+_ENCODER_THREADS = (os.environ.get("ROBODATA_MATCHING_ENCODER_THREADS") or "").strip()
+ENCODER_THREADS = int(_ENCODER_THREADS) if _ENCODER_THREADS else _default_encoder_threads()
 STATE_NAMES = [f"puppet_joint_{index}" for index in range(16)]
 ACTION_NAMES = [f"master_joint_{index}" for index in range(16)]
 
@@ -125,8 +135,9 @@ def build_preview(source: Path, output: Path) -> dict:
     dataset = LeRobotDataset.create(
         repo_id="local/matching-cable-teleoperation", root=output, fps=FPS,
         features=feature_definitions(shapes, capabilities["optional_present"]), robot_type="dual_arm_teleoperation",
-        video_backend="pyav", vcodec="h264", image_writer_processes=0,
+        video_backend="pyav", vcodec=VCODEC, image_writer_processes=0,
         image_writer_threads=0, batch_encoding_size=1, streaming_encoding=True,
+        encoder_threads=ENCODER_THREADS,
     )
     hashes = []
     episode_records = []
