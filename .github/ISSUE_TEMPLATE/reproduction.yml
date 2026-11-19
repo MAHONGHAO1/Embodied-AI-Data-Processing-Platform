@@ -1,0 +1,67 @@
+name: 独立复现报告
+description: 记录一次陌生环境下的复现结果（成功或失败都欢迎）
+title: "[复现] "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        请只填写可核对的事实，不要粘贴猜测或“应该可以”。成功和失败都会保留；失败请贴完整报错，不要只写摘要。
+        步骤与预期见 [五分钟复现](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/blob/main/docs/REPRODUCTION.md)。
+  - type: dropdown
+    id: tier
+    attributes:
+      label: 执行的路径
+      options:
+        - Tier 1 · 无网络（verify-fixtures + 版本测试）
+        - Tier 2 · 固定真实样本（mode source）
+        - 完整 9 阶段（mode full）
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: 环境
+      description: 操作系统、Python / uv 版本、Node.js 版本（如适用）、是否有网络限制
+      placeholder: Windows 11 / Python 3.12.10 / uv 0.x / 公司代理
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: 完整命令
+      description: 直接粘贴执行过的命令，不要省略参数
+    validations:
+      required: true
+  - type: dropdown
+    id: outcome
+    attributes:
+      label: 结果
+      options:
+        - 通过
+        - 失败
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: 输出或报错
+      description: "通过时贴关键输出（如 6/6、passed: true）；失败时贴完整 traceback"
+    validations:
+      required: true
+  - type: input
+    id: duration
+    attributes:
+      label: 耗时
+      description: 大约多少分钟
+    validations:
+      required: false
+  - type: checkboxes
+    id: honesty
+    attributes:
+      label: 记录规则
+      options:
+        - label: 这是我在自己环境中的实际运行结果，不是转发或推测
+          required: true
+        - label: 我理解 2 Episode 不代表 SO-100 全量，DataLoader 探针不代表训练效果
+          required: true

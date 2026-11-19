@@ -8,6 +8,24 @@
 
 转换保留支持范围内的数值字段及四路相机特征。每路视频单独验证文件、解码帧数和表格时间映射；结果记录相机字段名、帧率、分辨率和来源。逐路映射通过不表示相机具备硬件同步。未知 revision、结构或相机配置应明确失败，不做自动格式推断。Episode 0–4 共 5,500 帧已完成来源哈希核对、官方离线加载、数值检查、输出质量检查与独立验包；证据见 v0.6.0 验收记录。
 
+## Matching Cable 本机遥操帧序列
+
+目录下的 `68`–`74` 各表示一条完整原始遥操 Episode。每条 Episode 由若干按数字序号命名的单帧 HDF5 文件组成；相邻文件时间戳约 50 ms，固定按 20 FPS 处理。
+
+| 源字段 | 维度／格式 | 平台映射 | 必需 / 缺失时 |
+| --- | --- | --- | --- |
+| `master/joint_position` | float32[16] | `action`，主臂关节控制目标 | 必需；缺失即失败 |
+| `puppet/joint_position` | float32[16] | `observation.state`，从臂关节状态 | 必需；缺失即失败 |
+| `timestamps` | int32[1] | 源毫秒时间；校验 50 ± 10 ms/帧，输出按 20 FPS 派生 | 必需；越界即失败，不静默继续 |
+| `observations/rgb_images/camera_0..3` | JPEG VLEN | `observation.images.camera_0..3`，H.264 输出 | 可选，至少 1 路；缺失相机记入 `missing_cameras`，不写入、不阻断 |
+| `observations/depth_images/camera_1..2` | PNG VLEN | 校验可读并记录来源，输出不含深度视频 | 可选；缺失记入 `missing_depth_source_cameras`，不阻断 |
+| `master/eef` | float32[28] | `master.eef`，保留来源顺序 | 可选；缺失记入 `optional_fields=not_provided` |
+| `puppet/eef` | float32[28] | `observation.eef`，保留来源顺序 | 可选；同上 |
+| `puppet/joint_effort` | float32[16] | `observation.joint_effort` | 可选；同上 |
+| `puppet/6f` | float32[12] | `observation.force_torque`（六维力，不是触觉） | 可选；同上 |
+| 触觉字段 | — | 当前不读取、不写入 | 不适用；固定记录 `tactile.status=not_provided` |
+
+来源根目录可以包含多条数字 Episode，也可以直接指向某一条数字 Episode 目录。导入采用本地引用和内容哈希清单，不复制 9 GB 原始文件；主工作台的预览、质检、转换和交付均读取上述字段。缺失流不会补造：清单和界面逐条显示“没有哪一路”，转换只为实际存在的相机/数值字段建立特征。只有显式标注的任务描述、执行结果和审核状态进入下游候选快照。完整说明与合成回归见 [MATCHING_CABLE.md](MATCHING_CABLE.md)。
 ## SO-100 原始公开样本
 
 来源：[jmrog/so100_sweet_pick](https://huggingface.co/datasets/jmrog/so100_sweet_pick)，固定版本 `54141acb0bd6bcb868e34b4eb328f26481d333b2`。上游声明Apache-2.0、SO-100机器人，任务文字 `red sweet pick`。

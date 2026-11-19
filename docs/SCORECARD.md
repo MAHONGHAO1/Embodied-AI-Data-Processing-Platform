@@ -1,4 +1,4 @@
-# 作品集评分卡 · v0.11.0
+# 作品集评分卡 · v0.12.0
 
 这份评分卡不是自我表扬，而是把「下一代版本要做到什么」变成可检查的条目。分数只用于排序工作，不作为对外结论。
 
@@ -9,7 +9,7 @@
 | 可复现 | 陌生环境一条命令跑通核心链路，不依赖作者本机 `work/` | 完成（2 Episode） | 固定 revision 的 Episode 0–1 + `scripts/verify_pipeline.py --mode full`，9 个阶段；见 [ACCEPTANCE.md](ACCEPTANCE.md) |
 | 可验证 | 每个 headline 都有命令、原始 JSON 和退出码 | 完成 | `docs/EVIDENCE.md` 集中计数；`work/acceptance/pipeline-full.json` 为原始报告；ZIP 不随仓库分发 |
 | 边界 | 明确写出「不证明什么」，并在 UI / 文档 / 报告一致 | 强 | 2 Episode 不是全量；DataLoader 探针不是训练效果；本地单用户；见 [EVIDENCE.md](EVIDENCE.md) |
-| 深度 | 至少一个别人不容易复制的技术点 | 强 | 真实 LeRobot 批次、官方 writer、独立验包、坏样本 6/6、官方 `lerobot 0.4.4` DataLoader 探针 |
+| 深度 | 至少一个别人不容易复制的技术点 | 强 | 真实 LeRobot 批次、官方 writer、独立验包、坏样本 6/6、官方 `lerobot 0.4.4` DataLoader 探针；Matching Cable 缺失相机/深度/可选字段按事实记录并继续 |
 | 叙事 | 两个项目共享同一条 provenance 方法论 | 完成 | [跨领域证据](https://github.com/MAHONGHAO1/AI-Fund-Management-Platform/blob/main/docs/CROSS_DOMAIN.md) 已写清共用结构与不可外推边界；两个 README 互相指向 |
 | UX | 首屏能看懂问题、证据入口和边界 | 强 | 60 秒证据已前置；历史布局截图单独标版本 |
 | 性能 | 有分阶段耗时、内存和明确规模边界 | 完成（缺内存） | 2 Episode 全阶段耗时 + 表格规模实验；**没有测内存峰值** |
