@@ -72,6 +72,37 @@ def main(argv=None):
     demo.add_argument("--target", type=Path, default=None, help="独立的空目标目录；默认位于 work 下")
     demo.add_argument("--scenario", choices=("anomalies", "missing_video"), default="anomalies",
                       help="anomalies：数据异常；missing_video：单任务视频缺失")
+    adapters = sub.add_parser("adapters", help="列出、探测或预检数据源适配器")
+    adapters_sub = adapters.add_subparsers(dest="adapters_command", required=True)
+    adapters_sub.add_parser("list", help="列出已注册适配器与声明支持的版本")
+    for action, help_text in (("detect", "探测一个本地输入匹配哪个适配器"),
+                              ("inspect", "输出匹配适配器的结构预检摘要")):
+        command = adapters_sub.add_parser(action, help=help_text)
+        command.add_argument("--input", type=Path, required=True)
+        command.add_argument("--test-label", default=None, help="仅用于明确标注的故障副本")
+    doctor = sub.add_parser("doctor", help="检查 Python、适配器、版本链与转换环境")
+    doctor.add_argument("--quiet", action="store_true", help="只输出结论，不展开检查明细")
+    process = sub.add_parser("process", help="按冻结计划跑完导入、标注、转换、验证与交付")
+    process.add_argument("--plan", type=Path, required=True, help="JSON 或 TOML 计划")
+    process.add_argument("--business-root", type=Path, default=None)
+    process.add_argument("--runs-root", type=Path, default=None)
+    process.add_argument("--timeout", type=float, default=None, help="单次运行等待上限秒数")
+    process.add_argument("--dry-run", action="store_true", help="只校验计划与适配器，不启动任何运行")
+    registry = sub.add_parser("registry", help="本地数据集登记表")
+    registry_sub = registry.add_subparsers(dest="registry_command", required=True)
+    registry_list = registry_sub.add_parser("list", help="列出已登记数据集与版本")
+    registry_list.add_argument("--business-root", type=Path, default=None)
+    registry_show = registry_sub.add_parser("show", help="查看一个数据集的登记卡片")
+    registry_show.add_argument("--dataset-id", required=True)
+    registry_show.add_argument("--version", default=None)
+    registry_show.add_argument("--business-root", type=Path, default=None)
+    registry_register = registry_sub.add_parser("register", help="登记一个已验证的 dataset_card.json")
+    registry_register.add_argument("--card", type=Path, required=True)
+    registry_register.add_argument("--zip", type=Path, default=None)
+    registry_register.add_argument("--artifact", type=Path, default=None)
+    registry_register.add_argument("--business-root", type=Path, default=None)
+    registry_verify = registry_sub.add_parser("verify", help="重算 card_digest，不信任文件自述")
+    registry_verify.add_argument("--card", type=Path, required=True)
     for name, help_text in {
         'import-batch': '导入管理副本并生成原始预览', 'batches': '列出业务批次及坏批次诊断',
         'show-batch': '查看批次、清洗、审核和产物', 'check-batch': '真实质检并绑定批次',
@@ -84,7 +115,8 @@ def main(argv=None):
         command.add_argument('--runs-root', type=Path, default=None)
         if name == 'import-batch':
             command.add_argument('--input', type=Path, required=True)
-            command.add_argument('--source', choices=('hdf5', 'so100', 'aloha', 'matching_cable'), required=True)
+            command.add_argument('--source', choices=('auto', 'hdf5', 'so100', 'aloha', 'matching_cable'),
+                                 required=True, help='auto 按目录结构选择适配器；失败时明确列出原因')
             command.add_argument('--label', required=True)
             command.add_argument('--test-label', default=None, help='仅用于明确标注的故障副本')
         if name in {'show-batch', 'show-flow', 'check-batch', 'final-check-batch', 'convert-batch', 'deliver-batch'}:
@@ -107,6 +139,70 @@ def main(argv=None):
     if hasattr(sys.stderr, "reconfigure"):
         sys.stderr.reconfigure(encoding="utf-8")
     try:
+        if args.command == 'adapters':
+            from .adapters import ADAPTER_CONTRACT_VERSION, descriptors, get_adapter
+            from .adapters import detect as detect_sources
+            if args.adapters_command == 'list':
+                print(json.dumps({"contract_version": ADAPTER_CONTRACT_VERSION,
+                                  "adapters": descriptors()}, ensure_ascii=False, indent=2))
+                return 0
+            path = args.input.expanduser().resolve()
+            candidates = detect_sources(path, test_label=args.test_label)
+            chosen = next((item for item in candidates if item["supported"]), None)
+            if args.adapters_command == 'detect':
+                print(json.dumps({"input": str(path), "detected": chosen, "candidates": candidates},
+                                 ensure_ascii=False, indent=2))
+                return 0 if chosen else 3
+            if chosen is None:
+                print(json.dumps({"input": str(path), "supported": False, "candidates": candidates},
+                                 ensure_ascii=False, indent=2))
+                return 3
+            preflight = get_adapter(chosen["adapter_id"]).preflight(path, test_label=args.test_label)
+            print(json.dumps({"input": str(path), "detection": chosen,
+                              "preflight": preflight.to_dict()}, ensure_ascii=False, indent=2))
+            return 0 if preflight.supported else 3
+        if args.command == 'doctor':
+            from .doctor import run_doctor
+            report = run_doctor()
+            if args.quiet:
+                report = {"ok": report["ok"], "app_version": report["app_version"],
+                          "failed": [item for item in report["checks"] if item["status"] == "fail"],
+                          "warnings": [item for item in report["checks"] if item["status"] == "warn"]}
+            print(json.dumps(report, ensure_ascii=False, indent=2))
+            return 0 if report["ok"] else 1
+        if args.command == 'registry':
+            from . import registry as registry_module
+            from .business import get_store
+            if args.registry_command == 'verify':
+                result = registry_module.verify_card_path(args.card)
+                print(json.dumps(result, ensure_ascii=False, indent=2))
+                return 0 if result["valid"] else 3
+            root = get_store(args.business_root).root
+            try:
+                if args.registry_command == 'list':
+                    value = registry_module.list_datasets(root)
+                elif args.registry_command == 'show':
+                    value = registry_module.show(args.dataset_id, args.version, root)
+                else:
+                    value = registry_module.register_card_file(
+                        args.card, root=root, zip_path=args.zip, artifact_path=args.artifact)
+            except (KeyError, ValueError) as exc:
+                print(json.dumps({"status": "rejected", "message": str(exc)}, ensure_ascii=False, indent=2))
+                return 4
+            print(json.dumps(value, ensure_ascii=False, indent=2, default=str))
+            return 0
+        if args.command == 'process':
+            from .process_plan import EXIT_INVALID, PlanError, load_plan, run_process
+            try:
+                plan = load_plan(args.plan)
+            except PlanError as exc:
+                print(json.dumps({"status": "invalid", "exit_code": EXIT_INVALID, "message": str(exc)},
+                                 ensure_ascii=False, indent=2))
+                return EXIT_INVALID
+            result = run_process(plan, runs_root=args.runs_root, business_root=args.business_root,
+                                 timeout=args.timeout, dry_run=args.dry_run)
+            print(json.dumps(result, ensure_ascii=False, indent=2, default=str))
+            return int(result["exit_code"])
         if args.command in {'import-batch', 'batches', 'show-batch', 'check-batch', 'convert-batch',
                             'deliver-batch', 'verify-delivery', 'reconcile-run', 'final-check-batch', 'show-flow'}:
             from . import business
@@ -124,7 +220,11 @@ def main(argv=None):
                 value = business.reconcile_run(args.run_id, runs_root=args.runs_root)
             else:
                 if args.command == 'import-batch':
-                    run_id = business.start_import(args.input, args.source, args.label, args.test_label, **options)
+                    source_kind = args.source
+                    if source_kind == 'auto':
+                        from .adapters import best
+                        source_kind = best(Path(args.input), test_label=args.test_label)["adapter_id"]
+                    run_id = business.start_import(args.input, source_kind, args.label, args.test_label, **options)
                 elif args.command == 'check-batch':
                     run_id = business.start_batch_quality(args.batch_id, args.revision, **options)
                 elif args.command == 'final-check-batch':
@@ -263,9 +363,11 @@ def main(argv=None):
             return 0
         return 0
     except Exception as exc:
+        from .adapters import UnsupportedSource
         from .errors import explain_error
-        print(explain_error(exc, context="执行命令"), file=sys.stderr)
-        return 1
+        message = str(exc) if isinstance(exc, UnsupportedSource) else explain_error(exc, context="执行命令")
+        print(message, file=sys.stderr)
+        return 3 if isinstance(exc, UnsupportedSource) else 1
 
 
 if __name__ == "__main__":

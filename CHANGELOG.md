@@ -1,5 +1,20 @@
 # 变更记录
 
+## v0.14.0（2026-11-19 发布）· 契约化：适配器、无头计划与数据卡
+
+**不加新格式，先把“支持”做成可测试、可拒绝、可插拔的契约。**
+
+- **Adapter Contract v1**：新增 `robodata/adapters/`，四个内置适配器迁移到探测/预检/托管复制/预览/清单契约；导入编排不再按 `kind` 分支；`adapter_id == source_kind` 有硬校验。
+- **CLI**：新增 `robodata adapters list|detect|inspect`、`robodata doctor`；`import-batch --source auto` 自动探测，失败返回专用退出码与逐项原因。
+- **无头计划**：`robodata process --plan` 一条命令跑完导入、质检、标注、审核、转换、验证、打包与登记；退出码区分通过/业务拒绝/无适配器/计划无效/运行失败。
+- **阶段级幂等**：复用已导入批次、已批准标注、当前产物与交付 ZIP；500 帧同计划重跑 0.54 s；节点级断点续跑未做。
+- **数据卡**：交付 ZIP 内新增 `dataset/dataset_card.json`，`card_digest` 可重算；新增 `registry.sqlite3` 与 `robodata registry` 命令；同 ID/版本不同内容冲突，不覆盖。
+- **视频统计**：转换入口把整数批次的平方/方差计算转 float64，直方图保持整数再计算，修复 `uint8` 平方溢出导致的 `std=0`；旧包不追溯改写。
+- **500 帧端到端**：`process` 209.67 s；数据卡 `telecom-matching-cable-500` v1；ZIP 26 个文件含数据卡；登记表 1 条；修复后视频 `std≈0.202`。
+- **全量转换链路**：7 Episode / 11,879 帧预览 1,354.58 s，复用 `format_write` 184.75 s，`official_verify` 28.10 s；11,879 行、28 个视频，视频 `std≈0.207`。完整 7 集 `process`（打包/交付/登记）未跑。
+- **测试**：Python 353 passed / 14 skipped；前端 26 passed；`verify-fixtures` 6/6；浏览器流程 2 passed。
+- 版本链统一到 0.14.0；发布说明：[RELEASE_NOTES_v0.14.0.md](RELEASE_NOTES_v0.14.0.md)
+
 ## v0.13.0（2026-11-19 发布）· Matching Cable 编码一次
 
 **去掉第二次视频编码，保留逐帧源数值回核和全有或全无回退。**

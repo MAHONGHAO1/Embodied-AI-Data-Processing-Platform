@@ -246,6 +246,8 @@ def build_preview(source: Path, output: Path) -> dict:
     from lerobot.datasets.lerobot_dataset import LeRobotDataset
 
     assert_lerobot_compatibility()
+    from lerobot_stats import patch_running_quantile_stats
+    patch_running_quantile_stats()
     if output.exists():
         if not output.is_dir() or any(output.iterdir()):
             raise FileExistsError(f"预览目录已有内容，不能覆盖：{output}")

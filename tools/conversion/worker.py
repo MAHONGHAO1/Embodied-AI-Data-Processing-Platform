@@ -314,6 +314,8 @@ def write_dataset(source: Path, output: Path, provenance: dict, metadata: dict, 
         "action": {"dtype": "float32", "shape": (7,), "names": ACTION_NAMES},
         CAMERA: {"dtype": "video", "shape": (84, 84, 3), "names": ["height", "width", "channels"]},
     }
+    from lerobot_stats import patch_running_quantile_stats
+    patch_running_quantile_stats()
     dataset = LeRobotDataset.create(repo_id=REPO_ID, root=output, fps=FPS, features=features, robot_type="panda_simulation", video_backend="pyav", vcodec="h264", image_writer_processes=0, image_writer_threads=0, batch_encoding_size=1, streaming_encoding=streaming_encoding())
     try:
         for episode in mapped:

@@ -1,4 +1,4 @@
-# 证据总表 · v0.13.0
+# 证据总表 · v0.14.0
 
 本文件是 README 中版本、测试数量、规模实验和训练冒烟的统一出处。README 只指向这里，不再复制会漂移的数字。
 
@@ -8,15 +8,15 @@
 
 | 位置 | 值 | 校验 |
 | --- | --- | --- |
-| README 首行 | 0.13.0 | `tests/test_version_consistency.py` |
-| README release 徽章 | 0.13.0 | 同上 |
-| `pyproject.toml` | 0.13.0 | 同上 |
-| `robodata/config.py` `APP_VERSION` | 0.13.0 | 同上 |
-| `robodata/web.py` FastAPI | 0.13.0 | 同上 |
-| `robodata/web.py` 健康检查 | 0.13.0 | 同上 |
-| `frontend/package.json` | 0.13.0 | 同上 |
-| `frontend/src/App.tsx` 版本条 | 0.13.0 | 同上 |
-| `RELEASE_NOTES_v0.13.0.md` | 存在 | 同上 |
+| README 首行 | 0.14.0 | `tests/test_version_consistency.py` |
+| README release 徽章 | 0.14.0 | 同上 |
+| `pyproject.toml` | 0.14.0 | 同上 |
+| `robodata/config.py` `APP_VERSION` | 0.14.0 | 同上 |
+| `robodata/web.py` FastAPI | 0.14.0 | 同上 |
+| `robodata/web.py` 健康检查 | 0.14.0 | 同上 |
+| `frontend/package.json` | 0.14.0 | 同上 |
+| `frontend/src/App.tsx` 版本条 | 0.14.0 | 同上 |
+| `RELEASE_NOTES_v0.14.0.md` | 存在 | 同上 |
 
 `APP_VERSION` 会写进质量报告；版本链漂移会让报告声称自己来自一个从未发布的版本，因此用测试而不是人工纪律守住。
 
@@ -39,23 +39,25 @@ Pop-Location
 
 | 套件 | 结果 |
 | --- | --- |
-| Python 全量（Windows） | **328 passed / 14 skipped / 13 subtests passed** |
+| Python 全量（Windows） | **353 passed / 14 skipped / 13 subtests passed** |
 | 已知坏样本 `verify-fixtures` | **6/6 通过** |
 | 前端单测（Vitest） | **26 passed** |
 | 前端生产构建 | 通过 |
 | Chromium 浏览器流程 | **2 passed** |
 
-跳过项主要来自：需要 `tools/conversion/` 独立环境或固定真实数据的用例、可选 ROS2 MCAP 依赖，以及默认不启用的 Git tag 校验（`CHECK_RELEASE_TAG=1`）。跳过不等于通过。新增 `tests/test_matching.py` 覆盖缺失相机/深度/可选字段分类、动态特征定义、额外帧、同大小同 mtime 的内容变化；`scripts/verify_matching_optional.py` 在独立转换环境中实跑缺失流预览、复用转换、子集重编号与篡改回退（3 条转换路径 × 6 个阶段）。
+跳过项主要来自：需要 `tools/conversion/` 独立环境或固定真实数据的用例、可选 ROS2 MCAP 依赖，以及默认不启用的 Git tag 校验（`CHECK_RELEASE_TAG=1`）。跳过不等于通过。v0.14 新增 `tests/test_adapters.py`（四个内置适配器探测、未知版本拒绝、toy adapter 不改 core）、`tests/test_process_plan.py`（计划校验、标注覆盖、dry-run）与 `tests/test_registry.py`（数据卡自校验、登记冲突）；`scripts/verify_matching_optional.py` 在独立转换环境中实跑缺失流预览、复用转换、子集重编号与篡改回退（3 条转换路径 × 6 个阶段）。
 
-CI 结果按提交记录（2026-11-19）：
+v0.14.0 的 CI 结果在发布提交后回填：
+
+<!-- V014_CI -->
+
+下面是 v0.13.0 的历史 CI 记录（tag `v0.13.0` 保持原指向，不移动）：
 
 | 运行 | 提交 | 结果 |
 | --- | --- | --- |
 | [tests](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/runs/44513279659) | `2df17d9` | success：前端单测、构建、Chromium 流程；Python 全量；`verify-fixtures` |
 | [linux-smoke](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/runs/44513279638) | `2df17d9` | success：Ubuntu 版本一致性、表格质检、坏样本校验、100 步冒烟 |
 | [acceptance](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/runs/44513297289) | `2df17d9` | success：`source-linux`、`full-windows`、`docker-linux` 三个 job 全部通过；`full-windows` 的 Matching Cable 复用、子集重编号与篡改回退步骤也通过 |
-
-`v0.13.0` tag 指向本文件更新后的文档提交；`v0.12.1` tag 保持在 `d5668ea` 未移动。`2df17d9` 与文档提交的差异仅为 `docs/EVIDENCE.md`，未改代码。
 
 `acceptance.yml` 的三个 job 分别验证：Linux 上跑 `--mode source`；Windows 上下载固定样本并跑 `--mode full`（含转换与 DataLoader）；Linux 容器构建、健康页与坏样本。本机没有 Docker，容器结论只以 `docker-linux` 为准。
 
@@ -160,7 +162,7 @@ v0.13.0 还用同一 2×2 合成夹具跑完整业务链（导入 → 最终质�
 
 v0.12.1 没有跑全量 11,879 帧；上面的 25 分钟是按 500 帧外推，不是实测。v0.13.0 的全量结果见 5.2。数据与 `work/` 产物不随仓库分发；结构明细见本机 `work/telecom-compatibility.md`。
 
-### 5.2 全量 7 集 / 11,879 帧（v0.13.0）
+### 5.2 全量 7 集 / 11,879 帧（v0.13.0 历史）
 
 本机把 9.66 GB ZIP 解压到仓库外的临时目录，源数据不进入 Git；预览和输出放在 `work/telecom-full-v013/`（`work/` 不随仓库分发）。全量源文件 11,879 个 / 10,038,385,032 字节，Episode 68–74 长度分别为 1,777 / 1,806 / 1,787 / 1,946 / 1,707 / 1,027 / 1,829 帧。
 
@@ -181,6 +183,38 @@ v0.12.1 没有跑全量 11,879 帧；上面的 25 分钟是按 500 帧外推，�
 `format_write` 复用路径没有调用视频编码器；日志里出现的 libx264 行来自同一预览首次编码或 `--no-reuse` 重编码路径，不作为复用路径的编码证据。复用时对全部 11,879 个源文件重新计算 SHA-256，再逐帧重读源 HDF5 数值与预览 parquet 对照。全量复用路径为 206.46 s，干净重编码为 1,072.68 s；复用约为重编码的 **19.2%**（5.2×）。这是本机单次测量，不是跨机器保证，也不证明硬件同步或策略效果。
 
 全量运行在 commit `381a4f7` 上完成；随后 `2df17d9` 只修复 `file_validation` / `matching_validation` 的候选行数展示（原先把输出索引之和显示成 21，而不是 11,879），不改变 `format_write` 复用路径或输出字节。CI 在 `2df17d9` 上复跑。
+
+### 5.3 v0.14 契约化与无头计划
+
+500 帧 Episode 68 端到端：
+
+```powershell
+uv run --locked robodata process --plan work/telecom-500/process-plan.json `
+  --business-root work/business-v14 --runs-root work/runs-v14
+```
+
+| 项 | 结果 |
+| --- | --- |
+| `process --plan` 全链路 | **209.67 s**（导入、质检、标注、转换复用、打包、交付、登记） |
+| 同计划幂等重跑 | **0.54 s**；没有新增运行目录 |
+| 转换策略 | `preview_video_reuse`；`video_files_reused=4`；`fallback_reason=null` |
+| 数据卡 | `telecom-matching-cable-500` v1；`card_digest=fcd35d753afceafba0822b4961828cb6891090c7350798864baecb86712cb877`；`verify_card=(True, "ok")` |
+| 交付 ZIP | 26 个文件，包含 `dataset/dataset_card.json` |
+| 本地登记表 | 1 条数据集 / 1 个版本；同版本重复登记返回 `unchanged` |
+| 视频统计 | 修复后 `std≈0.202`（修复前为 0）；`tools/conversion/check_video_stats.py` 输出 `patched=true` |
+| Episode 68 完整 1,777 帧预览（v0.14） | **204.58 s**；4 路相机；证明统计修复没有把长 Episode 拖成不可用 |
+
+全量 7 集 / 11,879 帧的 v0.14 转换链路（不含业务打包/登记）：
+
+| 步骤 | 结果 |
+| --- | --- |
+| 全量预览（7 Episode / 4 路相机） | **1,354.58 s（22 分 34.58 秒）**；28 个独立 MP4 / 7 个数值 parquet |
+| `format_write` 复用预览视频 | **184.75 s（3 分 4.75 秒）**；`strategy=preview_video_reuse`、`video_files_reused=28`、`source_numeric_consistency_rechecked=true`、`fallback_reason=null` |
+| `official_verify` | **28.10 s**；7 Episode / 11,879 帧；`sample_count=84`；`batch_size=2`；`offline=true` |
+| 输出 | 11,879 行 × 7 Episode；28 个视频 / 48 个文件 / 526,067,367 字节；视频 `std≈0.207`（不再是 0） |
+| 28 个视频 SHA-256 规范汇总 | `2ab6e8fa3f59ac213d355f26ec8eb94d3febe208da791ddf0285bcc8dc8d7f4e` |
+
+v0.14 **没有跑完整 7 集的 `process`（打包、交付、登记）**；这三项只在 500 帧端到端验证。全量打包/交付证据仍来自 v0.13.0（5.2），不要把 500 帧的交付结论外推到全量。
 
 ## 6. 历史真实数据验收
 

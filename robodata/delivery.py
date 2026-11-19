@@ -102,7 +102,7 @@ def package(request: dict, run: Path) -> dict:
                 target=payload/'dataset'/source.relative_to(dataset)
                 target.parent.mkdir(parents=True,exist_ok=True)
                 shutil.copy2(source,target)
-    for name in ('source_manifest.json','annotations.json','CONVERSION.md'):
+    for name in ('source_manifest.json','annotations.json','CONVERSION.md','dataset_card.json'):
         if (dataset/name).is_file(): shutil.copy2(dataset/name,payload/'dataset'/name)
     docs=payload/'documents'
     docs.mkdir()
@@ -193,6 +193,10 @@ def package(request: dict, run: Path) -> dict:
         'from torch.utils.data import DataLoader\n'
         'ds = LeRobotDataset("local/delivery", root="dataset", video_backend="pyav")\n'
         'batch = next(iter(DataLoader(ds, batch_size=2, num_workers=0)))\n```\n',encoding='utf-8')
+    from .dataset_card import build_card
+    card = build_card(batch, output, spec, conversion_run,
+                      dataset_id=request.get('dataset_id'), version=request.get('dataset_version'))
+    _atomic_json(payload/'dataset'/'dataset_card.json',card)
     manifest={'schema_version':1,'format_version':'v3.0','batch_id':batch['batch_id'],
               'content_version':spec['content_version'],'snapshot_id':spec['snapshot_id'],
               'episode_count':len(spec['episodes']),'row_count':sum(e['row_count'] for e in spec['episodes']),
@@ -207,7 +211,10 @@ def package(request: dict, run: Path) -> dict:
             if path.is_file(): archive.write(path,path.relative_to(payload).as_posix())
     if dataset_fingerprint(dataset)!=fingerprint: raise ValueError('打包期间已验证输出发生变化，交付未登记')
     return {'zip_path':str(destination.resolve()),'zip_sha256':file_sha256(destination),'size_bytes':destination.stat().st_size,
-            'snapshot_id':spec['snapshot_id'],'episode_count':manifest['episode_count'],'row_count':manifest['row_count']}
+            'snapshot_id':spec['snapshot_id'],'episode_count':manifest['episode_count'],'row_count':manifest['row_count'],
+            'dataset_id':card['dataset_id'],'dataset_version':card['version'],
+            'dataset_card_digest':card['card_digest'],
+            'dataset_card_sha256':file_sha256(payload/'dataset'/'dataset_card.json')}
 
 
 def verify(request: dict, run: Path) -> dict:
@@ -229,12 +236,23 @@ def verify(request: dict, run: Path) -> dict:
             out.parent.mkdir(parents=True,exist_ok=True)
             with archive.open(e) as stream,out.open('wb') as sink: shutil.copyfileobj(stream,sink)
     manifest=_validate_payload(target,request.get('snapshot',{}).get('snapshot_id'))
+    from .dataset_card import load_card, verify_card
+    card_path=target/'dataset'/'dataset_card.json'
+    card={}
+    if card_path.is_file():
+        card=load_card(card_path)
+        valid,message=verify_card(card)
+        if not valid: raise ValueError('交付包内 dataset_card.json 自校验失败：'+message)
     if file_sha256(path)!=before: raise ValueError('验证过程中 ZIP 发生变化')
     _atomic_json(run/'archive.sha256.json',{'filename':path.name,'sha256':before,'size_bytes':path.stat().st_size})
     return {'zip_path':str(path),'zip_sha256':before,'size_bytes':path.stat().st_size,'manifest_verified':True,
             'unpacked_path':str(target),'dataset_path':str(target/'dataset'),
             'episode_count':manifest['episode_count'],'row_count':manifest['row_count'],
-            'snapshot_id':manifest['snapshot_id'],'format_version':manifest['format_version']}
+            'snapshot_id':manifest['snapshot_id'],'format_version':manifest['format_version'],
+            'dataset_card_present':card_path.is_file(),
+            'dataset_id':card.get('dataset_id'),'dataset_version':card.get('version'),
+            'dataset_card_digest':card.get('card_digest'),
+            'dataset_card_sha256':file_sha256(card_path) if card_path.is_file() else None}
 
 
 def verified_delivery(batch: dict, delivery_id: str) -> dict:

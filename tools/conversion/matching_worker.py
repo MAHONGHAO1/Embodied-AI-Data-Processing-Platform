@@ -418,6 +418,8 @@ def _write_dataset_reuse(preview: Path, output: Path, spec: dict, manifest: dict
                                   feature_definitions, read_numeric)
 
     assert_lerobot_compatibility()
+    from lerobot_stats import patch_running_quantile_stats
+    patch_running_quantile_stats()
     context = _preview_reuse_context(preview, manifest, records, raw_ids, candidates, cameras, capabilities, shapes)
     selected = context["selected"]
     selected_ids = {int(raw_ids[int(candidate["source_episode_index"])]) for candidate in candidates}
@@ -617,6 +619,8 @@ def _write_dataset_legacy(preview: Path, output: Path, spec: dict, manifest: dic
                                   read_numeric, validate_depth)
 
     assert_lerobot_compatibility()
+    from lerobot_stats import patch_running_quantile_stats
+    patch_running_quantile_stats()
     if output.exists():
         if not output.is_dir() or any(output.iterdir()):
             raise FileExistsError("输出目录已有内容，不能覆盖")

@@ -2,9 +2,9 @@
 
 **把机器人演示数据，做成敢交给下游的训练集。**
 
-v0.13.0 · Windows / Linux CI / Python 3.12 / Node.js 24 · 本地单用户
+v0.14.0 · Windows / Linux CI / Python 3.12 / Node.js 24 · 本地单用户
 
-[![tests](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/tests.yml/badge.svg)](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/tests.yml) [![linux](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/linux-smoke.yml/badge.svg)](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/linux-smoke.yml) [![release](https://img.shields.io/badge/release-v0.13.0-blue.svg)](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/releases/tag/v0.13.0) [![license](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE) [![portfolio](https://img.shields.io/badge/portfolio-live-1677ff.svg)](https://mahonghao1.github.io/)
+[![tests](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/tests.yml/badge.svg)](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/tests.yml) [![linux](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/linux-smoke.yml/badge.svg)](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/linux-smoke.yml) [![release](https://img.shields.io/badge/release-v0.14.0-blue.svg)](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/releases/tag/v0.14.0) [![license](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE) [![portfolio](https://img.shields.io/badge/portfolio-live-1677ff.svg)](https://mahonghao1.github.io/)
 
 采集现场四路相机各录一份，导出时每个批次的目录结构都不一样，交接时对方只问一句：这个包能训吗。
 
@@ -12,11 +12,11 @@ RoboData 就是回答这一句的工具。导入、清洗筛选、标注审核�
 
 界面是 React + TypeScript，服务是 FastAPI，全跑在你自己机器上。Python 侧的数据处理、质检和验包才是业务权威实现——界面只是它的一层皮，不会替它做决定。
 
-![工作台（v0.12.1 截图；v0.13.0 界面未变）：固定 revision 的 SO-100 2 Episode，t=8.37 s / 帧 251，右侧检视显示来源锁定与质检结果](docs/assets/workbench-v0.12.1.png)
+![工作台（v0.12.1 截图；v0.14.0 界面未变）：固定 revision 的 SO-100 2 Episode，t=8.37 s / 帧 251，右侧检视显示来源锁定与质检结果](docs/assets/workbench-v0.12.1.png)
 
-> 2026-11-19 从本机 FastAPI 服务（同源托管构建后的 `frontend/dist`）截取。视频是真能播的：时间轴跳到 8.37 s，视频 `currentTime` 也走到 8.37，曲线游标跟着帧动。v0.13.0 只改 Matching Cable 转换后端，界面未变，因此保留这张截图。
+> 2026-11-19 从本机 FastAPI 服务（同源托管构建后的 `frontend/dist`）截取。视频是真能播的：时间轴跳到 8.37 s，视频 `currentTime` 也走到 8.37，曲线游标跟着帧动。v0.14.0 未改界面，因此保留这张截图。
 
-> **60 秒证据（v0.13.0）**：版本链 8 处由测试锁定；已知坏样本 `6/6` 命中预期判据；Matching Cable 改为“预览编码一次、转换复用视频”，500 帧 A/B 复用 18.28 s vs 重编码 58.71 s；电信 10 GB 全量 7 Episode / 11,879 帧实测预览 22 分 18 秒、复用 `format_write` 3 分 26 秒、干净重编码 17 分 53 秒，11,879 行数值逐列相等、28/28 个视频 SHA-256 相同，复用输出官方验证 / 输出质检 / archive verify 全部通过。Python 全量、前端单测与浏览器流程均通过。逐条命令、计数、耗时与未验证边界见 [docs/EVIDENCE.md](docs/EVIDENCE.md)。
+> **60 秒证据（v0.14.0）**：版本链 9 处由测试锁定；已知坏样本 `6/6` 命中预期判据；四个输入适配器迁入 Adapter Contract v1，未知版本明确拒绝；`process --plan` 一条命令跑完导入→标注→转换→打包→登记，500 帧电信样本 **209.67 s**，幂等重跑 **0.54 s**；全量 11,879 帧转换链路预览 **22 分 35 秒**、复用转换 **3 分 05 秒**、官方验证 **28.10 s**（完整 7 集打包/登记未跑）；交付 ZIP 内含可重算的 `dataset_card.json`，本地登记表拒绝同版本覆盖；视频 `std=0` 已修复（500 帧约 `0.202`，全量约 `0.207`）。Python **353 passed / 14 skipped**，前端 **26 passed**、构建与 Chromium 流程通过。逐条命令、计数、耗时与未验证边界见 [docs/EVIDENCE.md](docs/EVIDENCE.md)。
 
 ## 三十秒，自己验一遍
 
@@ -36,6 +36,16 @@ uv run --locked robodata verify-fixtures
 ```
 
 它从每个 `EXPECTED.md` 里读出「应当命中哪条判据」，再实跑一遍比对；有判据没命中、或有样本没写期望，就返回非 `0`。当前 `6/6 通过`。
+
+先判断环境和数据能不能接：
+
+```bash
+uv run --locked robodata doctor
+uv run --locked robodata adapters list
+uv run --locked robodata adapters detect --input <你的数据目录>
+```
+
+`detect` 会列出所有候选适配器与拒绝原因，不会把不认识的目录猜成可导入。
 
 只想先判断环境能不能跑、不想下载样本，按 [五分钟复现](docs/REPRODUCTION.md) 走 Tier 1；它不需要网络，也不装 Docker。
 
@@ -122,8 +132,8 @@ uv run --locked robodata check --data-root <你的数据目录> --emit-contract 
 - **想核数字**：[证据总表](docs/EVIDENCE.md)、[真实样本验收](docs/ACCEPTANCE.md)、[100 万行规模实验](docs/benchmarks/2026-11-18-scale-experiment.md)、[100 步训练输入冒烟](docs/TRAINING_SMOKE.md)
 - **想快速复现**：[五分钟复现](docs/REPRODUCTION.md)：先跑无网络的 6/6，再决定是否下载样本
 - **想反馈复现**：[外部复现反馈模板](docs/FEEDBACK.md)：当前 0 条已完成记录；不伪造用户反馈
-- **想读实现**：[数据字典](docs/data_dictionary.md)、[V0.5 状态](docs/STATUS_v05.md)、[导航验收](docs/VALIDATION_navigation.md)
-- **想看迭代**：[v0.13.0 发布说明](RELEASE_NOTES_v0.13.0.md)、[v0.12.1 发布说明](RELEASE_NOTES_v0.12.1.md)、[v0.12.0 发布说明](RELEASE_NOTES_v0.12.0.md)、[v0.11.0 发布说明](RELEASE_NOTES_v0.11.0.md)、[v0.10.0 发布说明](RELEASE_NOTES_v0.10.0.md)、[变更记录](CHANGELOG.md)
+- **想读实现**：[数据字典](docs/data_dictionary.md)、[适配器契约](docs/ADAPTER_CONTRACT.md)、[兼容矩阵](docs/COMPATIBILITY.md)、[无头计划](docs/PROCESS_PLAN.md)、[数据卡与登记](docs/REGISTRY.md)、[V0.5 状态](docs/STATUS_v05.md)、[导航验收](docs/VALIDATION_navigation.md)
+- **想看迭代**：[v0.14.0 发布说明](RELEASE_NOTES_v0.14.0.md)、[v0.13.0 发布说明](RELEASE_NOTES_v0.13.0.md)、[v0.12.1 发布说明](RELEASE_NOTES_v0.12.1.md)、[v0.12.0 发布说明](RELEASE_NOTES_v0.12.0.md)、[v0.11.0 发布说明](RELEASE_NOTES_v0.11.0.md)、[v0.10.0 发布说明](RELEASE_NOTES_v0.10.0.md)、[变更记录](CHANGELOG.md)
 - **想看跨领域验证**：[Fund Lens 的跨领域证据](https://github.com/MAHONGHAO1/AI-Fund-Management-Platform/blob/main/docs/CROSS_DOMAIN.md)：同一个「来源—校验—失败可见」结构换到基金净值后的落地与边界
 - **想照着操作**：[标准操作 SOP](docs/SOP.md)，[HTML 手册](docs/SOP.html) 可离线打开
 

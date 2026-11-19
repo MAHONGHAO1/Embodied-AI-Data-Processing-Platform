@@ -1,37 +1,26 @@
-"""Copy pinned local inputs, extract a read-only preview, and bind real checks."""
+"""Copy local inputs into a managed batch, then build preview and inventory.
+
+The format-specific work lives in ``robodata.adapters``. This module is the
+stable orchestration layer: it owns the managed directory, the input
+fingerprint, and the business-stage entry points.
+"""
 from __future__ import annotations
+
 import argparse
-import hashlib
-import json
 import os
 from pathlib import Path
-import shutil
-import subprocess
-import sys
-from typing import BinaryIO
 import uuid
+from typing import BinaryIO
 
-from .config import HDF5_EPISODES, PROJECT_ROOT, REPO_ID, REVISION
-from .sources import HDF5_SHA256, HDF5_SIZE, HDF5_SOURCE
-from .source import SAMPLE_FILES, MANIFEST_NAME, DEMO_MANIFEST_NAME, file_sha256
-from .matching import (SOURCE_KIND as MATCHING_SOURCE_KIND, assert_source_unchanged as assert_matching_source_unchanged,
-                       discover_episodes, file_records as matching_file_records)
+from .adapters import get_adapter
+from .adapters.support import (digest as _digest, file_records as _files,
+                               preview_worker as _preview_worker, read_json as _json,
+                               write_json as _write)
+from .matching import SOURCE_KIND as MATCHING_SOURCE_KIND
+from .matching import assert_source_unchanged as assert_matching_source_unchanged
+from .source import file_sha256
+from .sources import HDF5_SHA256
 
-HDF5_RULES = ('required_fields','row_count','vector_shape','numeric_finite','frame_index',
-               'timestamp_monotonic','timestamp_interval','image_shape','image_frame_count','image_read')
-PROFILE = {'profile_version':'0.6.0','hdf5_episodes':list(HDF5_EPISODES), 'state_fields':
-           ['obs/robot0_eef_pos','obs/robot0_eef_quat','obs/robot0_gripper_qpos'],
-           'action':'actions','image':'obs/agentview_image','fps':20,'timestamp':'derived_frame_index/fps'}
-
-def _json(path):
-    return json.loads(Path(path).read_text(encoding='utf-8'))
-
-def _write(path,value):
-    from .runtime import _atomic_json
-    _atomic_json(Path(path),value)
-
-def _digest(value):
-    return hashlib.sha256(json.dumps(value,sort_keys=True,ensure_ascii=False,separators=(',',':')).encode()).hexdigest()
 
 def _upload_limit() -> int:
     """可用 ROBODATA_MAX_UPLOAD_MB 调整；默认 2 GiB，防止无界写满本机磁盘。"""
@@ -45,12 +34,12 @@ def _upload_limit() -> int:
 
 
 def save_upload(data: bytes | BinaryIO, filename: str) -> Path:
-    if Path(filename).suffix.lower() not in {'.hdf5','.h5'}:
+    if Path(filename).suffix.lower() not in {'.hdf5', '.h5'}:
         raise ValueError('当前上传入口只接受已验证配置的 HDF5 文件')
     limit = _upload_limit()
-    root = Path(os.environ.get('ROBODATA_BUSINESS_ROOT',PROJECT_ROOT/'work/business'))/'uploads'/uuid.uuid4().hex
+    root = Path(os.environ.get('ROBODATA_BUSINESS_ROOT', Path(__file__).resolve().parents[1] / 'work/business')) / 'uploads' / uuid.uuid4().hex
     root.mkdir(parents=True)
-    path = root/'uploaded.hdf5'
+    path = root / 'uploaded.hdf5'
     try:
         with path.open('wb') as destination:
             if isinstance(data, bytes):
@@ -73,362 +62,185 @@ def save_upload(data: bytes | BinaryIO, filename: str) -> Path:
         raise
     return path
 
-def _files(root: Path, names) -> list[dict]:
-    records=[]
-    for name in sorted(set(names)):
-        path=root/name
-        records.append({'path':name,'exists':path.is_file(),
-                        **({'size':path.stat().st_size,'sha256':file_sha256(path)} if path.is_file() else {})})
-    return records
 
 def input_fingerprint(source: dict) -> str:
-    manifest=_json(source['manifest_path'])
-    raw=Path(source['managed_path'])/'source'
-    actual=_files(raw,[item['path'] for item in manifest['files']])
-    return _digest({'files':actual,'interpretation':manifest['interpretation']})
+    manifest = _json(source['manifest_path'])
+    raw = Path(source['managed_path']) / 'source'
+    actual = _files(raw, [item['path'] for item in manifest['files']])
+    return _digest({'files': actual, 'interpretation': manifest['interpretation']})
+
 
 def assert_input_unchanged(source: dict):
     if source.get('kind') == MATCHING_SOURCE_KIND:
         assert_matching_source_unchanged(source)
         return
-    if input_fingerprint(source)!=source['input_fingerprint']:
+    if input_fingerprint(source) != source['input_fingerprint']:
         raise ValueError('批次管理副本的输入文件已变化，请重新导入；当前检查和产物不可继续使用')
+
 
 def verify_managed_source(source: dict) -> str:
     assert_input_unchanged(source)
     return source['input_fingerprint']
 
-def _preview_worker(raw: Path, output: Path, label=None):
-    from .conversion import CONVERSION_PYTHON
-    cmd=[str(CONVERSION_PYTHON),str(PROJECT_ROOT/'tools/conversion/preview.py'),
-         '--input',str(raw),'--output',str(output)]
-    if label: cmd.extend(['--test-mode',label])
-    env=os.environ.copy()
-    env.update(PYTHONUTF8='1',PYTHONIOENCODING='utf-8',HF_HUB_OFFLINE='1',HF_DATASETS_OFFLINE='1')
-    # This helper is a descendant of the supervised business worker and shares its
-    # Windows job; timeout/parent death terminates both, without a second scheduler.
-    process=subprocess.run(cmd,env=env,capture_output=True,text=True,encoding='utf-8',errors='replace')
-    (output.parent/(output.name+'.stdout.log')).write_text(process.stdout,encoding='utf-8')
-    (output.parent/(output.name+'.stderr.log')).write_text(process.stderr,encoding='utf-8')
-    if process.returncode:
-        diagnostic=output/'diagnostic.json'
-        details=_json(diagnostic) if diagnostic.is_file() else {}
-        error=ValueError(details.get('message_zh') or details.get('message') or '原始 HDF5 预览解析失败，请查看独立解析日志')
-        error.details=details
-        raise error
 
-def _so100_manifest_entries(source: Path):
-    """Read the download manifest so a complete episode subset can be imported.
-
-    The fallback to the five-episode ``SAMPLE_FILES`` keeps older checkouts and
-    test fixtures working when no manifest is present.
-    """
-    manifest_path = source / MANIFEST_NAME
-    if not manifest_path.is_file():
-        return None, {}
-    manifest = _json(manifest_path)
-    if manifest.get('repo_id') != REPO_ID or manifest.get('revision') != REVISION:
-        raise ValueError('SO-100 来源清单的仓库或 revision 与固定配置不一致')
-    entries = manifest.get('files')
-    if not isinstance(entries, list) or not entries:
-        raise ValueError('SO-100 来源清单没有文件记录')
-    expected = {}
-    for entry in entries:
-        relative = entry.get('path')
-        if not isinstance(relative, str) or not relative or Path(relative).is_absolute() or '..' in Path(relative).parts:
-            raise ValueError('SO-100 来源清单包含不安全路径')
-        digest = entry.get('sha256')
-        if not isinstance(digest, str) or len(digest) != 64:
-            raise ValueError(f'SO-100 来源清单缺少 SHA-256：{relative}')
-        expected[relative] = digest
-    return [entry['path'] for entry in entries], expected
-
-
-def _matching_preview_worker(raw: Path, output: Path):
-    from .conversion import CONVERSION_PYTHON
-    worker=PROJECT_ROOT/'tools/conversion/matching_preview.py'
-    cmd=[str(CONVERSION_PYTHON),str(worker),'--input',str(raw),'--output',str(output)]
-    env=os.environ.copy()
-    env.update(PYTHONUTF8='1',PYTHONIOENCODING='utf-8',HF_HUB_OFFLINE='1',HF_DATASETS_OFFLINE='1')
-    process=subprocess.run(cmd,env=env,capture_output=True,text=True,encoding='utf-8',errors='replace')
-    output.parent.mkdir(parents=True,exist_ok=True)
-    (output.parent/(output.name+'.stdout.log')).write_text(process.stdout,encoding='utf-8')
-    (output.parent/(output.name+'.stderr.log')).write_text(process.stderr,encoding='utf-8')
-    if process.returncode:
-        diagnostic=output/'diagnostic.json'
-        details=_json(diagnostic) if diagnostic.is_file() else {}
-        raise ValueError(details.get('message_zh') or details.get('message') or 'Matching Cable 帧数据预览解析失败')
-
-def _copy(request,run):
-    kind=request['source_kind']
-    if kind not in {'hdf5','so100','aloha',MATCHING_SOURCE_KIND}: raise ValueError('只支持固定 HDF5、SO-100、ALOHA Coffee 或 Matching Cable 帧目录')
-    managed=Path(request['managed_dir']).resolve()
-    raw=managed/'source'
-    if raw.exists(): raise ValueError('本次导入暂存目录已存在，不能覆盖既有数据')
-    raw.mkdir(parents=True)
-    files=None
-    label=request.get('test_label')
-    if kind == 'aloha':
-        if label:
-            raise ValueError('固定 ALOHA Coffee 来源不能使用故障副本标记；故障测试必须使用独立合成夹具')
-        from .aloha import ALOHA_FILES, ALOHA_REVISION, fetch_aloha_sample
-        source_manifest = fetch_aloha_sample(raw, proxy=os.environ.get('HTTPS_PROXY') or os.environ.get('https_proxy'))
-        names = [*ALOHA_FILES, 'source_manifest.json']
-        interpretation = {'profile_version': '0.6.0', 'kind': kind,
-                          'repo_id': source_manifest['source']['repo_id'],
-                          'revision': ALOHA_REVISION, 'episodes': [0, 1, 2, 3, 4],
-                          'test_label': None, 'batch_label': str(request.get('label') or '').strip()}
-    else:
-        source=Path(request['input_path']).resolve()
-        if source==managed or managed.is_relative_to(source):
+def _copy(request, run):
+    adapter = get_adapter(request['source_kind'])
+    managed = Path(request['managed_dir']).resolve()
+    raw = managed / 'source'
+    if raw.exists():
+        raise ValueError('本次导入暂存目录已存在，不能覆盖既有数据')
+    if request['source_kind'] not in {'aloha', MATCHING_SOURCE_KIND}:
+        source = Path(request['input_path']).resolve()
+        if source == managed or managed.is_relative_to(source):
             raise ValueError('导入目标不能位于输入目录内')
-    if kind=='hdf5':
-        if not source.is_file(): raise FileNotFoundError('找不到待导入的 HDF5 文件')
-        before=file_sha256(source)
-        if not label and (before!=HDF5_SHA256 or source.stat().st_size!=HDF5_SIZE):
-            raise ValueError('HDF5 与固定公开版本不一致；若为故障副本，必须填写独立测试标记')
-        shutil.copy2(source,raw/'test.hdf5')
-        if before!=file_sha256(raw/'test.hdf5') or before!=file_sha256(source):
-            raise ValueError('复制期间 HDF5 输入发生变化，未登记批次')
-        names=['test.hdf5']
-    elif kind == 'so100':
-        if not source.is_dir(): raise NotADirectoryError('SO-100 导入入口需要本地数据目录')
-        manifest_names, expected_hashes = _so100_manifest_entries(source)
-        names = ([*manifest_names, MANIFEST_NAME] if manifest_names is not None
-                 else [*SAMPLE_FILES, MANIFEST_NAME])
-        if (source/DEMO_MANIFEST_NAME).is_file():
-            names.append(DEMO_MANIFEST_NAME)
-            if not label: raise ValueError('检测到故障副本清单，请填写测试标记再导入')
-        pinned=_json(Path(__file__).parent/'profiles/so100_hashes.json')
-        for name in names:
-            file=source/name
-            if not file.is_file():
-                if label: continue
-                raise FileNotFoundError(f'固定 SO-100 样本缺少文件：{name}')
-            before=file_sha256(file)
-            if not label and name in expected_hashes and before!=expected_hashes[name]:
-                raise ValueError(f'SO-100 文件与来源清单不一致：{name}')
-            if not label and name in pinned['files'] and before!=pinned['files'][name]:
-                raise ValueError(f'SO-100 文件与固定来源不一致：{name}')
-            destination=raw/name
-            destination.parent.mkdir(parents=True,exist_ok=True)
-            shutil.copy2(file,destination)
-            if file_sha256(destination)!=before or file_sha256(file)!=before:
-                raise ValueError(f'复制期间输入发生变化：{name}')
-    elif kind == MATCHING_SOURCE_KIND:
-        if not source.is_dir(): raise NotADirectoryError('Matching Cable 导入需要包含数字 Episode 目录的本地目录')
-        if label: raise ValueError('Matching Cable 本机数据不支持固定样本故障副本标记')
-        episodes=discover_episodes(source,os.environ.get('ROBODATA_MATCHING_EPISODES'))
-        files=matching_file_records(source,episodes,include_hashes=False)
-        interpretation={**PROFILE,'kind':kind,'source_root':str(source),
-                        'episodes':[{'episode_index':item['episode_index'],'source_episode_id':item['source_episode_id'],
-                                     'frame_count':len(item['frames'])} for item in episodes],
-                        'state_field':'puppet/joint_position','action_field':'master/joint_position',
-                        'fps':20,'test_label':None,'batch_label':str(request.get('label') or '').strip()}
-    if files is None:
-        files=_files(raw,names)
-    # 批次名参与指纹：同名视为同一批次（复用既有筛选／审核／交付记录），
-    # 异名视为用户要建立独立批次，便于演示或对照实验时从零跑一遍，
-    # 而不必删除或改动既有批次。文件内容与来源配置仍是硬校验。
-    if kind != 'aloha' and kind != MATCHING_SOURCE_KIND:
-        interpretation={**PROFILE,'kind':kind,'test_label':label,
-                        'batch_label':str(request.get('label') or '').strip()}
-    fingerprint=_digest({'files':files,'interpretation':interpretation})
-    _write(managed/'input_manifest.json',{'schema_version':1,'files':files,'interpretation':interpretation,
-                                        'input_fingerprint':fingerprint})
-    return {'managed_path':str(managed),'input_fingerprint':fingerprint,'manifest_path':str(managed/'input_manifest.json')}
+    raw.mkdir(parents=True)
+    prepared = adapter.prepare(request, raw, managed)
+    fingerprint = _digest({'files': prepared.files, 'interpretation': prepared.interpretation})
+    _write(managed / 'input_manifest.json',
+           {'schema_version': 1, 'files': prepared.files, 'interpretation': prepared.interpretation,
+            'input_fingerprint': fingerprint})
+    return {'managed_path': str(managed), 'input_fingerprint': fingerprint,
+            'manifest_path': str(managed / 'input_manifest.json')}
 
-def _preview(request,run):
-    managed=Path(request['managed_dir'])
-    if request['source_kind']==MATCHING_SOURCE_KIND:
-        _matching_preview_worker(Path(request['input_path']),managed/'preview')
-        preview_manifest=_json(managed/'preview/source_manifest.json')
-        input_manifest=_json(managed/'input_manifest.json')
-        input_manifest['files']=preview_manifest['files']
-        input_manifest['interpretation']['episodes']=[
-            {'episode_index':item['episode_index'],'source_episode_id':item['source_episode_id'],
-             'frame_count':item['length']} for item in preview_manifest['episodes']]
-        for key in ('cameras','missing_cameras','depth_source_cameras',
-                    'missing_depth_source_cameras','optional_fields','tactile'):
-            input_manifest['interpretation'][key]=preview_manifest['source'].get(key)
-        fingerprint=_digest({'files':input_manifest['files'],'interpretation':input_manifest['interpretation']})
-        input_manifest['input_fingerprint']=fingerprint
-        preview_manifest['input_fingerprint']=fingerprint
-        _write(managed/'input_manifest.json',input_manifest)
-        _write(managed/'preview/source_manifest.json',preview_manifest)
-        return {'data_root':str(managed/'preview'),'preview_root':str(managed/'preview'),
-                'metadata_path':str(managed/'preview/source_manifest.json'),
-                'episode_indices':[item['episode_index'] for item in preview_manifest['episodes']]}
-    if request['source_kind']=='hdf5':
-        _preview_worker(managed/'source/test.hdf5',managed/'preview',request.get('test_label'))
-        files=[p.relative_to(managed/'preview').as_posix() for p in (managed/'preview').rglob('*') if p.is_file()]
-        _write(managed/'preview_manifest.json',{'files':_files(managed/'preview',files)})
-        return {'preview_root':str(managed/'preview'),'metadata_path':str(managed/'preview/metadata.json')}
-    from .dataset import load_metadata
-    meta=load_metadata(managed/'source')
-    return {'data_root':str(managed/'source'),'episode_indices':meta['episode_indices']}
 
-def _inventory(request,run):
-    managed=Path(request['managed_dir'])
-    manifest=_json(managed/'input_manifest.json')
-    source={'kind':request['source_kind'],'managed_path':str(managed),
-            'input_fingerprint':manifest['input_fingerprint'],'manifest_path':str(managed/'input_manifest.json'),
-            'import_run_id':run.name,'test_label':request.get('test_label')}
-    if request['source_kind']==MATCHING_SOURCE_KIND:
-        from .dataset import load_metadata
-        from .quality import RULES
-        preview=managed/'preview'
-        preview_manifest=_json(preview/'source_manifest.json')
-        metadata=load_metadata(preview)
-        source.update(
-            kind=MATCHING_SOURCE_KIND,data_root=str(preview),raw_data_root=str(Path(request['input_path']).resolve()),
-            preview_root=str(preview),repo_id='local/matching-cable-teleoperation',revision='local-source',
-            license='用户本机数据；许可由数据提供方确认',robot='双主从臂遥操作平台',
-            format_version='matching_cable_frames_v1',fps=20.0,camera=preview_manifest['source']['camera'],
-            cameras=preview_manifest['source']['cameras'],camera_metadata=preview_manifest['camera_metadata'],
-            missing_cameras=preview_manifest['source'].get('missing_cameras',[]),
-            depth_source_cameras=preview_manifest['source'].get('depth_source_cameras',[]),
-            missing_depth_source_cameras=preview_manifest['source'].get('missing_depth_source_cameras',[]),
-            optional_fields=preview_manifest['source'].get('optional_fields',{}),
-            tactile=preview_manifest['source'].get('tactile'),
-            episode_mapping=preview_manifest['source']['episode_mapping'],
-            state_field='puppet/joint_position',action_field='master/joint_position',
-            source_statistics={'source_episodes':len(preview_manifest['episodes']),
-                               'source_frames':preview_manifest['total_frames']},
-            warnings=preview_manifest.get('timestamp_warnings',[]),required_rules=list(RULES),
-            timestamp_semantics=preview_manifest['source']['timestamp_semantics'])
-        episodes=[{'episode_index':item['episode_index'],'row_count':int(item['length']),
-                   'source_episode_id':item['source_episode_id']} for item in preview_manifest['episodes']]
-    elif request['source_kind']=='hdf5':
-        metadata=_json(managed/'preview/metadata.json')
+def _preview(request, run):
+    adapter = get_adapter(request['source_kind'])
+    return adapter.preview(request, Path(request['managed_dir']), run)
 
-        source.update(**{k:v for k,v in HDF5_SOURCE.items() if k!='format_version'},
-                      hdf5_path=str(managed/'source/test.hdf5'),preview_root=str(managed/'preview'),
-                      source_statistics=metadata['source_statistics'],warnings=metadata.get('warnings',[]),
-                      required_rules=list(HDF5_RULES),format_version='HDF5 (source)')
-        episodes=[{'episode_index':int(e['episode_index']),'row_count':int(e['row_count'])} for e in metadata['episodes']]
-    else:
-        from .dataset import load_metadata
-        from .quality import RULES
-        metadata=load_metadata(managed/'source')
-        source.update(metadata['source'],data_root=str(managed/'source'),required_rules=list(RULES))
-        indices = metadata['episode_indices']
-        if request['source_kind'] == 'aloha':
-            from .aloha import ALOHA_EPISODES
-            indices = [i for i in ALOHA_EPISODES if i in metadata['episodes']]
-            if tuple(indices) != ALOHA_EPISODES:
-                raise ValueError('固定 ALOHA Coffee Episode 0–4 不完整，拒绝创建批次')
-        episodes=[{'episode_index':i,'row_count':int(metadata['episodes'][i]['length'])} for i in indices]
-    assert_input_unchanged(source)
-    return {'label':request.get('label','本地导入批次'),'source':source,'episodes':episodes}
 
-def _quality(request,run):
+def _inventory(request, run):
+    adapter = get_adapter(request['source_kind'])
+    result = adapter.inventory(request, Path(request['managed_dir']), run)
+    assert_input_unchanged(result['source'])
+    return result
+
+
+def _quality(request, run):
     from .business import get_store
     from .quality import run_batch, json_safe
     from .reports import write_report
     from .config import APP_VERSION
-    batch=get_store(request['business_root']).get_batch(request['batch_id'])
-    source=request['source']
-    inventory=request['inventory']
+    batch = get_store(request['business_root']).get_batch(request['batch_id'])
+    source = request['source']
+    inventory = request['inventory']
     assert_input_unchanged(source)
-    if source['kind']=='hdf5':
-        fresh=run/'quality_preview'
-        _preview_worker(Path(source['hdf5_path']),fresh,source.get('test_label'))
-        report=_json(fresh/'quality_report.json')
-        actual_sha=file_sha256(Path(source['hdf5_path']))
-        if report.get('source',{}).get('sha256')!=actual_sha:
+    if source['kind'] == 'hdf5':
+        fresh = run / 'quality_preview'
+        _preview_worker(Path(source['hdf5_path']), fresh, source.get('test_label'))
+        report = _json(fresh / 'quality_report.json')
+        actual_sha = file_sha256(Path(source['hdf5_path']))
+        if report.get('source', {}).get('sha256') != actual_sha:
             raise ValueError('原始 HDF5 质检报告与本次输入 SHA-256 不一致')
         for result in report['episodes']:
-            result.setdefault('row_count',next(e['row_count'] for e in inventory if e['episode_index']==result['episode_index']))
-            result.setdefault('expected_length',result['row_count'])
-            result.setdefault('video',{'status':'not_applicable','note':'原始 HDF5 图像数组，无视频编码'})
+            result.setdefault('row_count', next(e['row_count'] for e in inventory if e['episode_index'] == result['episode_index']))
+            result.setdefault('expected_length', result['row_count'])
+            result.setdefault('video', {'status': 'not_applicable', 'note': '原始 HDF5 图像数组，无视频编码'})
     else:
-        report=run_batch(Path(source['data_root']),episode_indices=[e['episode_index'] for e in inventory],
-                         source_kind='injected_test' if source.get('test_label') else 'original_public')
-    if report.get('rule_version')!=request['rule_version']:
+        report = run_batch(Path(source['data_root']), episode_indices=[e['episode_index'] for e in inventory],
+                           source_kind='injected_test' if source.get('test_label') else 'original_public')
+    if report.get('rule_version') != request['rule_version']:
         raise ValueError('质检解析器规则版本与冻结请求不一致')
-    report['dataset_input_fingerprint']=report.get('input_fingerprint')
-    report['input_fingerprint']=source['input_fingerprint']
-    report.update(run_id=run.name,batch_id=batch['batch_id'],app_version=APP_VERSION,
+    report['dataset_input_fingerprint'] = report.get('input_fingerprint')
+    report['input_fingerprint'] = source['input_fingerprint']
+    report.update(run_id=run.name, batch_id=batch['batch_id'], app_version=APP_VERSION,
                   episode_indices=[e['episode_index'] for e in inventory])
-    report['source']={**report.get('source',{}),**source,'source_kind':'injected_test' if source.get('test_label') else 'original_public'}
-    if source['kind']=='hdf5':
-        report['source'].update(integrity_status='differs_from_manifest' if source.get('test_label') else 'matches_manifest',
+    report['source'] = {**report.get('source', {}), **source,
+                        'source_kind': 'injected_test' if source.get('test_label') else 'original_public'}
+    if source['kind'] == 'hdf5':
+        report['source'].update(
+            integrity_status='differs_from_manifest' if source.get('test_label') else 'matches_manifest',
             integrity_note='管理副本已重新计算 SHA-256；故障副本保留独立测试标记，原件未修改',
-            input_files=[{'path':'test.hdf5','status':'present','size_bytes':Path(source['hdf5_path']).stat().st_size,
-                          'sha256':actual_sha,'hash_matches_manifest':actual_sha==HDF5_SHA256}])
-    report.setdefault('params',{})
-    report.setdefault('limitations',['HDF5 时间和索引为派生预览字段，不代表源硬件同步'])
-    report.setdefault('started_at_utc',__import__('datetime').datetime.now(__import__('datetime').timezone.utc).isoformat())
-    report.setdefault('runtime_seconds',0)
-    report['issues']=[issue for ep in report['episodes'] for issue in ep['issues']]
-    coverage=[c for ep in report['episodes'] for c in ep['coverage']]
-    report['summary']={'episode_count':len(report['episodes']),'row_count':sum(e['row_count'] for e in report['episodes']),
-        'issue_count':len(report['issues']),'data_issue_count':sum(i.get('category')=='data_issue' for i in report['issues']),
-        'load_failure_count':sum(i.get('category')=='load_failure' for i in report['issues']),
-        'not_checked_count':sum(i.get('category')=='not_checked' for i in report['issues']),
-        'passed_episode_count':sum(e['status']=='passed' for e in report['episodes']),
-        'coverage_total':len(coverage),'coverage_performed':sum(c['status']=='performed' for c in coverage)}
+            input_files=[{'path': 'test.hdf5', 'status': 'present',
+                          'size_bytes': Path(source['hdf5_path']).stat().st_size,
+                          'sha256': actual_sha, 'hash_matches_manifest': actual_sha == HDF5_SHA256}])
+    report.setdefault('params', {})
+    report.setdefault('limitations', ['HDF5 时间和索引为派生预览字段，不代表源硬件同步'])
+    report.setdefault('started_at_utc', __import__('datetime').datetime.now(__import__('datetime').timezone.utc).isoformat())
+    report.setdefault('runtime_seconds', 0)
+    report['issues'] = [issue for ep in report['episodes'] for issue in ep['issues']]
+    coverage = [c for ep in report['episodes'] for c in ep['coverage']]
+    report['summary'] = {'episode_count': len(report['episodes']),
+                         'row_count': sum(e['row_count'] for e in report['episodes']),
+                         'issue_count': len(report['issues']),
+                         'data_issue_count': sum(i.get('category') == 'data_issue' for i in report['issues']),
+                         'load_failure_count': sum(i.get('category') == 'load_failure' for i in report['issues']),
+                         'not_checked_count': sum(i.get('category') == 'not_checked' for i in report['issues']),
+                         'passed_episode_count': sum(e['status'] == 'passed' for e in report['episodes']),
+                         'coverage_total': len(coverage),
+                         'coverage_performed': sum(c['status'] == 'performed' for c in coverage)}
     assert_input_unchanged(source)
-    report=json_safe(report)
-    report['result_digest']=_digest({k:v for k,v in report.items() if k not in {'run_id','started_at_utc','runtime_seconds','dataset_input_fingerprint'}})
-    paths=write_report(report,run/'reports')
-    return {'report_path':str(paths['json']),'input_fingerprint':source['input_fingerprint'],'required_rules':source['required_rules']}
+    report = json_safe(report)
+    report['result_digest'] = _digest({k: v for k, v in report.items()
+                                       if k not in {'run_id', 'started_at_utc', 'runtime_seconds',
+                                                    'dataset_input_fingerprint'}})
+    paths = write_report(report, run / 'reports')
+    return {'report_path': str(paths['json']), 'input_fingerprint': source['input_fingerprint'],
+            'required_rules': source['required_rules']}
 
-def preview_batch(batch: dict, episode_index: int, row: int=0, camera: str | None=None) -> dict:
+
+def preview_batch(batch: dict, episode_index: int, row: int = 0, camera: str | None = None) -> dict:
     import numpy as np
     import pandas as pd
-    source=batch['source']
+    source = batch['source']
     assert_input_unchanged(source)
     if source['kind'] in {'so100', 'aloha'}:
         from .dataset import load_episode
         from .video import episode_camera, read_video_frame
-        episode=load_episode(Path(source['data_root']),episode_index)
-        row=max(0,min(row,len(episode.table)-1))
-        camera_names=list(episode.camera_paths or {episode.source.get('camera','camera'):episode.video_path})
+        episode = load_episode(Path(source['data_root']), episode_index)
+        row = max(0, min(row, len(episode.table) - 1))
+        camera_names = list(episode.camera_paths or {episode.source.get('camera', 'camera'): episode.video_path})
         camera = camera if camera in camera_names else camera_names[0]
-        selected=episode_camera(episode,camera)
-        image=None
-        issue=[]
+        selected = episode_camera(episode, camera)
+        image = None
+        issue = []
         try:
-            timestamp=float(episode.table.iloc[row]['timestamp'])+selected.video_start_time
-            image=read_video_frame(selected.video_path,timestamp)['image']
-        except Exception as exc: issue=[{'message':str(exc),'field':'video','camera':camera}]
-        return {'image':image,'table':episode.table,'state_names':episode.state_names,'action_names':episode.action_names,
-                'fps':episode.fps,'issues':issue,'source':episode.source,'row_index':row,
-                'camera':camera,'cameras':camera_names,'camera_metadata':episode.source.get('camera_metadata',{})}
-    root=Path(source['preview_root'])
-    expected=_json(Path(source['managed_path'])/'preview_manifest.json')['files']
-    if _files(root,[e['path'] for e in expected])!=expected:
+            timestamp = float(episode.table.iloc[row]['timestamp']) + selected.video_start_time
+            image = read_video_frame(selected.video_path, timestamp)['image']
+        except Exception as exc:
+            issue = [{'message': str(exc), 'field': 'video', 'camera': camera}]
+        return {'image': image, 'table': episode.table, 'state_names': episode.state_names,
+                'action_names': episode.action_names, 'fps': episode.fps, 'issues': issue,
+                'source': episode.source, 'row_index': row, 'camera': camera,
+                'cameras': camera_names, 'camera_metadata': episode.source.get('camera_metadata', {})}
+    root = Path(source['preview_root'])
+    expected = _json(Path(source['managed_path']) / 'preview_manifest.json')['files']
+    if _files(root, [e['path'] for e in expected]) != expected:
         raise ValueError('原始预览缓存已变化，请重新导入；不能用变化后的缓存代表输入')
-    metadata=_json(root/'metadata.json')
-    episode=next(e for e in metadata['episodes'] if e['episode_index']==episode_index)
-    table=pd.read_parquet(root/episode['table_path']) if episode.get('table_path') else pd.DataFrame()
-    image=None
+    metadata = _json(root / 'metadata.json')
+    episode = next(e for e in metadata['episodes'] if e['episode_index'] == episode_index)
+    table = pd.read_parquet(root / episode['table_path']) if episode.get('table_path') else pd.DataFrame()
+    image = None
     if episode.get('images_path'):
-        with np.load(root/episode['images_path'],allow_pickle=False) as archive:
-            images=archive['images']
-            if 0<=row<len(images): image=images[row]
-    return {'image':image,'table':table,'state_names':metadata['state_names'],'action_names':metadata['action_names'],
-            'fps':metadata['fps'],'issues':episode['issues'],'source':source,'row_index':row}
+        with np.load(root / episode['images_path'], allow_pickle=False) as archive:
+            images = archive['images']
+            if 0 <= row < len(images):
+                image = images[row]
+    return {'image': image, 'table': table, 'state_names': metadata['state_names'],
+            'action_names': metadata['action_names'], 'fps': metadata['fps'],
+            'issues': episode['issues'], 'source': source, 'row_index': row}
+
 
 def main():
-    parser=argparse.ArgumentParser()
-    parser.add_argument('--stage',choices=['copy','preview','inventory','quality'],required=True)
-    parser.add_argument('--run-dir',type=Path,required=True)
-    args=parser.parse_args()
-    run=args.run_dir.resolve()
-    request=_json(run/'request.json')
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--stage', choices=['copy', 'preview', 'inventory', 'quality'], required=True)
+    parser.add_argument('--run-dir', type=Path, required=True)
+    args = parser.parse_args()
+    run = args.run_dir.resolve()
+    request = _json(run / 'request.json')
     try:
-        details=globals()['_'+args.stage](request,run)
-        _write(run/'steps'/f'{args.stage}.json',{'stage':args.stage,'status':'passed','details':details})
+        details = globals()['_' + args.stage](request, run)
+        _write(run / 'steps' / f'{args.stage}.json', {'stage': args.stage, 'status': 'passed', 'details': details})
         return 0
     except Exception as exc:
-        from .errors import explain_error,error_details
-        diagnostic={'stage':args.stage,'message_zh':explain_error(exc),'input_path':request.get('input_path'),
-                    **error_details(exc,include_traceback=True),**getattr(exc,'details',{})}
-        _write(run/'diagnostic.json',diagnostic)
-        _write(run/'steps'/f'{args.stage}.json',{'stage':args.stage,'status':'failed','diagnostic':diagnostic})
+        from .errors import explain_error, error_details
+        diagnostic = {'stage': args.stage, 'message_zh': explain_error(exc),
+                      'input_path': request.get('input_path'),
+                      **error_details(exc, include_traceback=True), **getattr(exc, 'details', {})}
+        _write(run / 'diagnostic.json', diagnostic)
+        _write(run / 'steps' / f'{args.stage}.json', {'stage': args.stage, 'status': 'failed',
+                                                      'diagnostic': diagnostic})
         return 1
 
-if __name__=='__main__': raise SystemExit(main())
+
+if __name__ == '__main__':
+    raise SystemExit(main())

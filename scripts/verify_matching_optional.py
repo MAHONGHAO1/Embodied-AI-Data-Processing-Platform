@@ -16,6 +16,9 @@ import shutil
 import subprocess
 import sys
 
+import numpy as np
+import pandas as pd
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
@@ -50,6 +53,23 @@ for episode_id in (68, 70):
 
 def run(command: list[str], env: dict[str, str]) -> None:
     subprocess.run(command, cwd=PROJECT_ROOT, env=env, check=True)
+
+
+def _scalar(value) -> float:
+    current = value
+    while isinstance(current, (np.ndarray, list, tuple)):
+        flattened = np.asarray(current, dtype=object).reshape(-1)
+        if len(flattened) != 1:
+            raise AssertionError(f"统计值不是标量：{value!r}")
+        current = flattened[0]
+    return float(current)
+
+
+def _video_std(root: Path, camera: str) -> float:
+    files = sorted((root / "meta" / "episodes").rglob("*.parquet"))
+    table = pd.concat([pd.read_parquet(path) for path in files], ignore_index=True)
+    value = table.iloc[0][f"stats/{camera}/std"]
+    return max(_scalar(item) for item in np.asarray(value, dtype=object).reshape(-1))
 
 
 def main() -> int:
@@ -100,6 +120,7 @@ def main() -> int:
         video = item["videos"][expected_camera]
         assert video["from_timestamp"] == 0.0 and video["frame_count"] == item["length"], video
         assert (preview / video["path"]).is_file(), video["path"]
+    assert _video_std(preview, expected_camera) > 0, "预览视频 std 不应为 0"
 
     spec = {
         "snapshot_id": "synthetic-matching-optional",
@@ -140,6 +161,7 @@ def main() -> int:
     for item in reuse["episodes"]:
         output_video = dataset / item["videos"][expected_camera]["path"]
         assert hashlib.sha256(output_video.read_bytes()).hexdigest() == item["videos"][expected_camera]["sha256"]
+    assert _video_std(dataset, expected_camera) > 0, "复用输出视频 std 不应为 0"
 
     official = json.loads((artifacts / "steps/official_verify.json").read_text(encoding="utf-8"))["details"]
     assert official["output_loader_consistency_checked"] is True, official

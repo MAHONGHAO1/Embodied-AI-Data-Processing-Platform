@@ -272,6 +272,8 @@ def upgrade_to_v21(source: Path, work: Path, provenance: dict, spec: dict | None
     tool_dir = Path(_lerobot_v30_dir())
     sys.path.insert(0, str(tool_dir))
     from lerobot.datasets.compute_stats import compute_episode_stats
+    from lerobot_stats import patch_running_quantile_stats
+    patch_running_quantile_stats()
 
     work.mkdir(parents=True, exist_ok=True)
     if any(work.iterdir()):

@@ -114,9 +114,11 @@ def _base(operation, business_root=None, **options):
 
 
 def start_import(path, source_kind, label, test_label=None, *, runs_root=None, business_root=None, **options):
+    from .adapters import adapter_ids
     from .runtime import start_run
-    if source_kind not in {"hdf5", "so100", "aloha", MATCHING_SOURCE_KIND}:
-        raise WorkflowError("本版本仅支持固定 HDF5、SO-100、ALOHA Coffee 和 Matching Cable 帧目录")
+    if source_kind not in set(adapter_ids()):
+        known = "、".join(adapter_ids())
+        raise WorkflowError(f"未知数据源适配器 {source_kind!r}；已注册：{known}")
     if not isinstance(label, str) or not label.strip():
         raise WorkflowError("请填写批次名称")
     if test_label is not None and (not isinstance(test_label, str) or not test_label.strip()):
@@ -572,6 +574,7 @@ def _register(directory):
     if not expected or expected != _evidence_hashes(directory, operation, registration_stage, request, pending.get("request_path")):
         raise WorkflowError("登记证据不完整或处理产物证据已变化，请保留该运行排查")
     registration_operation = registration_operation_of(directory) or operation
+    registry = None
     if registration_operation == "import":
         details = _read_step(directory, "inventory")["details"]
         verify_managed_source(details["source"])
@@ -591,6 +594,14 @@ def _register(directory):
                         artifact_path=request["output_path"], validation=validation, expected_revision=request["expected_revision"])
         elif registration_operation == "delivery":
             verified = _validate_archive(directory, request)
+            card_path = Path(verified["dataset_path"]) / "dataset_card.json"
+            if card_path.is_file():
+                from .registry import register_card_file
+                registry = register_card_file(card_path, root=store.root,
+                                              zip_path=Path(verified["zip_path"]),
+                                              artifact_path=Path(request["snapshot"]["artifact_path"]))
+            else:
+                registry = {"status": "skipped_no_card"}
             state = store.register_delivery(state["batch_id"], request["snapshot"]["output_id"],
                         snapshot_id=request["snapshot"]["snapshot_id"], zip_path=verified["zip_path"],
                         zip_sha256=verified["zip_sha256"], packaging_run_id=directory.name, archive_verified=True,
@@ -599,6 +610,8 @@ def _register(directory):
             raise WorkflowError("此操作无需业务回写")
     result = {**pending, "status": "registered", "batch_id": state["batch_id"], "run_id": directory.name,
               "revision": state["revision"], "message": "处理证据与业务版本已核对，结果已登记", "updated_at": utc_now()}
+    if registry is not None:
+        result["registry"] = registry
     _atomic_json(directory / "registration.json", result)
     _atomic_json(directory / "registrations" / f"{registration_stage}.json", result)
     return result

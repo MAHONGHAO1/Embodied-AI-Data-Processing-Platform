@@ -199,6 +199,8 @@ def write_dataset(source: Path, output: Path, artifacts: Path, spec: dict,
         output.rmdir()
     output.parent.mkdir(parents=True, exist_ok=True)
     robot_type = str(info.get("robot_type") or provenance["source_manifest"]["source"].get("robot") or "aloha")
+    from lerobot_stats import patch_running_quantile_stats
+    patch_running_quantile_stats()
     dataset = LeRobotDataset.create(
         repo_id="local/aloha-static-coffee-reviewed", root=output,
         fps=int(provenance["fps"]), features=features, robot_type=robot_type,

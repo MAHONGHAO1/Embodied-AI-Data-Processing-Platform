@@ -116,7 +116,7 @@ uv run --locked robodata import-batch ...
 - 深度图在预览阶段已校验可读，转换复用阶段只核对存在性；源文件 SHA-256 与数值回核共同保证源未变化。
 - 复用依赖 `lerobot==0.4.4` 的 `save_episode`、`update_chunk_settings`、`finalize` 等内部行为；`tools/conversion/pyproject.toml` 已固定精确版本，预览与转换入口也会在运行时检查版本，漂移时直接失败。
 - `matching_worker.py --no-reuse` 只用于 A/B 基准或故障排查；业务链路不会传这个参数，用户的正常转换默认走复用。
-- 已知限制：LeRobot 流式统计对 `uint8` 帧做平方时溢出，视频 `std` 仍为 0。这一现象在 v0.12.1 及预览中已存在，v0.13.0 没有顺带修改；它不影响解码、数值一致性或官方加载检查，但不应被当作“视频统计已正确”的证据。
+- 视频统计：v0.14.0 起在转换入口把整数批次的平方/方差计算转成 `float64`，直方图保持整数，修复 LeRobot `uint8` 平方溢出导致的 `std=0`。旧版本生成的包不追溯改写；`tools/conversion/check_video_stats.py` 与合成回归会断言修复后 `std>0`。
 
 ## 合成回归
 
@@ -145,4 +145,4 @@ uv run --locked python scripts/verify_matching_optional.py
 - 不声明策略训练效果、任务成功率或生产容量。
 - 缺失流是**来源事实**，不是自动修复；平台不会补造深度、触觉或相机画面。
 - 本适配器只读取上述字段；其他 Matching Cable 字段不会进入交付。
-- 视频 `std` 统计仍为 0（LeRobot `uint8` 流式平方溢出），是已知遗留问题；v0.13.0 没有修改统计算法，也没有把它当作视频统计正确性的证据。
+- 视频统计已在 v0.14.0 修复（平方/方差计算转 `float64`，直方图保持整数批次）；但统计正确不等于画面无损，H.264 仍是有损编码。
