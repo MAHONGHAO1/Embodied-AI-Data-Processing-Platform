@@ -43,7 +43,8 @@ def _lerobot_dir(root: Path, *, version: str = "v3.0", repo_id: str = "lerobot/o
 
 def test_registry_lists_builtins_and_matches_schema():
     items = descriptors()
-    assert {item["adapter_id"] for item in items} == {"hdf5", "so100", "aloha", "matching_cable"}
+    assert {item["adapter_id"] for item in items} == {
+        "hdf5", "so100", "aloha", "lerobot_v21", "matching_cable", "mcap"}
     schema = json.loads(SCHEMA.read_text(encoding="utf-8"))
     required = set(schema["required"])
     for item in items:

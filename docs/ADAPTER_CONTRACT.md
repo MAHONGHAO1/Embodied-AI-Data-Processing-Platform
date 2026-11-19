@@ -57,25 +57,28 @@
 | 状态 | `supported` | 含义 | 调用方行为 |
 | --- | --- | --- | --- |
 | 支持 | `true` | 结构、版本、固定来源均匹配 | 可以进入 `prepare` |
-| 格式认识、版本不支持 | `false` + `detected_version` | 例如 LeRobot v2.1 | 明确拒绝，提示计划支持的版本 |
+| 仅检查 | `true` + `inspection_only=true` | 可以检查，不可导入/转换 | 显示但 `--source auto` 跳过 |
+| 格式认识、版本不支持 | `false` + `detected_version` | 例如 LeRobot v2.0 | 明确拒绝，提示计划支持的版本 |
 | 完全不认识 | `false` + `unsupported_reason` | 没有结构证据 | 列出所有候选与原因，不猜 |
 
-`robodata adapters detect` 返回所有候选，不只返回最佳匹配；`--source auto` 只在存在 `supported=true` 时继续，否则以退出码 `3` 结束。
+`robodata adapters detect` 返回所有候选，不只返回最佳匹配；`--source auto` 只在存在**可导入**的 `supported=true` 时继续，否则以退出码 `3` 结束。
 
-## 4. 内置适配器（v0.14）
+## 4. 内置适配器（v0.15）
 
-| 适配器 | 输入 | 声明版本 | 固定来源 | 故障副本 |
+| 适配器 | 输入 | 声明版本 | 固定来源 | 故障副本 / 仅检查 |
 | --- | --- | --- | --- | --- |
 | `hdf5` | 单个 `.hdf5/.h5` | `robomimic-hdf5-pinned`、`hdf5-test-copy` | 是 | 允许，必须 `--test-label` |
 | `so100` | LeRobot v3.0 目录 | `lerobot-v3.0-so100-pinned`、`lerobot-v3.0-so100-test-copy` | 是 | 允许，必须 `--test-label` |
 | `aloha` | LeRobot v3.0 目录 | `lerobot-v3.0-aloha-coffee-pinned` | 是 | 不允许 |
+| `lerobot_v21` | 任意 LeRobot v2.1 目录 | `lerobot-v2.1-generic` | 否 | 要求 `meta/episodes_stats.jsonl`；只支持全量 Episode |
 | `matching_cable` | 逐帧 HDF5 目录 | `matching_cable_frames_v1` | 否（本机用户数据） | 不允许 |
+| `mcap` | 单个 `.mcap` | `mcap-inspection-v0` | 否 | **仅检查**，不可导入/转换 |
 
-明确**不支持**的输入（v0.14）：
+明确**不支持**的输入（v0.15）：
 
 - 任意未固定的 LeRobot v3.0 目录（可质检，不可导入）；
-- LeRobot v2.0/v2.1 导入（计划 v0.15）；
-- ROS2 MCAP（计划 v0.15）；
+- LeRobot v2.0 导入（先升级到 v2.1）；
+- MCAP 导入/转换（只做 topic/type/计数与可选映射检查）；
 - 远程 URL、ZIP、对象存储路径。
 
 `robodata check` 与 `robodata import-batch` 的支持范围不同：前者是质检读取器，能读任意 LeRobot v2/v3；后者是**可追溯导入**，只接受有固定来源或明确测试标记的输入。不要用 `check` 能读来推断 `import` 也支持。

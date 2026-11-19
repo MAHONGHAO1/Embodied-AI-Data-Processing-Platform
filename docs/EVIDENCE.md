@@ -1,4 +1,4 @@
-# 证据总表 · v0.14.0
+# 证据总表 · v0.15.0
 
 本文件是 README 中版本、测试数量、规模实验和训练冒烟的统一出处。README 只指向这里，不再复制会漂移的数字。
 
@@ -8,15 +8,15 @@
 
 | 位置 | 值 | 校验 |
 | --- | --- | --- |
-| README 首行 | 0.14.0 | `tests/test_version_consistency.py` |
-| README release 徽章 | 0.14.0 | 同上 |
-| `pyproject.toml` | 0.14.0 | 同上 |
-| `robodata/config.py` `APP_VERSION` | 0.14.0 | 同上 |
-| `robodata/web.py` FastAPI | 0.14.0 | 同上 |
-| `robodata/web.py` 健康检查 | 0.14.0 | 同上 |
-| `frontend/package.json` | 0.14.0 | 同上 |
-| `frontend/src/App.tsx` 版本条 | 0.14.0 | 同上 |
-| `RELEASE_NOTES_v0.14.0.md` | 存在 | 同上 |
+| README 首行 | 0.15.0 | `tests/test_version_consistency.py` |
+| README release 徽章 | 0.15.0 | 同上 |
+| `pyproject.toml` | 0.15.0 | 同上 |
+| `robodata/config.py` `APP_VERSION` | 0.15.0 | 同上 |
+| `robodata/web.py` FastAPI | 0.15.0 | 同上 |
+| `robodata/web.py` 健康检查 | 0.15.0 | 同上 |
+| `frontend/package.json` | 0.15.0 | 同上 |
+| `frontend/src/App.tsx` 版本条 | 0.15.0 | 同上 |
+| `RELEASE_NOTES_v0.15.0.md` | 存在 | 同上 |
 
 `APP_VERSION` 会写进质量报告；版本链漂移会让报告声称自己来自一个从未发布的版本，因此用测试而不是人工纪律守住。
 
@@ -39,13 +39,13 @@ Pop-Location
 
 | 套件 | 结果 |
 | --- | --- |
-| Python 全量（Windows） | **353 passed / 14 skipped / 13 subtests passed** |
+| Python 全量（Windows） | **359 passed / 16 skipped / 13 subtests passed** |
 | 已知坏样本 `verify-fixtures` | **6/6 通过** |
 | 前端单测（Vitest） | **26 passed** |
 | 前端生产构建 | 通过 |
 | Chromium 浏览器流程 | **2 passed** |
 
-跳过项主要来自：需要 `tools/conversion/` 独立环境或固定真实数据的用例、可选 ROS2 MCAP 依赖，以及默认不启用的 Git tag 校验（`CHECK_RELEASE_TAG=1`）。跳过不等于通过。v0.14 新增 `tests/test_adapters.py`（四个内置适配器探测、未知版本拒绝、toy adapter 不改 core）、`tests/test_process_plan.py`（计划校验、标注覆盖、dry-run）与 `tests/test_registry.py`（数据卡自校验、登记冲突）；`scripts/verify_matching_optional.py` 在独立转换环境中实跑缺失流预览、复用转换、子集重编号与篡改回退（3 条转换路径 × 6 个阶段）。
+跳过项主要来自：需要 `tools/conversion/` 独立环境或固定真实数据的用例、可选 ROS2 MCAP 依赖，以及默认不启用的 Git tag 校验（`CHECK_RELEASE_TAG=1`）。跳过不等于通过。v0.14 新增 `tests/test_adapters.py`、`tests/test_process_plan.py`、`tests/test_registry.py`；v0.15 新增 `tests/test_lerobot_v21.py`（通用 v2.1 探测、标记、子集拒绝、官方转换）、`tests/test_mcap_adapter.py`（inspection-only 与 topic 检查）与 `tests/test_registry_api.py`（只读 API）。`scripts/verify_matching_optional.py` 仍在独立转换环境中实跑 3 条转换路径 × 6 个阶段。
 
 v0.14.0 CI 结果（2026-11-19，提交 `9e20975`）：
 
@@ -221,6 +221,28 @@ uv run --locked robodata process --plan work/telecom-500/process-plan.json `
 | 28 个视频 SHA-256 规范汇总 | `2ab6e8fa3f59ac213d355f26ec8eb94d3febe208da791ddf0285bcc8dc8d7f4e` |
 
 v0.14 **没有跑完整 7 集的 `process`（打包、交付、登记）**；这三项只在 500 帧端到端验证。全量打包/交付证据仍来自 v0.13.0（5.2），不要把 500 帧的交付结论外推到全量。
+
+### 5.4 v0.15 有选择的广度
+
+LeRobot v2.1 全链路（2 Episode × 5 帧合成夹具，`process --plan`）：
+
+| 项 | 结果 |
+| --- | --- |
+| 导入、质检、标注、官方 v2.1→v3.0、官方加载、打包、交付、登记 | **97.00 s** |
+| 同计划幂等重跑 | **0.67 s**；没有新增运行目录 |
+| 转换策略 | `lerobot_v21_official_converter`；官方 `convert_dataset_v21_to_v30` |
+| 数据卡 | `lerobot-v21-demo` v1；`card_digest=2905ac1f25ff64d35284292e72a2e1338724752e3a582adaf518bcb4fa15f02c` |
+| 官方加载 | 2 Episode / 10 帧；源 parquet 全量行对照通过 |
+| Train 交接 | `scripts/verify_train_handoff.py --archive ...`：`status=passed`、`card_valid=true`、10 行 / 2 Episode |
+
+MCAP 检查（合成 fixture，无真实样本）：
+
+- `adapters detect` 识别 `.mcap`，列出 `std_msgs/msg/Float64` topic 与消息计数；
+- `preflight` 校验可选 `robodata_mcap.json`，引用不存在 topic 时返回 `profile_missing_topics`；
+- `mcap` 标记 `inspection_only: true`；`--source auto` 跳过，`prepare` 明确拒绝；
+- 没有 MCAP 转换结果，也没有真实 ROS 2 数据验收。
+
+v0.15 没有重跑电信 11,879 帧；全量转换链路证据仍来自 v0.14（5.3），完整 7 集打包/登记仍未跑。
 
 ## 6. 历史真实数据验收
 

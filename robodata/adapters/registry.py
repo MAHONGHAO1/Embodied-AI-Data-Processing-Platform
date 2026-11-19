@@ -17,7 +17,9 @@ _BUILTIN_MODULES = (
     "robodata.adapters.builtin.hdf5",
     "robodata.adapters.builtin.so100",
     "robodata.adapters.builtin.aloha",
+    "robodata.adapters.builtin.lerobot_v21",
     "robodata.adapters.builtin.matching_cable",
+    "robodata.adapters.builtin.mcap",
 )
 
 
@@ -69,11 +71,15 @@ class AdapterRegistry:
     def best(self, path: Path, *, test_label: str | None = None) -> Detection:
         results = self.detect(path, test_label=test_label)
         for result in results:
-            if result.supported:
+            if result.supported and not self._adapters[result.adapter_id].descriptor.inspection_only:
                 return result
         reasons = "；".join(f"{item.adapter_id}: {item.unsupported_reason}" for item in results
                            if item.unsupported_reason)
-        raise UnsupportedSource(f"没有适配器支持该输入。{reasons}")
+        inspection = [item.adapter_id for item in results
+                      if item.supported and self._adapters[item.adapter_id].descriptor.inspection_only]
+        if inspection:
+            reasons += f"；仅检查适配器：{', '.join(inspection)}（不能导入）"
+        raise UnsupportedSource(f"没有可导入的适配器支持该输入。{reasons}")
 
     def _load_entry_points(self) -> None:
         if self._loaded_entry_points:

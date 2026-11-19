@@ -183,7 +183,7 @@ def preview_batch(batch: dict, episode_index: int, row: int = 0, camera: str | N
     import pandas as pd
     source = batch['source']
     assert_input_unchanged(source)
-    if source['kind'] in {'so100', 'aloha'}:
+    if source['kind'] in {'so100', 'aloha', 'lerobot_v21'}:
         from .dataset import load_episode
         from .video import episode_camera, read_video_frame
         episode = load_episode(Path(source['data_root']), episode_index)

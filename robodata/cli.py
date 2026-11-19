@@ -115,7 +115,7 @@ def main(argv=None):
         command.add_argument('--runs-root', type=Path, default=None)
         if name == 'import-batch':
             command.add_argument('--input', type=Path, required=True)
-            command.add_argument('--source', choices=('auto', 'hdf5', 'so100', 'aloha', 'matching_cable'),
+            command.add_argument('--source', choices=('auto', 'hdf5', 'so100', 'aloha', 'lerobot_v21', 'matching_cable'),
                                  required=True, help='auto 按目录结构选择适配器；失败时明确列出原因')
             command.add_argument('--label', required=True)
             command.add_argument('--test-label', default=None, help='仅用于明确标注的故障副本')

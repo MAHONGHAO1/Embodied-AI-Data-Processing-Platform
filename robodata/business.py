@@ -23,6 +23,8 @@ BUSINESS_STAGES = {
     "conversion_so100": ("source_verify", "final_quality", "final_registration", "file_validation", "metadata_upgrade", "field_mapping", "format_write", "official_verify", "output_quality", "registration"),
     "conversion_aloha": ("source_verify", "final_quality", "final_registration", "file_validation", "field_mapping", "format_write", "official_verify", "output_quality", "registration"),
     "conversion_matching_cable": ("source_verify", "final_quality", "final_registration", "file_validation", "matching_validation", "field_mapping", "format_write", "official_verify", "output_quality", "registration"),
+    "conversion_lerobot_v21": ("source_verify", "final_quality", "final_registration", "file_validation", "field_mapping", "format_write", "official_verify", "output_quality", "registration"),
+    "final_quality_lerobot_v21": ("source_verify", "final_quality", "final_registration", "file_validation", "field_mapping", "format_write", "official_verify", "output_quality", "conversion_registration", "package", "verify", "archive_verify", "registration"),
     "final_quality": ("source_verify", "final_quality", "final_registration", "file_validation", "hdf5_validation", "field_mapping", "format_write", "official_verify", "output_quality", "conversion_registration", "package", "verify", "archive_verify", "registration"),
     "final_quality_so100": ("source_verify", "final_quality", "final_registration", "file_validation", "metadata_upgrade", "field_mapping", "format_write", "official_verify", "output_quality", "conversion_registration", "package", "verify", "archive_verify", "registration"),
     "final_quality_aloha": ("source_verify", "final_quality", "final_registration", "file_validation", "field_mapping", "format_write", "official_verify", "output_quality", "conversion_registration", "package", "verify", "archive_verify", "registration"),
@@ -50,10 +52,16 @@ ALOHA_TIMEOUTS = {"preview": 900, "quality": 1800, "final_quality": 1800,
                   "format_write": 7200, "official_verify": 1800,
                   "output_quality": 1800, "package": 1800,
                   "verify": 1800, "archive_verify": 1800}
+LEROBOT_V21_TIMEOUTS = {"preview": 3600, "quality": 3600, "final_quality": 3600,
+                        "file_validation": 1200, "field_mapping": 1200,
+                        "format_write": 7200, "official_verify": 3600,
+                        "output_quality": 3600, "package": 3600,
+                        "verify": 3600, "archive_verify": 3600}
 from .conversion import CONVERSION_TOOL_ROOT  # noqa: E402  必须在 SO100_WORKER 之前
 SO100_WORKER = CONVERSION_TOOL_ROOT / "so100_worker.py"
 ALOHA_WORKER = CONVERSION_TOOL_ROOT / "aloha_worker.py"
 MATCHING_WORKER = CONVERSION_TOOL_ROOT / "matching_worker.py"
+LEROBOT_V21_WORKER = CONVERSION_TOOL_ROOT / "lerobot_v21_worker.py"
 
 
 def _so100_worker_path() -> Path:
@@ -66,6 +74,10 @@ def _aloha_worker_path() -> Path:
 
 def _matching_worker_path() -> Path:
     return MATCHING_WORKER
+
+
+def _lerobot_v21_worker_path() -> Path:
+    return LEROBOT_V21_WORKER
 
 
 def get_store(root=None) -> BatchStore:
@@ -82,9 +94,9 @@ FINAL_RULES = ("candidate_nonempty", "selection_confirmed", "basic_coverage", "b
 
 
 def business_stages(operation, request=None):
-    if operation == "conversion" and request and request.get("source_kind") in {"so100", "aloha", MATCHING_SOURCE_KIND}:
+    if operation == "conversion" and request and request.get("source_kind") in {"so100", "aloha", "lerobot_v21", MATCHING_SOURCE_KIND}:
         stages = BUSINESS_STAGES[f"conversion_{request['source_kind']}"]
-    elif operation == "final_quality" and request and request.get("source_kind") in {"so100", "aloha", MATCHING_SOURCE_KIND}:
+    elif operation == "final_quality" and request and request.get("source_kind") in {"so100", "aloha", "lerobot_v21", MATCHING_SOURCE_KIND}:
         stages = BUSINESS_STAGES[f"final_quality_{request['source_kind']}"]
     else:
         stages = BUSINESS_STAGES[operation]
@@ -108,6 +120,8 @@ def _base(operation, business_root=None, **options):
         timeouts.update(MATCHING_TIMEOUTS)
     if options.get("source_kind") == "aloha":
         timeouts.update(ALOHA_TIMEOUTS)
+    if options.get("source_kind") == "lerobot_v21":
+        timeouts.update(LEROBOT_V21_TIMEOUTS)
     timeouts.update(options.pop("timeouts", {}))
     return {"kind": "business", "operation": operation, "business_root": str(get_store(business_root).root),
             "timeouts": timeouts, **options}
@@ -151,8 +165,8 @@ def start_batch_quality(batch_id, expected_revision, *, runs_root=None, business
 def start_batch_conversion(batch_id, expected_revision, *, runs_root=None, business_root=None, **options):
     from .runtime import start_run
     request = _batch_request("conversion", batch_id, expected_revision, business_root, **options)
-    if request["source_kind"] not in {"hdf5", "so100", "aloha", MATCHING_SOURCE_KIND}:
-        raise WorkflowError("当前审核候选集转换仅支持固定 HDF5、SO-100、ALOHA Coffee 与 Matching Cable 配置")
+    if request["source_kind"] not in {"hdf5", "so100", "aloha", "lerobot_v21", MATCHING_SOURCE_KIND}:
+        raise WorkflowError("当前审核候选集转换仅支持 HDF5、SO-100、ALOHA Coffee、LeRobot v2.1 与 Matching Cable 配置")
     request["snapshot"] = get_store(business_root).conversion_spec(batch_id)
     request["batch_snapshot"] = get_store(business_root).get_batch(batch_id)
     request["input_path"] = (request["source"]["hdf5_path"] if request["source_kind"] == "hdf5"
@@ -415,7 +429,9 @@ def _validated_output(directory, request):
     details = official["details"]
     source_kind = request["source"]["kind"]
     camera_count = len(request["source"].get("cameras") or [request["source"].get("camera", "camera")])
-    expected_samples = 3 * expected_episodes * camera_count if source_kind == MATCHING_SOURCE_KIND else 3 * expected_episodes
+    expected_samples = (3 * expected_episodes * camera_count
+                        if source_kind in {MATCHING_SOURCE_KIND, "lerobot_v21"}
+                        else 3 * expected_episodes)
     if (details.get("format_version") != "v3.0" or details.get("checked_numeric_frames") != expected_rows
             or details.get("sample_count") != expected_samples or details.get("batch_size") != 2
             or details.get("offline") is not True or details.get("snapshot_id") != snapshot["snapshot_id"]):
@@ -726,6 +742,7 @@ def coordinate_business(directory, state):
                 unpacked = _read_step(directory, "verify")["details"]["dataset_path"]
                 worker = (_so100_worker_path() if request.get("source_kind") == "so100" else
                           _aloha_worker_path() if request.get("source_kind") == "aloha" else
+                          _lerobot_v21_worker_path() if request.get("source_kind") == "lerobot_v21" else
                           _matching_worker_path() if request.get("source_kind") == MATCHING_SOURCE_KIND else CONVERSION_WORKER)
                 command = [str(CONVERSION_PYTHON), str(worker), "--stage", stage,
                            "--output", unpacked, "--artifacts", str(directory)]
@@ -734,6 +751,7 @@ def coordinate_business(directory, state):
                 _require_final_quality(directory, request)
                 worker = (_so100_worker_path() if request.get("source_kind") == "so100" else
                           _aloha_worker_path() if request.get("source_kind") == "aloha" else
+                          _lerobot_v21_worker_path() if request.get("source_kind") == "lerobot_v21" else
                           _matching_worker_path() if request.get("source_kind") == MATCHING_SOURCE_KIND else CONVERSION_WORKER)
                 command = [str(CONVERSION_PYTHON), str(worker), "--stage", stage,
                            "--input", request["input_path"], "--output", request["output_path"],

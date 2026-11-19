@@ -21,6 +21,22 @@ def _safe_path(root: Path, relative: str) -> Path:
     return path
 
 
+GENERIC_MARKER = "robodata_source.json"
+
+
+def _generic_marker(root: Path) -> dict:
+    path = Path(root) / GENERIC_MARKER
+    if not path.is_file():
+        return {}
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise ValueError(f"{GENERIC_MARKER} 无法解析：{exc}") from exc
+    if not isinstance(value, dict) or value.get("kind") != "lerobot_v21":
+        raise ValueError(f"{GENERIC_MARKER} 的 kind 必须是 lerobot_v21")
+    return value
+
+
 def _v30_cameras(info: dict) -> list[str]:
     """Return declared LeRobot video features in metadata order."""
     cameras = [key for key, feature in (info.get("features") or {}).items()
@@ -35,7 +51,26 @@ def _v30_camera(info: dict) -> str:
     return _v30_cameras(info)[0]
 
 
-def _source(info: dict, manifest: dict) -> dict:
+def _source(info: dict, manifest: dict, *, generic: bool = False) -> dict:
+    if generic:
+        features = info.get('features') or {}
+        cameras = [key for key, feature in features.items()
+                   if isinstance(feature, dict) and feature.get('dtype') == 'video']
+        if not cameras:
+            raise ValueError('通用 LeRobot v2.1 输入没有声明 video 相机')
+        declared = manifest.get('source', {}) if isinstance(manifest, dict) else {}
+        fps = float(info['fps'])
+        allowed = {'repo_id', 'revision', 'url', 'license', 'timestamp_semantics'}
+        return {**{key: value for key, value in declared.items() if key in allowed},
+                'repo_id': declared.get('repo_id') or 'local/lerobot-v21',
+                'revision': declared.get('revision') or 'local-source',
+                'license': declared.get('license') or '由数据提供方确认',
+                'robot': declared.get('robot') or declared.get('robot_type') or 'LeRobot v2.1 通用输入',
+                'camera': cameras[0], 'cameras': cameras,
+                'format_version': info.get('codebase_version', 'v2.1'), 'fps': fps,
+                'camera_metadata': {camera: {'fps': fps,
+                    'resolution': list(features[camera].get('shape', [])),
+                    'source_path': f'videos/chunk-000/{camera}'} for camera in cameras}}
     if info.get('codebase_version') == 'v3.0':
         from .sources import HDF5_SOURCE
         declared = manifest.get('source', {})
@@ -75,8 +110,9 @@ def episode_camera_paths(root: Path, metadata: dict, index: int) -> dict[str, Pa
     info = metadata['info']
     entry = metadata['episodes'][index]
     if info.get('codebase_version') != 'v3.0':
-        _, path = episode_paths(root, metadata, index)
-        return {metadata['source']['camera']: path}
+        cameras = metadata['source'].get('cameras') or [metadata['source']['camera']]
+        return {camera: _safe_path(root, f'videos/chunk-000/{camera}/episode_{index:06d}.mp4')
+                for camera in cameras}
     paths = {}
     for camera in metadata['source'].get('cameras', [metadata['source']['camera']]):
         video = info['video_path'].format(
@@ -103,6 +139,33 @@ def _json_lines(path: Path, key: str) -> dict[int, dict]:
     return result
 
 
+def _legacy_episodes(root: Path) -> dict[int, dict]:
+    jsonl = root / "meta/episodes.jsonl"
+    if jsonl.is_file():
+        return _json_lines(jsonl, "episode_index")
+    files = sorted((root / "meta/episodes").glob("chunk-*/file-*.parquet"))
+    if files:
+        table = pd.concat([pd.read_parquet(path) for path in files], ignore_index=True)
+        if table["episode_index"].duplicated().any():
+            raise ValueError("v2.1 任务编号重复")
+        return {int(row["episode_index"]): row for row in table.to_dict("records")}
+    raise FileNotFoundError("缺少 meta/episodes.jsonl 或 meta/episodes/ 任务索引")
+
+
+def _legacy_tasks(root: Path) -> dict[int, dict]:
+    jsonl = root / "meta/tasks.jsonl"
+    if jsonl.is_file():
+        return _json_lines(jsonl, "task_index")
+    parquet = root / "meta/tasks.parquet"
+    if parquet.is_file():
+        table = pd.read_parquet(parquet)
+        if "task" in table.columns:
+            return {int(row["task_index"]): {"task_index": int(row["task_index"]), "task": str(row["task"])}
+                    for row in table.to_dict("records")}
+        return {int(index): {"task_index": int(index), "task": str(index)} for index in table.index}
+    raise FileNotFoundError("缺少 meta/tasks.jsonl 或 meta/tasks.parquet")
+
+
 def load_metadata(root: Path) -> dict:
     root = Path(root)
     info = json.loads((root / "meta/info.json").read_text(encoding="utf-8"))
@@ -115,9 +178,11 @@ def load_metadata(root: Path) -> dict:
     manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.is_file() else {}
     if not isinstance(manifest, dict):
         raise ValueError("源数据清单必须是对象")
+    marker = _generic_marker(root)
+    generic = bool(marker)
     declared_source = manifest.get('source', {})
     aloha_profile = manifest.get('profile')
-    if declared_source.get('repo_id') == 'lerobot/aloha_static_coffee':
+    if not generic and declared_source.get('repo_id') == 'lerobot/aloha_static_coffee':
         from .aloha import ALOHA_CAMERAS, ALOHA_EPISODES, ALOHA_REVISION
         cameras = _v30_cameras(info) if info.get('codebase_version') == 'v3.0' else []
         if info.get('codebase_version') != 'v3.0':
@@ -149,7 +214,7 @@ def load_metadata(root: Path) -> dict:
         tasks = {int(row['task_index']): {'task_index': int(row['task_index']), 'task': str(name)}
                  for name, row in task_table.iterrows()}
         indices = sorted(episodes)
-        if declared_source.get('repo_id') == 'lerobot/aloha_static_coffee':
+        if not generic and declared_source.get('repo_id') == 'lerobot/aloha_static_coffee':
             if aloha_profile == 'aloha_static_coffee_reviewed_v1':
                 records = manifest.get('episodes')
                 if not isinstance(records, list) or len(records) != len(ALOHA_EPISODES):
@@ -172,12 +237,17 @@ def load_metadata(root: Path) -> dict:
                   or len(episodes) != 50 or indices != list(range(50))):
                 raise ValueError('ALOHA Coffee 原始数据必须符合固定 50 条任务配置')
     else:
-        if info.get('codebase_version', 'v2.0') != 'v2.0':
-            raise ValueError('当前仅验证 SO-100 v2.0 和本项目 Panda/Lift v3.0 数据配置')
-        if manifest and (manifest.get('repo_id') != REPO_ID or manifest.get('revision') != REVISION):
-            raise ValueError('SO-100 来源清单的仓库或 revision 与固定配置不一致')
-        episodes = _json_lines(root / 'meta/episodes.jsonl', 'episode_index')
-        tasks = _json_lines(root / 'meta/tasks.jsonl', 'task_index')
+        version = info.get('codebase_version', 'v2.0')
+        if generic:
+            if version not in {'v2.0', 'v2.1'}:
+                raise ValueError(f'通用 LeRobot 输入只支持 v2.0/v2.1，检测到 {version!r}')
+        else:
+            if version != 'v2.0':
+                raise ValueError('当前仅验证 SO-100 v2.0 和本项目 Panda/Lift v3.0 数据配置')
+            if manifest and (manifest.get('repo_id') != REPO_ID or manifest.get('revision') != REVISION):
+                raise ValueError('SO-100 来源清单的仓库或 revision 与固定配置不一致')
+        episodes = _legacy_episodes(root)
+        tasks = _legacy_tasks(root)
         declared = manifest.get('episodes')
         if declared is not None:
             if (not isinstance(declared, list) or not declared
@@ -189,9 +259,10 @@ def load_metadata(root: Path) -> dict:
                 raise ValueError(f'来源清单引用了元数据中不存在的 episode：{absent}')
             indices = sorted(declared)
         else:
-            indices = list(EPISODES)
+            indices = sorted(episodes) if generic else list(EPISODES)
     return {'info': info, 'episodes': episodes, 'tasks': tasks, 'manifest': manifest,
-            'source': _source(info, manifest), 'episode_indices': indices}
+            'source': _source(info, manifest, generic=generic), 'episode_indices': indices,
+            'generic': generic}
 
 
 def load_episode(root: Path, index: int) -> Episode:
@@ -226,12 +297,18 @@ def load_episode(root: Path, index: int) -> Episode:
         video_start = camera_segments[first_camera]['from_timestamp']
         video_end = camera_segments[first_camera]['to_timestamp']
     else:
-        camera_segments = {metadata['source']['camera']: {'from_timestamp': 0.0, 'to_timestamp': None}}
+        cameras = metadata['source'].get('cameras') or [metadata['source']['camera']]
+        camera_segments = {camera: {'from_timestamp': 0.0, 'to_timestamp': None}
+                           for camera in cameras}
     names = metadata["info"]["features"].get("observation.state", {}).get("names")
     if isinstance(names, dict):
         names = names.get("motors", next(iter(names.values()), None))
-    if not isinstance(names, list) or not all(isinstance(x, str) for x in names):
-        names = list(FIELD_NAMES)
+    state_shape = metadata["info"]["features"].get("observation.state", {}).get("shape")
+    state_dim = int(state_shape[0]) if isinstance(state_shape, (list, tuple)) and state_shape else None
+    if (not isinstance(names, list) or not all(isinstance(x, str) for x in names)
+            or (state_dim is not None and len(names) != state_dim)):
+        names = list(FIELD_NAMES) if state_dim == len(FIELD_NAMES) else [
+            f"state_{i}" for i in range(state_dim or len(FIELD_NAMES))]
     source = metadata['source']
     return Episode(episode_index=index, table=table,
                    metadata={**metadata, "episode": entry}, video_path=video_path,
@@ -248,6 +325,12 @@ def input_relative_paths(root: Path, metadata: dict | None = None) -> tuple[str,
             metadata = load_metadata(root)
         except (ValueError, OSError, KeyError):
             metadata = None
+    if metadata and metadata.get('generic'):
+        paths = set()
+        for folder in ('meta', 'data', 'videos'):
+            paths.update(path.relative_to(root).as_posix()
+                         for path in (root / folder).rglob('*') if path.is_file())
+        return tuple(sorted(paths))
     if not metadata or metadata.get('info', {}).get('codebase_version') != 'v3.0':
         declared = (metadata or {}).get('manifest', {}).get('files')
         if isinstance(declared, list) and declared:

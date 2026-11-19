@@ -51,6 +51,7 @@ class AdapterDescriptor:
     pinned: bool
     supports_test_label: bool
     description: str
+    inspection_only: bool = False
 
     def to_dict(self) -> dict:
         return {
@@ -63,6 +64,7 @@ class AdapterDescriptor:
             "pinned": self.pinned,
             "supports_test_label": self.supports_test_label,
             "description": self.description,
+            "inspection_only": self.inspection_only,
         }
 
 

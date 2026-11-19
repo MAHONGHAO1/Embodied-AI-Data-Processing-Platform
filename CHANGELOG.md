@@ -1,5 +1,18 @@
 # 变更记录
 
+## v0.15.0（2026-11-19 发布）· 有选择的广度：LeRobot v2.1、MCAP 检查、Train 交接
+
+**把通用 v2.1 和 Train 交接做成真实链路；MCAP 只做检查，不假装能转换。**
+
+- **LeRobot v2.1**：新增通用适配器，要求 `meta/episodes_stats.jsonl`；转换调用官方 `convert_dataset_v21_to_v30`；`official_verify` 全量对照源 parquet；当前只支持全量 Episode，子集明确失败。
+- **MCAP 检查**：新增 `mcap` inspection-only 适配器，读取 topic/type/计数并校验可选 `robodata_mcap.json`；不推断语义、不导入、不转换。
+- **Registry API**：新增只读 `/api/registry`、`/api/registry/{id}`、`/api/registry/{id}/{version}`。
+- **Train 交接**：新增 `scripts/verify_train_handoff.py`，安全解包、验卡、验结论、官方加载；新增 `docs/TRAIN_HANDOFF.md`。
+- **UI**：来源下拉新增 LeRobot v2.1；主布局未变。
+- **实测**：v2.1 2×5 合成夹具 `process` 97.00 s，幂等重跑 0.67 s；数据卡 `lerobot-v21-demo` v1；Train 交接 `status=passed`；MCAP 合成 fixture 检查通过，无真实样本。
+- **测试**：Python 359 passed / 16 skipped；前端与 CI 见 `docs/EVIDENCE.md`。
+- 版本链统一到 0.15.0；发布说明：[RELEASE_NOTES_v0.15.0.md](RELEASE_NOTES_v0.15.0.md)
+
 ## v0.14.0（2026-11-19 发布）· 契约化：适配器、无头计划与数据卡
 
 **不加新格式，先把“支持”做成可测试、可拒绝、可插拔的契约。**
