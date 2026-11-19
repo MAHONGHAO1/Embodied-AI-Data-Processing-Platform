@@ -84,6 +84,8 @@ def test_registry_register_list_show_and_conflict(tmp_path):
     listing = list_datasets(tmp_path)
     assert listing["count"] == 1
     assert listing["datasets"][0]["versions"][0]["dataset_id"] == "dataset_demo"
+    stored = Path(listing["datasets"][0]["versions"][0]["card_path"])
+    assert stored.is_file() and "registry/cards" in stored.as_posix()
     assert show("dataset_demo", "1", tmp_path)["versions"][0]["card"]["label"] == "demo"
 
     changed = {**card, "label": "other"}

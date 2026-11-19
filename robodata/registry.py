@@ -8,7 +8,10 @@ a conflict, not a silent overwrite.
 
 from __future__ import annotations
 
+import hashlib
 import json
+import re
+import shutil
 import sqlite3
 from pathlib import Path
 
@@ -24,6 +27,12 @@ def _path(root=None) -> Path:
         from .business import get_store
         root = get_store().root
     return Path(root) / "registry.sqlite3"
+
+
+def _card_store(root, dataset_id: str, version: str) -> Path:
+    safe_dataset = re.sub(r"[^A-Za-z0-9._-]+", "_", dataset_id)[:80] or "dataset"
+    suffix = hashlib.sha256(f"{dataset_id}\0{version}".encode("utf-8")).hexdigest()[:12]
+    return _path(root).parent / "registry" / "cards" / safe_dataset / f"{suffix}.json"
 
 
 def _connect(root=None) -> sqlite3.Connection:
@@ -47,8 +56,15 @@ def register_card(card: dict, *, root=None, card_path: Path | None = None,
     valid, message = verify_card(card)
     if not valid:
         raise ValueError(f"拒绝登记未通过自校验的数据卡：{message}")
+    zip_path = Path(zip_path).resolve() if zip_path is not None else None
+    artifact_path = Path(artifact_path).resolve() if artifact_path is not None else None
     dataset_id = str(card["dataset_id"])
     version = str(card["version"])
+    stored_card_path = None
+    if card_path is not None and Path(card_path).is_file():
+        stored_card_path = _card_store(root, dataset_id, version)
+        stored_card_path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(Path(card_path), stored_card_path)
     with _connect(root) as connection:
         dataset = connection.execute("SELECT * FROM datasets WHERE dataset_id = ?",
                                      (dataset_id,)).fetchone()
@@ -62,13 +78,24 @@ def register_card(card: dict, *, root=None, card_path: Path | None = None,
             if existing["card_digest"] != card["card_digest"]:
                 raise RegistryConflict(
                     f"数据集 {dataset_id} 版本 {version} 已存在且内容不同；请换新版本，不能覆盖已登记内容")
+            if stored_card_path or zip_path:
+                connection.execute(
+                    "UPDATE versions SET card_path = COALESCE(?, card_path), "
+                    "zip_path = COALESCE(?, zip_path) WHERE dataset_id = ? AND version = ?",
+                    (str(stored_card_path) if stored_card_path else None,
+                     str(zip_path) if zip_path else None, dataset_id, version))
+                connection.commit()
+                existing = connection.execute(
+                    "SELECT * FROM versions WHERE dataset_id = ? AND version = ?",
+                    (dataset_id, version)).fetchone()
             return {"status": "unchanged", "dataset_id": dataset_id, "version": version,
                     "card_digest": card["card_digest"], "row": dict(existing)}
         connection.execute("""INSERT INTO versions (
             dataset_id, version, card_digest, card_path, zip_path, batch_id, output_id,
             content_version, source_kind, format_version, artifact_path, created_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""", (
-            dataset_id, version, card["card_digest"], str(card_path) if card_path else None,
+            dataset_id, version, card["card_digest"],
+            str(stored_card_path) if stored_card_path else (str(card_path) if card_path else None),
             str(zip_path) if zip_path else None, card.get("batch_id"), card.get("output_id"),
             card.get("content_version"),
             (card.get("source") or {}).get("kind"), (card.get("format") or {}).get("version"),
