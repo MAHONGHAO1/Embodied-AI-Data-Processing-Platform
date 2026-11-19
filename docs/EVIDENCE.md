@@ -1,22 +1,22 @@
-# 证据总表 · v0.11.0
+# 证据总表 · v0.12.0
 
 本文件是 README 中版本、测试数量、规模实验和训练冒烟的统一出处。README 只指向这里，不再复制会漂移的数字。
 
-最后更新：2026-11-18。环境：Windows 11、Python 3.12.10、Node.js 24、本地单用户。
+最后更新：2026-11-19。环境：Windows 11、Python 3.12.10、Node.js 24、本地单用户。
 
 ## 1. 版本链
 
 | 位置 | 值 | 校验 |
 | --- | --- | --- |
-| README 首行 | 0.11.0 | `tests/test_version_consistency.py` |
-| README release 徽章 | 0.11.0 | 同上 |
-| `pyproject.toml` | 0.11.0 | 同上 |
-| `robodata/config.py` `APP_VERSION` | 0.11.0 | 同上 |
-| `robodata/web.py` FastAPI | 0.11.0 | 同上 |
-| `robodata/web.py` 健康检查 | 0.11.0 | 同上 |
-| `frontend/package.json` | 0.11.0 | 同上 |
-| `frontend/src/App.tsx` 版本条 | 0.11.0 | 同上 |
-| `RELEASE_NOTES_v0.11.0.md` | 存在 | 同上 |
+| README 首行 | 0.12.0 | `tests/test_version_consistency.py` |
+| README release 徽章 | 0.12.0 | 同上 |
+| `pyproject.toml` | 0.12.0 | 同上 |
+| `robodata/config.py` `APP_VERSION` | 0.12.0 | 同上 |
+| `robodata/web.py` FastAPI | 0.12.0 | 同上 |
+| `robodata/web.py` 健康检查 | 0.12.0 | 同上 |
+| `frontend/package.json` | 0.12.0 | 同上 |
+| `frontend/src/App.tsx` 版本条 | 0.12.0 | 同上 |
+| `RELEASE_NOTES_v0.12.0.md` | 存在 | 同上 |
 
 `APP_VERSION` 会写进质量报告；版本链漂移会让报告声称自己来自一个从未发布的版本，因此用测试而不是人工纪律守住。
 
@@ -35,17 +35,17 @@ npm run test:e2e
 Pop-Location
 ```
 
-本机本轮（2026-11-18）：
+本机本轮（2026-11-19）：
 
 | 套件 | 结果 |
 | --- | --- |
-| Python 全量（Windows） | **318 passed / 14 skipped / 13 subtests passed** |
+| Python 全量（Windows） | **328 passed / 14 skipped / 13 subtests passed** |
 | 已知坏样本 `verify-fixtures` | **6/6 通过** |
 | 前端单测（Vitest） | **26 passed** |
 | 前端生产构建 | 通过 |
 | Chromium 浏览器流程 | **2 passed** |
 
-跳过项主要来自：需要 `tools/conversion/` 独立环境或固定真实数据的用例、可选 ROS2 MCAP 依赖，以及默认不启用的 Git tag 校验（`CHECK_RELEASE_TAG=1`）。跳过不等于通过。
+跳过项主要来自：需要 `tools/conversion/` 独立环境或固定真实数据的用例、可选 ROS2 MCAP 依赖，以及默认不启用的 Git tag 校验（`CHECK_RELEASE_TAG=1`）。跳过不等于通过。新增 `tests/test_matching.py` 覆盖缺失相机/深度/可选字段分类、动态特征定义、额外帧、同大小同 mtime 的内容变化；`scripts/verify_matching_optional.py` 在独立转换环境中实跑缺失流预览与六个阶段。
 
 CI 结果按提交记录（2026-11-18）：
 
@@ -115,7 +115,36 @@ DataLoader 探针使用独立转换环境中的 `lerobot 0.4.4` + `torch 2.7.1+c
 
 这是「官方训练加载器能消费这份交付物」和「交付包可独立验证」的证据，不是训练效果、任务成功率、硬件同步或生产容量。
 
-## 5. 历史真实数据验收
+首屏截图 `docs/assets/workbench-v0.12.0.png` 来自本机 FastAPI 服务（同源托管 `frontend/dist`），批次为固定 revision 的 2 Episode 样本，时间轴定位 `t = 8.37 s / 帧 251`，右侧检视显示来源锁定与质检结果；`docs/assets/matching-cable-v0.12.0.png` 是 2 Episode × 2 帧合成夹具，右侧显示缺失相机/深度与触觉 `not_provided`。两者都不是设计稿或合成图；Matching Cable 图只证明缺失流可见，不代表真实数据效果。`workbench-v0.11.0.png` 与 `workbench-v0.8.0.png` 保留作旧版对照。
+
+只判断环境能否跑通时，按 [五分钟复现](REPRODUCTION.md) 走 Tier 1：不联网、不下载样本、不装 Docker；预期 `6/6` 坏样本命中。Tier 2 才下载 19.2 MB 固定样本并跑 `--mode source`。
+
+## 5. Matching Cable 可选流（v0.12）
+
+`scripts/verify_matching_optional.py` 生成 2 条 Episode × 2 帧、只有 `camera_0`、没有深度/触觉/可选数值字段的合成夹具，实际运行预览和六个转换/验证阶段：
+
+```powershell
+uv run --project tools/conversion --locked
+uv run --locked python scripts/verify_matching_optional.py
+```
+
+本机结果：
+
+| 项 | 结果 |
+| --- | --- |
+| RGB 相机 | 只有 `observation.images.camera_0` |
+| 缺失相机 | `camera_1..3` 共 3 路，写入清单 |
+| 深度 | 两路均缺失，写入 `missing_depth_source_cameras`，不阻断 |
+| 可选数值 | `puppet/eef`、`master/eef`、`puppet/joint_effort`、`puppet/6f` 均为 `not_provided` |
+| 触觉 | `tactile.status=not_provided` |
+| 阶段 | `file_validation`、`matching_validation`、`field_mapping`、`format_write`、`official_verify`、`archive_verify` 全部通过 |
+| 官方加载 | 2 Episode / 4 帧；`output_loader_consistency_checked=true`、`source_numeric_consistency_rechecked=false` |
+
+原始报告写在 `work/matching-optional/report.json`，不随仓库分发。字段与命令见 [MATCHING_CABLE.md](MATCHING_CABLE.md)。
+
+这不是真实 9 GB Matching Cable 数据的验收，也不证明相机硬件同步、策略训练或生产容量；它证明的是「缺深度/缺夹爪相机/缺可选字段时，平台按事实记录并继续」。
+
+## 6. 历史真实数据验收
 
 以下记录来自对应版本的验收文档，原始数据与 `work/` 产物不随仓库分发，需自行复现。
 
@@ -127,7 +156,7 @@ DataLoader 探针使用独立转换环境中的 `lerobot 0.4.4` + `torch 2.7.1+c
 
 边界：这些是特定机器、特定版本上的历史运行记录；不证明任意 HDF5、全部 LeRobot 版本、硬件同步或机器人执行成功率。
 
-## 6. 规模实验
+## 7. 规模实验
 
 | 行数 | 重复 | 中位数 | 最小–最大 | 表格行/秒 |
 | ---: | ---: | ---: | ---: | ---: |
@@ -141,7 +170,7 @@ DataLoader 探针使用独立转换环境中的 `lerobot 0.4.4` + `torch 2.7.1+c
 
 复现与完整边界见 [2026-11-18 规模实验](benchmarks/2026-11-18-scale-experiment.md)，原始结果见 [JSON](benchmarks/quality-table-2026-11-18.json)。
 
-## 7. 100 步训练输入冒烟
+## 8. 100 步训练输入冒烟
 
 ```powershell
 uv run --locked python scripts\train_smoke.py --synthetic --steps 100
@@ -151,7 +180,7 @@ uv run --locked python scripts\train_smoke.py --synthetic --steps 100
 
 这**不是策略训练**：不使用 ACT / Diffusion Policy / VLA，不证明任务成功率、泛化或硬件安全。仓库不包含已验收的 ALOHA / SO-100 产物，因此没有在这里重跑真实数据集；拿到数据后可用 `--dataset-root` 复现。详见 [TRAINING_SMOKE.md](TRAINING_SMOKE.md) 与 [原始 JSON](benchmarks/train-smoke-2026-11-18.json)。
 
-## 8. 未验证 / 不宣称
+## 9. 未验证 / 不宣称
 
 - 不宣称训练效果、策略成功率、硬件同步或真实机器人执行安全。
 - 不宣称 2 Episode 验收等于 SO-100 全量 50 条 / 32,068 帧，也不等于任意 LeRobot 数据集。

@@ -2,9 +2,9 @@
 
 **把机器人演示数据，做成敢交给下游的训练集。**
 
-v0.11.0 · Windows / Linux CI / Python 3.12 / Node.js 24 · 本地单用户
+v0.12.0 · Windows / Linux CI / Python 3.12 / Node.js 24 · 本地单用户
 
-[![tests](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/tests.yml/badge.svg)](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/tests.yml) [![linux](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/linux-smoke.yml/badge.svg)](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/linux-smoke.yml) [![release](https://img.shields.io/badge/release-v0.11.0-blue.svg)](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/releases/tag/v0.11.0) [![license](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE) [![portfolio](https://img.shields.io/badge/portfolio-live-1677ff.svg)](https://mahonghao1.github.io/)
+[![tests](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/tests.yml/badge.svg)](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/tests.yml) [![linux](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/linux-smoke.yml/badge.svg)](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/linux-smoke.yml) [![release](https://img.shields.io/badge/release-v0.12.0-blue.svg)](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/releases/tag/v0.12.0) [![license](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE) [![portfolio](https://img.shields.io/badge/portfolio-live-1677ff.svg)](https://mahonghao1.github.io/)
 
 采集现场四路相机各录一份，导出时每个批次的目录结构都不一样，交接时对方只问一句：这个包能训吗。
 
@@ -12,19 +12,19 @@ RoboData 就是回答这一句的工具。导入、清洗筛选、标注审核�
 
 界面是 React + TypeScript，服务是 FastAPI，全跑在你自己机器上。Python 侧的数据处理、质检和验包才是业务权威实现——界面只是它的一层皮，不会替它做决定。
 
-![v0.8.0 工作台：SO-100 单相机批次、状态曲线、底部时间轴与右侧检视面板](docs/assets/workbench-v0.8.0.png)
+![v0.12.0 工作台：固定 revision 的 SO-100 2 Episode，t=8.37 s / 帧 251，右侧检视显示来源锁定与质检结果](docs/assets/workbench-v0.12.0.png)
 
-> 2026-11-11 从本机 FastAPI 服务（同源托管构建后的 `frontend/dist`）截取。视频是真能播的：时间轴跳到 8.37 s，视频 `currentTime` 也走到 8.37，曲线游标跟着帧动。
+> 2026-11-19 从本机 FastAPI 服务（同源托管构建后的 `frontend/dist`）截取。视频是真能播的：时间轴跳到 8.37 s，视频 `currentTime` 也走到 8.37，曲线游标跟着帧动。
 
-> **60 秒证据（v0.11.0）**：版本链 8 处由测试锁定；已知坏样本 `6/6` 命中预期判据；固定 revision 的 2 Episode / 1,300 帧真实样本一条命令跑完 9 个阶段，含官方 `lerobot 0.4.4` DataLoader 探针与独立 ZIP 验证（本机约 106 秒）；Python 全量 318 passed / 14 skipped；Docker/Linux 容器由 CI 构建并检查，不在本机宣称。逐条命令、原始 JSON 与未验证边界见 [docs/EVIDENCE.md](docs/EVIDENCE.md)。
+> **60 秒证据（v0.12.0）**：版本链 8 处由测试锁定；已知坏样本 `6/6` 命中预期判据；固定 revision 的 2 Episode / 1,300 帧真实样本一条命令跑完 9 个阶段，含官方 `lerobot 0.4.4` DataLoader 探针与独立 ZIP 验证；Matching Cable 缺少深度/夹爪相机时记录 `not_provided`，合成 2×2 夹具六阶段通过。Python 全量、前端单测与浏览器流程均通过。逐条命令、计数、耗时与未验证边界见 [docs/EVIDENCE.md](docs/EVIDENCE.md)。
 
 ## 三十秒，自己验一遍
 
 ```bash
 git clone https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform.git
 cd Embodied-AI-Data-Processing-Platform
-uv sync
-uv run robodata check --data-root fixtures/known-bad/nan-joint --skip-video
+uv sync --locked
+uv run --locked robodata check --data-root fixtures/known-bad/nan-joint --skip-video
 ```
 
 最后一条返回退出码 `3`，并在 `work/runs/*/reports/` 写出 HTML 与 JSON 报告。
@@ -32,16 +32,18 @@ uv run robodata check --data-root fixtures/known-bad/nan-joint --skip-video
 六个反例一次验完，不必跑测试套件：
 
 ```bash
-uv run robodata verify-fixtures
+uv run --locked robodata verify-fixtures
 ```
 
 它从每个 `EXPECTED.md` 里读出「应当命中哪条判据」，再实跑一遍比对；有判据没命中、或有样本没写期望，就返回非 `0`。当前 `6/6 通过`。
 
+只想先判断环境能不能跑、不想下载样本，按 [五分钟复现](docs/REPRODUCTION.md) 走 Tier 1；它不需要网络，也不装 Docker。
+
 真实样本也能一条命令复现：从固定 revision 下载完整 Episode 0–1，校验后跑来源、导入、质检、审核、转换、官方 DataLoader、交付与独立 ZIP 验证，全程写出一份分阶段报告：
 
 ```bash
-uv run robodata fetch-sample --episodes 0-1 --data-root work/samples/so100-e0-1
-uv run python scripts/verify_pipeline.py --sample work/samples/so100-e0-1 --episodes 0-1 --mode full --output work/acceptance/pipeline-full.json
+uv run --locked robodata fetch-sample --episodes 0-1 --data-root work/samples/so100-e0-1
+uv run --locked python scripts/verify_pipeline.py --sample work/samples/so100-e0-1 --episodes 0-1 --mode full --output work/acceptance/pipeline-full.json
 ```
 
 下载约 19.2 MB；转换与官方加载需要 `uv sync --project tools/conversion --locked`。命令、耗时与边界见 [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md)。
@@ -49,7 +51,7 @@ uv run python scripts/verify_pipeline.py --sample work/samples/so100-e0-1 --epis
 验你自己的数据，把 `--data-root` 换成你的目录，LeRobot v2.0 / v3.0 都认。想让验收结论跟着交付包走：
 
 ```bash
-uv run robodata check --data-root <你的数据目录> --emit-contract ./delivery
+uv run --locked robodata check --data-root <你的数据目录> --emit-contract ./delivery
 ```
 
 `./delivery/` 里会多出 `QUALITY_REPORT.json` 和一页纸的 `QUALITY_REPORT.md`，第一行就是「可交付 / 不通过 / 结论不完整」三者之一。
@@ -118,9 +120,10 @@ uv run robodata check --data-root <你的数据目录> --emit-contract ./deliver
 - **只想看效果**：打开[作品集首页](https://mahonghao1.github.io/)或[项目深度页](https://mahonghao1.github.io/robodata/)，拖时间轴、翻九个界面视角
 - **想跑起来**：装好 Node.js 24 LTS，双击 `首次安装.cmd`，再用桌面快捷方式启动 —— 见[安装与启动](#安装与启动)
 - **想核数字**：[证据总表](docs/EVIDENCE.md)、[真实样本验收](docs/ACCEPTANCE.md)、[100 万行规模实验](docs/benchmarks/2026-11-18-scale-experiment.md)、[100 步训练输入冒烟](docs/TRAINING_SMOKE.md)
+- **想快速复现**：[五分钟复现](docs/REPRODUCTION.md)：先跑无网络的 6/6，再决定是否下载样本
 - **想反馈复现**：[外部复现反馈模板](docs/FEEDBACK.md)：当前 0 条已完成记录；不伪造用户反馈
 - **想读实现**：[数据字典](docs/data_dictionary.md)、[V0.5 状态](docs/STATUS_v05.md)、[导航验收](docs/VALIDATION_navigation.md)
-- **想看迭代**：[v0.11.0 发布说明](RELEASE_NOTES_v0.11.0.md)、[v0.10.0 发布说明](RELEASE_NOTES_v0.10.0.md)、[v0.9.0 上线级审计](docs/LAUNCH_AUDIT_REPORT.md)、[变更记录](CHANGELOG.md)
+- **想看迭代**：[v0.12.0 发布说明](RELEASE_NOTES_v0.12.0.md)、[v0.11.0 发布说明](RELEASE_NOTES_v0.11.0.md)、[v0.10.0 发布说明](RELEASE_NOTES_v0.10.0.md)、[v0.9.0 上线级审计](docs/LAUNCH_AUDIT_REPORT.md)、[变更记录](CHANGELOG.md)
 - **想看跨领域验证**：[Fund Lens 的跨领域证据](https://github.com/MAHONGHAO1/AI-Fund-Management-Platform/blob/main/docs/CROSS_DOMAIN.md)：同一个「来源—校验—失败可见」结构换到基金净值后的落地与边界
 - **想照着操作**：[标准操作 SOP](docs/SOP.md)，[HTML 手册](docs/SOP.html) 可离线打开
 
@@ -211,10 +214,13 @@ flowchart LR
 | [jmrog/so100_sweet_pick](https://huggingface.co/datasets/jmrog/so100_sweet_pick) | revision `54141acb0bd6bcb868e34b4eb328f26481d333b2`；默认启用 Episode 0–4（3,562 帧）。 | LeRobot v2.0 真机数据，状态／动作各 6 维，laptop 单相机 640×480、30 Hz、AV1 编码；支持 UI 导入、筛选、标注审核、最终质检、v3.0 转换和打包验包。 |
 | [robomimic/robomimic_datasets](https://huggingface.co/datasets/robomimic/robomimic_datasets) | revision `74fa018461f479cd9fd15b924a16103012096203`；`test/test.hdf5` 共 demo_0–9（531 帧），默认启用 demo_0–2（174 帧）。 | Panda / Lift 仿真测试片段，状态 9 维、动作 7 维、agentview 84×84 RGB；业务候选子集可转换和打包。 |
 | [lerobot/aloha_static_coffee](https://huggingface.co/datasets/lerobot/aloha_static_coffee) | 固定 revision `b144896feb1f37398a862927b22cd3abdf005a6b`；来源元数据声明全量 50 条／55,000 帧和 50 FPS；本机实测 Episode 0–4 共 5,500 帧、四路相机。 | ALOHA 公开示例；逐相机检查文件、解码、帧数和时间映射，不推断相机硬件同步。v0.6.0 的实际转换与交付范围见 [验收记录](docs/VALIDATION_v0.6.0.md)。 |
+| [Matching Cable 本机帧目录](docs/MATCHING_CABLE.md) | 父目录下的 `68`–`74` 各代表一条完整原始遥操 Episode；每个 `.hdf5` 是一帧，相邻时间戳约 50 ms，即 20 FPS。 | `master/joint_position` 16 维作为 action，`puppet/joint_position` 16 维作为 observation.state；RGB 相机、深度、末端位姿、关节力矩和六维力逐路检测，缺失记为 `not_provided` 并继续；支持目录导入、预览、筛选、标注审核、v3.0 转换和交付。 |
 
 HDF5 本地上传仍受固定配置约束，不是通用 HDF5 导入器。测试副本必须显式标记；标记不会让结构或质量检查自动通过。
 
-**两种来源都能跑完整条链路**（导入 → 质检 → 筛选 → 标注 → 最终质检 → 转换 → 交付 → 独立验证），转换链路上各有各的适配器：
+Matching Cable 来源需要选择**父目录**（例如 `E:\遥操数据\matching_cable\matching_cable`）或某一条数字 Episode 目录，而不是目录中的单个 `.hdf5` 帧。默认导入目录下全部数字 Episode；可用 `ROBODATA_MATCHING_EPISODES=68,70` 选择范围，用 `ROBODATA_MATCHING_MAX_FRAMES_PER_EPISODE` 做小范围烟测。缺失的 RGB/深度/可选字段会写进批次清单并在界面逐条显示，不会补造。字段、演示命令与合成回归见 [Matching Cable 适配器](docs/MATCHING_CABLE.md)。
+
+**所有已注册来源都复用同一条业务链路**（导入 → 质检 → 筛选 → 标注 → 最终质检 → 转换 → 交付 → 独立验证），转换链路上各有各的适配器：
 
 - **HDF5 → v3.0**：由 `tools/conversion/worker.py` 直接读取 HDF5 的 demo 结构，映射字段后用官方 `LeRobotDataset.create()` 写入。
 - **SO-100 v2.0 → v3.0**：源是 LeRobot v2.0，缺 v2.1 要求的 `meta/episodes_stats.jsonl`，因此先补齐 per-episode 统计（数值读 parquet，视频抽帧后走官方 `sample_images`），再逐阶段调用官方转换函数。**官方 `convert_dataset()` 末尾会 `rmtree` 并原地替换源数据集，平台只调用其阶段函数，源数据始终只读。**
@@ -252,7 +258,7 @@ $env:ROBODATA_HDF5_EPISODES = "0-2,5,7-9" # 混合区间与单点
 ### 调整 SO-100 数据范围
 
 SO-100 全量 **50 条 / 32,068 帧（约 535 MB）** 已在本地备齐（可执行 `获取全量数据.cmd`
-或 `uv run robodata fetch-sample --full`），默认只启用 Episode 0–4（3,562 帧，约 53 MB），
+或 `uv run --locked robodata fetch-sample --full`），默认只启用 Episode 0–4（3,562 帧，约 53 MB），
 保证日常演示秒开。通过 `ROBODATA_SO100_EPISODES` 可调整：
 
 ```powershell
@@ -292,14 +298,14 @@ $env:ROBODATA_SO100_EPISODES = "0-9"    # 前 10 条
 主环境负责页面、轻量读取、质检、后台协调及业务状态；`tools/conversion/` 使用独立 Python 进程完成 HDF5 解析、官方写入与离线加载。两个环境分别锁定依赖。转换组合与维护说明见 [独立环境文档](tools/conversion/README.md)。
 
 ```powershell
-uv run robodata batches
-uv run robodata runs
-uv run robodata show-run <run_id> --events
-uv run robodata show-flow <batch_id>
+uv run --locked robodata batches
+uv run --locked robodata runs
+uv run --locked robodata show-run <run_id> --events
+uv run --locked robodata show-flow <batch_id>
 # 审核完成后的最终检查；通过后自动完成转换和交付
-uv run robodata final-check-batch <batch_id> --revision <revision>
+uv run --locked robodata final-check-batch <batch_id> --revision <revision>
 # 对下载 ZIP 在新目录独立校验并官方离线读取
-uv run robodata verify-delivery --archive <zip_path>
+uv run --locked robodata verify-delivery --archive <zip_path>
 uv run --locked python -m pytest -q
 ```
 
@@ -311,7 +317,7 @@ CI 在 `windows-latest` 上执行同一组测试（[`.github/workflows/tests.yml
 
 原始数据、管理副本、运行日志、报告和交付 ZIP 默认保存在被 Git 忽略的 `data/`、`work/`、`reports/`。历史证据中引用的本地产物需自行复现，不随源码自动下载。
 
-历史截图（仅作迭代对照，已不作为 README 首屏）`docs/assets/workbench-v0.6.0-aloha.png` 来自通过验收的真实 ALOHA Episode 0 四路相机浏览；`docs/assets/workbench-v0.6.0.png` 展示 SO-100 工作台界面，不把它描述为 ALOHA 转换证据。v0.8.0 的 `workbench-v0.8.0.png` 与 `fund-v0.3.0.png` 来自本机真实 FastAPI 服务；`workbench-v0.8.0-aloha.png` 是 16:9 布局验证截图，镜头画面取自真实交付帧但批次元数据为构造数据，不作为 ALOHA 转换或业务状态证据。
+当前首屏 `docs/assets/workbench-v0.12.0.png` 来自本机 FastAPI 服务，批次为固定 revision 的 2 Episode 样本，时间轴定位 8.37 s / 帧 251；`docs/assets/matching-cable-v0.12.0.png` 是 Matching Cable 缺失流合成夹具的界面证据。以下为历史截图，仅作迭代对照，已不作为 README 首屏：`docs/assets/workbench-v0.6.0-aloha.png` 来自通过验收的真实 ALOHA Episode 0 四路相机浏览；`docs/assets/workbench-v0.6.0.png` 展示 SO-100 工作台界面，不把它描述为 ALOHA 转换证据。v0.8.0 的 `workbench-v0.8.0.png` 与 `fund-v0.3.0.png` 来自本机真实 FastAPI 服务；`workbench-v0.8.0-aloha.png` 是 16:9 布局验证截图，镜头画面取自真实交付帧但批次元数据为构造数据，不作为 ALOHA 转换或业务状态证据。
 
 ## 为什么这么设计
 

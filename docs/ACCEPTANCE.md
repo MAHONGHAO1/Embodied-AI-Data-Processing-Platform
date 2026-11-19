@@ -4,6 +4,8 @@
 
 它不证明策略训练、任务成功率、硬件同步或生产容量。边界写在最后。
 
+只想先判断环境能否跑通、不下载样本，见 [五分钟复现](REPRODUCTION.md) 的 Tier 1。
+
 ## 1. 准备
 
 需要 Python 3.12、[uv](https://docs.astral.sh/uv/getting-started/installation/) 和约 100 MB 磁盘。

@@ -159,6 +159,22 @@ def package(request: dict, run: Path) -> dict:
             f'License: {source_license}\n'
             f'https://huggingface.co/datasets/{source_repo}/tree/{source_revision}\n'
             f'{source_robot}. Source robot numeric representation preserved.\n')
+    elif source_kind == 'matching_cable':
+        cameras = source.get('cameras', [])
+        missing_cameras = source.get('missing_cameras', [])
+        missing_depth = source.get('missing_depth_source_cameras', [])
+        dataset_summary = ('Matching Cable 双主从臂遥操作数据；主臂 16 维关节目标作为 action，'
+                           '从臂 16 维关节状态作为 observation.state；'
+                           f'已写入 {len(cameras)} 路 RGB（{", ".join(cameras) or "无"}）为 H.264、20 FPS；'
+                           f'缺失的 RGB 相机：{", ".join(missing_cameras) or "无"}；'
+                           f'缺失的深度流：{", ".join(missing_depth) or "无"}；'
+                           '源时间戳为毫秒且相邻约 50 ms，不声明相机硬件同步。')
+        license_block = (
+            f'Source: local Matching Cable HDF5 frame directory\n'
+            f'State field: {source.get("state_field")}\n'
+            f'Action field: {source.get("action_field")}\n'
+            f'License: {source_license}\n'
+            f'{source_robot}. Source numeric representation preserved.\n')
     else:
         dataset_summary = 'Panda/Lift 仿真测试片段，H.264 有损，时间按 20 Hz 派生，全部属于 train。'
         license_block = (

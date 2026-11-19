@@ -95,7 +95,7 @@ class RunRequest(BaseModel):
     operation: Literal["import", "quality", "final_quality", "conversion", "delivery", "verify_delivery"]
     # 重跑质检会把已提交 / 已通过的审核打回草稿，必须由调用方显式确认。
     invalidate_reviews: bool | None = None
-    source_kind: Literal["hdf5", "so100", "aloha"] | None = None
+    source_kind: Literal["hdf5", "so100", "aloha", "matching_cable"] | None = None
     path: str | None = None
     label: str | None = None
     test_label: str | None = None
@@ -226,7 +226,7 @@ def _load_state(run_id: str) -> dict:
 def create_app() -> FastAPI:
     bind_host = os.getenv("ROBODATA_WEB_HOST", "127.0.0.1").strip() or "127.0.0.1"
     scope = "loopback" if bind_host in {"127.0.0.1", "localhost", "::1"} else "container"
-    app = FastAPI(title="RoboData local workbench", version="0.11.0", docs_url=None, redoc_url=None,
+    app = FastAPI(title="RoboData local workbench", version="0.12.0", docs_url=None, redoc_url=None,
                   redirect_slashes=False)
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost", "testserver"])
 
@@ -246,7 +246,7 @@ def create_app() -> FastAPI:
 
     @app.get("/api/health")
     def health():
-        return {"status": "ok", "app": "RoboData Workbench", "version": "0.11.0", "scope": scope}
+        return {"status": "ok", "app": "RoboData Workbench", "version": "0.12.0", "scope": scope}
 
     @app.get("/api/batches")
     def batches():

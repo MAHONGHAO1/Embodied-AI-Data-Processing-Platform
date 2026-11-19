@@ -1,5 +1,19 @@
 # 变更记录
 
+## v0.12.0（2026-11-19 发布）· Matching Cable 缺失流可见
+
+**不要求数据完整才配进流程。** 在 PR #2 的 Matching Cable 适配器上，把缺失相机、深度和可选字段改成逐条可见的来源事实，并补合成回归。
+
+- **可选流**：`camera_0..3` 可缺，至少 1 路 RGB；深度 `camera_1..2`、`puppet/eef`、`master/eef`、`puppet/joint_effort`、`puppet/6f` 均可缺。缺失写入 `missing_cameras`、`missing_depth_source_cameras`、`optional_fields`，不补造、不阻断。
+- **触觉**：适配器不读取触觉字段，固定记录 `tactile.status=not_provided`；存在也不进入交付。
+- **时间与完整性**：50 ± 10 ms 硬校验；源帧数必须与预览完全相等；清单含 `sha256` 时重新计算哈希；候选集拒绝重复索引。
+- **验证语义**：官方验证字段改为 `output_loader_consistency_checked`，同时明确 `source_numeric_consistency_rechecked=false`；业务门禁同步，不再把输出加载检查冒充源数值重核。
+- **合成回归**：新增 `scripts/verify_matching_optional.py`，2 Episode × 2 帧、只有一路 RGB、无深度/触觉/可选字段，预览 + 六阶段通过；`acceptance.yml` 的 `full-windows` 增加该步骤。
+- **界面**：来源锁定面板显示已写入相机、缺失相机、缺失深度和触觉状态。
+- **文档**：新增 `docs/MATCHING_CABLE.md`，更新 README 数据配置、数据字典与证据总表；新增 `docs/REPRODUCTION.md` 五分钟复现页与外部复现 issue 模板。
+- 版本链统一到 0.12.0，并补齐 `RELEASE_NOTES_v0.12.0.md`。
+- 发布说明：[RELEASE_NOTES_v0.12.0.md](RELEASE_NOTES_v0.12.0.md)
+
 ## v0.11.0（2026-11-18 发布）· 可复现验收
 
 **不加格式、不加页面。** 把固定来源的真实样本验收做成一条可重跑命令，并接入官方 DataLoader 与 Docker/Linux CI。
