@@ -51,13 +51,11 @@ CI 结果按提交记录（2026-11-19）：
 
 | 运行 | 提交 | 结果 |
 | --- | --- | --- |
-| [tests #49](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/runs/44455949100) | `6fb5a4e` | success：前端单测、构建、Chromium 流程；Python 全量；`verify-fixtures` |
-| [linux-smoke #12](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/runs/44455949217) | `6fb5a4e` | success：Ubuntu 版本一致性、表格质检、坏样本校验、100 步冒烟 |
-| [acceptance #3](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/runs/44455973581) | `6fb5a4e` | success：`source-linux`、`full-windows`、`docker-linux` 三个 job 全部通过；`full-windows` 的 `Verify Matching Cable optional streams` 也通过 |
+| [tests #53](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/runs/44479380526) | `0a6076c` | success：前端单测、构建、Chromium 流程；Python 全量；`verify-fixtures` |
+| [linux-smoke #16](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/runs/44479380563) | `0a6076c` | success：Ubuntu 版本一致性、表格质检、坏样本校验、100 步冒烟 |
+| [acceptance #4](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/runs/44479838630) | `0a6076c` | success：`source-linux`、`full-windows`、`docker-linux` 三个 job 全部通过；`full-windows` 的 Matching Cable 可选流步骤也通过 |
 
-v0.11.0 的 `acceptance #1` 曾在 `full-windows` 的 9 个阶段全部通过后，因 Windows cp1252 无法打印中文「报告：」而退出 1；该问题已在 `a481caf` 修复。失败记录保留，修复前的运行不算通过。
-
-`v0.12.0` tag 指向本文件更新后的提交；它与 `6fb5a4e` 的差异仅为文档，未改代码。
+`v0.12.1` tag 指向本文件更新后的提交；它与 `0a6076c` 的差异仅为文档，未改代码。
 
 `acceptance.yml` 的三个 job 分别验证：Linux 上跑 `--mode source`；Windows 上下载固定样本并跑 `--mode full`（含转换与 DataLoader）；Linux 容器构建、健康页与坏样本。本机没有 Docker，容器结论只以 `docker-linux` 为准。
 
