@@ -431,6 +431,27 @@ def _validated_output(directory, request):
             raise WorkflowError("Matching Cable 官方验证不应声称重新核对了源 HDF5")
         if details.get("source_fingerprint") != request["source"].get("input_fingerprint"):
             raise WorkflowError("Matching Cable 官方验证所对应的源指纹不一致")
+        strategy = details.get("conversion_strategy") or {}
+        if strategy:
+            if strategy.get("source_numeric_consistency_rechecked") is not True:
+                raise WorkflowError("Matching Cable 转换缺少源数值一致性证据")
+            name = strategy.get("name")
+            if name not in {"preview_video_reuse", "legacy_reencode"}:
+                raise WorkflowError("Matching Cable 转换策略未知或未记录")
+            if name == "preview_video_reuse":
+                if strategy.get("preview_video_hashes_verified") is not True:
+                    raise WorkflowError("Matching Cable 复用视频哈希未核验")
+                if strategy.get("preview_data_hashes_verified") is not True:
+                    raise WorkflowError("Matching Cable 复用数值 parquet 哈希未核验")
+                if strategy.get("video_files_reused") != expected_episodes * camera_count:
+                    raise WorkflowError("Matching Cable 复用视频数量与候选集不一致")
+            format_write = _read_step(directory, "format_write")["details"]
+            if format_write.get("strategy") != name:
+                raise WorkflowError("Matching Cable format_write 与官方验证记录的策略不一致")
+            if format_write.get("source_numeric_consistency_rechecked") is not True:
+                raise WorkflowError("Matching Cable format_write 缺少源数值一致性证据")
+            if format_write.get("source_fingerprint") != request["source"].get("input_fingerprint"):
+                raise WorkflowError("Matching Cable format_write 绑定的源指纹不一致")
         details = {**details, "manifest_sha256": file_sha256(Path(request["output_path"]) / "source_manifest.json"),
                    "source_repo": request["source"].get("repo_id"),
                    "source_revision": request["source"].get("revision")}
@@ -461,8 +482,12 @@ def _validated_output(directory, request):
     fingerprint = dataset_fingerprint(Path(request["output_path"]))
     if report["input_fingerprint"] != fingerprint or report.get("run_id") != directory.name:
         raise WorkflowError("转换输出在质检后发生变化或报告绑定错误")
+    matching_numeric = bool((details.get("conversion_strategy") or {}).get("source_numeric_consistency_rechecked"))
     return {"official_loader_passed": True, "numeric_consistency_passed": True,
-            "source_numeric": source_kind != MATCHING_SOURCE_KIND, "episode_count": expected_episodes,
+            "source_numeric": source_kind != MATCHING_SOURCE_KIND or matching_numeric,
+            "source_numeric_scope": ("official_verify" if source_kind != MATCHING_SOURCE_KIND
+                                     else "format_write" if matching_numeric else None),
+            "episode_count": expected_episodes,
             "row_count": expected_rows,
             "snapshot_id": snapshot["snapshot_id"], "format_version": "v3.0",
             "output_fingerprint": fingerprint,

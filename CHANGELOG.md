@@ -1,5 +1,19 @@
 # 变更记录
 
+## v0.13.0（2026-11-19 发布）· Matching Cable 编码一次
+
+**去掉第二次视频编码，保留逐帧源数值回核和全有或全无回退。**
+
+- **预览布局**：每个 Episode 一个数值 parquet、每路相机一个 MP4；预览显式 `finalize()` 后才生成 `reuse` 清单和哈希。
+- **转换复用**：`format_write` 校验复用清单并复制预览视频，重写数值 parquet、任务索引、`meta/episodes`、统计和 `info.json`；不再第二次编码。
+- **源数值回核**：逐帧重读已选源 HDF5，与预览 parquet 对照；`format_write` 记录 `source_numeric_consistency_rechecked=true`，`official_verify` 仍为 `false`（范围不同）。
+- **全有或全无回退**：预览不兼容、视频哈希/帧数/分辨率/统计异常或数量不完整时，整批回退重编码并记录 `fallback_reason`，不混合来源。
+- **子集重编号**：支持从预览中选子集并重写 `index`、`episode_index`、`task_index` 和统计。
+- **500 帧 A/B**：预览 60.79 s；复用 `format_write` 18.28 s；强制重编码 58.71 s；数值逐列相等，4 路视频 SHA-256 逐字节相等。
+- **全量 7 集 / 11,879 帧**：预览 1,338.44 s；复用 `format_write` 206.46 s；干净重编码 1,072.68 s；复用约为重编码的 19.2%。复用输出 `official_verify` 28.51 s、`output_quality` 73.09 s（77/77 覆盖、0 issue）、`archive_verify` 27.89 s；11,879 行数值逐列相等，28/28 个视频 SHA-256 相同。
+- **测试**：`scripts/verify_matching_optional.py` 增加复用、子集重编号、篡改视频回退和 archive verify；Python 全量 328 passed / 14 skipped。
+- 版本链统一到 0.13.0；发布说明：[RELEASE_NOTES_v0.13.0.md](RELEASE_NOTES_v0.13.0.md)
+
 ## v0.12.1（2026-11-19 发布）· 大样本编码提速与超时校准
 
 **不改变字段语义，只让 10 GB 量级的 Matching Cable 数据跑得完。**

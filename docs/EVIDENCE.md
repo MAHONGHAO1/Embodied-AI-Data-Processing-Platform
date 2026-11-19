@@ -1,4 +1,4 @@
-# 证据总表 · v0.12.1
+# 证据总表 · v0.13.0
 
 本文件是 README 中版本、测试数量、规模实验和训练冒烟的统一出处。README 只指向这里，不再复制会漂移的数字。
 
@@ -8,15 +8,15 @@
 
 | 位置 | 值 | 校验 |
 | --- | --- | --- |
-| README 首行 | 0.12.1 | `tests/test_version_consistency.py` |
-| README release 徽章 | 0.12.1 | 同上 |
-| `pyproject.toml` | 0.12.1 | 同上 |
-| `robodata/config.py` `APP_VERSION` | 0.12.1 | 同上 |
-| `robodata/web.py` FastAPI | 0.12.1 | 同上 |
-| `robodata/web.py` 健康检查 | 0.12.1 | 同上 |
-| `frontend/package.json` | 0.12.1 | 同上 |
-| `frontend/src/App.tsx` 版本条 | 0.12.1 | 同上 |
-| `RELEASE_NOTES_v0.12.1.md` | 存在 | 同上 |
+| README 首行 | 0.13.0 | `tests/test_version_consistency.py` |
+| README release 徽章 | 0.13.0 | 同上 |
+| `pyproject.toml` | 0.13.0 | 同上 |
+| `robodata/config.py` `APP_VERSION` | 0.13.0 | 同上 |
+| `robodata/web.py` FastAPI | 0.13.0 | 同上 |
+| `robodata/web.py` 健康检查 | 0.13.0 | 同上 |
+| `frontend/package.json` | 0.13.0 | 同上 |
+| `frontend/src/App.tsx` 版本条 | 0.13.0 | 同上 |
+| `RELEASE_NOTES_v0.13.0.md` | 存在 | 同上 |
 
 `APP_VERSION` 会写进质量报告；版本链漂移会让报告声称自己来自一个从未发布的版本，因此用测试而不是人工纪律守住。
 
@@ -45,7 +45,7 @@ Pop-Location
 | 前端生产构建 | 通过 |
 | Chromium 浏览器流程 | **2 passed** |
 
-跳过项主要来自：需要 `tools/conversion/` 独立环境或固定真实数据的用例、可选 ROS2 MCAP 依赖，以及默认不启用的 Git tag 校验（`CHECK_RELEASE_TAG=1`）。跳过不等于通过。新增 `tests/test_matching.py` 覆盖缺失相机/深度/可选字段分类、动态特征定义、额外帧、同大小同 mtime 的内容变化；`scripts/verify_matching_optional.py` 在独立转换环境中实跑缺失流预览与六个阶段。
+跳过项主要来自：需要 `tools/conversion/` 独立环境或固定真实数据的用例、可选 ROS2 MCAP 依赖，以及默认不启用的 Git tag 校验（`CHECK_RELEASE_TAG=1`）。跳过不等于通过。新增 `tests/test_matching.py` 覆盖缺失相机/深度/可选字段分类、动态特征定义、额外帧、同大小同 mtime 的内容变化；`scripts/verify_matching_optional.py` 在独立转换环境中实跑缺失流预览、复用转换、子集重编号与篡改回退（3 条转换路径 × 6 个阶段）。
 
 CI 结果按提交记录（2026-11-19）：
 
@@ -119,7 +119,7 @@ DataLoader 探针使用独立转换环境中的 `lerobot 0.4.4` + `torch 2.7.1+c
 
 ## 5. Matching Cable 可选流（v0.12）
 
-`scripts/verify_matching_optional.py` 生成 2 条 Episode × 2 帧、只有 `camera_0`、没有深度/触觉/可选数值字段的合成夹具，实际运行预览和六个转换/验证阶段：
+`scripts/verify_matching_optional.py` 生成 2 条 Episode × 2 帧、只有 `camera_0`、没有深度/触觉/可选数值字段的合成夹具，实际运行预览、完整复用转换、子集重编号和篡改视频回退（3 条转换路径 × 6 个阶段）：
 
 ```powershell
 uv sync --project tools/conversion --locked
@@ -135,14 +135,20 @@ uv run --locked python scripts/verify_matching_optional.py
 | 深度 | 两路均缺失，写入 `missing_depth_source_cameras`，不阻断 |
 | 可选数值 | `puppet/eef`、`master/eef`、`puppet/joint_effort`、`puppet/6f` 均为 `not_provided` |
 | 触觉 | `tactile.status=not_provided` |
-| 阶段 | `file_validation`、`matching_validation`、`field_mapping`、`format_write`、`official_verify`、`archive_verify` 全部通过 |
+| 阶段 | 3 条转换路径 × 6 个阶段全部通过：主转换、子集重编号、篡改视频回退 |
+| 预览布局 | 2 Episode / 2 个独立 MP4；`reuse.layout=one_video_per_episode` |
+| 复用 | 主转换 `strategy=preview_video_reuse`、`video_files_reused=2`、`preview_video_hashes_verified=true`、`source_numeric_consistency_rechecked=true` |
+| 子集 | 源 Episode 1 → 输出 Episode 0；`index=[0,1]`、`episode_index=[0,0]`、`task_index=[0,0]` |
+| 回退 | 篡改预览视频后 `strategy=legacy_reencode`，`fallback_reason` 非空，输出仍通过官方加载 |
 | 官方加载 | 2 Episode / 4 帧；`output_loader_consistency_checked=true`、`source_numeric_consistency_rechecked=false` |
 
 原始报告写在 `work/matching-optional/report.json`，不随仓库分发。字段与命令见 [MATCHING_CABLE.md](MATCHING_CABLE.md)。
 
+v0.13.0 还用同一 2×2 合成夹具跑完整业务链（导入 → 最终质检 → 转换复用 → 官方验证 → 输出质检 → 打包/验包/归档 → 登记）：14 个节点全部 `completed`，`outcome=passed`，登记 validation 为 `source_numeric=true`、`source_numeric_scope=format_write`。这验证业务门禁接受新的复用证据，不是真实数据验收。
+
 这不是真实 9 GB Matching Cable 数据的验收，也不证明相机硬件同步、策略训练或生产容量；它证明的是「缺深度/缺夹爪相机/缺可选字段时，平台按事实记录并继续」。
 
-### 5.1 电信 Matching Cable 真实数据（v0.12.1）
+### 5.1 电信 Matching Cable 真实数据（v0.12.1 基线）
 
 本机收到一份约 10 GB 的 Matching Cable ZIP，只读取清单并抽取小样本，未把原始数据复制进仓库：
 
@@ -152,7 +158,26 @@ uv run --locked python scripts/verify_matching_optional.py
 - 2 Episode × 2 帧真实子集跑完导入、质检、审核、最终质检、转换、交付，官方加载通过，交付 ZIP 158,199 字节；
 - 500 帧编码实测：默认 75.73 s，四线程 64.74 s，`h264_nvenc` + 四线程 63.59 s；500 帧 `format_write` 62.79 s、`official_verify` 17.71 s。
 
-按 500 帧外推，11,879 帧全量 `format_write` 约 25 分钟、official 加载约 7 分钟量级；`MATCHING_TIMEOUTS` 已按此调整。这是本机单次测量，不是全量 11,879 帧实测，也不证明硬件同步或策略效果。数据与 `work/` 产物不随仓库分发；结构明细见本机 `work/telecom-compatibility.md`。
+v0.12.1 没有跑全量 11,879 帧；上面的 25 分钟是按 500 帧外推，不是实测。v0.13.0 的全量结果见 5.2。数据与 `work/` 产物不随仓库分发；结构明细见本机 `work/telecom-compatibility.md`。
+
+### 5.2 全量 7 集 / 11,879 帧（v0.13.0）
+
+本机把 9.66 GB ZIP 解压到仓库外的临时目录，源数据不进入 Git；预览和输出放在 `work/telecom-full-v013/`（`work/` 不随仓库分发）。全量源文件 11,879 个 / 10,038,385,032 字节，Episode 68–74 长度分别为 1,777 / 1,806 / 1,787 / 1,946 / 1,707 / 1,027 / 1,829 帧。
+
+| 步骤 | 结果 |
+| --- | --- |
+| 全量预览（首次编码 4 路相机） | **1,338.44 s（22 分 18.44 秒）**；7 Episode / 28 个独立 MP4 / 7 个数值 parquet |
+| `format_write` 复用预览视频 | **206.46 s（3 分 26.46 秒）**；`strategy=preview_video_reuse`、`video_files_reused=28`、`source_numeric_consistency_rechecked=true`、`fallback_reason=null` |
+| `format_write` 干净重编码 A/B | **1,072.68 s（17 分 52.68 秒）**；`--no-reuse`、`strategy=legacy_reencode`、`fallback_reason=null` |
+| 复用输出数值 vs 重编码输出数值 | 11,879 行 × 12 列逐列相等 |
+| 复用视频 vs 重编码视频 | 28/28 个路径相同，28/28 个 SHA-256 相同 |
+| 28 个视频 SHA-256 规范汇总 | `c8fcf19f308b965580e20da1c12e288d6582796f34382905ece400fdf52f451e`（按输出 Episode、相机排序，路径 + SHA-256） |
+| 输出体积 | 48 个文件 / 526,066,900 字节；28 个视频 / 516,204,117 字节；预览 526,064,271 字节 |
+| 复用输出 `official_verify` | 28.51 s；7 Episode / 11,879 帧；`sample_count=84`；`batch_size=2`；`offline=true` |
+| 复用输出 `archive_verify` | 27.89 s；通过 |
+| 复用输出 `output_quality` | 73.09 s；7/7 Episode 通过；11,879 行；77/77 覆盖；`issue_count=0`、`load_failure_count=0`、`not_checked_count=0` |
+
+`format_write` 复用路径没有调用视频编码器；日志里出现的 libx264 行来自同一预览首次编码或 `--no-reuse` 重编码路径，不作为复用路径的编码证据。复用时对全部 11,879 个源文件重新计算 SHA-256，再逐帧重读源 HDF5 数值与预览 parquet 对照。全量复用路径为 206.46 s，干净重编码为 1,072.68 s；复用约为重编码的 **19.2%**（5.2×）。这是本机单次测量，不是跨机器保证，也不证明硬件同步或策略效果。
 
 ## 6. 历史真实数据验收
 
