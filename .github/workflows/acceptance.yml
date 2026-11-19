@@ -64,6 +64,44 @@ jobs:
             work/acceptance/runs/**/reports/**
           if-no-files-found: warn
 
+  linux-conversion:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            uv.lock
+            tools/conversion/uv.lock
+      - name: Set up Python 3.12
+        run: uv python install 3.12
+      - name: Install locked workbench dependencies
+        run: uv sync --locked
+      - name: Install isolated conversion environment
+        run: uv sync --project tools/conversion --locked
+      - name: LeRobot v2.1 converter + registry/queue tests on Linux
+        run: |
+          uv run --locked python -m pytest -q \
+            tests/test_lerobot_v21.py \
+            tests/test_jobs.py \
+            tests/test_journal.py \
+            tests/test_ops.py
+      - name: Episode-level preview resume on Linux
+        run: |
+          tools/conversion/.venv/bin/python scripts/verify_preview_resume.py \
+            --output work/linux-preview-resume
+      - name: Upload Linux conversion evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: robodata-linux-conversion
+          path: |
+            work/linux-preview-resume/report.json
+            work/linux-preview-resume/preview/source_manifest.json
+          if-no-files-found: warn
+
   full-windows:
     if: github.event_name == 'workflow_dispatch' && inputs.run_full
     runs-on: windows-latest
@@ -96,6 +134,8 @@ jobs:
           uv run --locked python scripts/verify_pipeline.py --sample work/samples/so100-e0-1 --episodes 0-1 --mode full --output work/acceptance/pipeline-full.json
       - name: Verify Matching Cable optional streams
         run: uv run --locked python scripts/verify_matching_optional.py --output work/matching-optional
+      - name: Verify episode-level preview resume
+        run: tools\conversion\.venv\Scripts\python.exe scripts\verify_preview_resume.py --output work\preview-resume
       - name: Upload acceptance report
         if: always()
         uses: actions/upload-artifact@v4
@@ -136,6 +176,10 @@ jobs:
           echo 'frontend shell served'
       - name: Run known-bad fixtures inside the image
         run: docker exec robodata /app/.venv/bin/robodata verify-fixtures
+      - name: Start the queue worker once inside the image
+        # This proves the worker process and SQLite queue open in the container.
+        # It does not claim that the image contains the heavy conversion environment.
+        run: docker run --rm robodata-workbench:ci /app/.venv/bin/python -m robodata.worker --once
       - name: Show container logs on failure
         if: failure()
         run: docker logs robodata

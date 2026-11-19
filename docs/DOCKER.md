@@ -22,6 +22,19 @@ docker run --rm -p 127.0.0.1:8765:8765 \
 
 镜像内已包含 React 构建产物、Python 依赖和已知坏样本；`robodata verify-fixtures` 可直接运行。
 
+## Web + 队列 worker
+
+```bash
+docker compose up --build
+```
+
+`docker-compose.yml` 有两个服务：
+
+- `web`：FastAPI + React，端口只映射到 `127.0.0.1:8765`；
+- `worker`：一次性执行 `robodata.worker --once`，用来验证容器内 SQLite 队列能打开；空队列时正常退出 0。
+
+两者共享 `./docker-work:/app/work`。worker 仍是单机单用户、并发 1，不是分布式调度。
+
 ## CI 中验证了什么
 
 `.github/workflows/acceptance.yml` 的 `docker-linux` job 在 `ubuntu-latest` 上：
@@ -30,7 +43,10 @@ docker run --rm -p 127.0.0.1:8765:8765 \
 2. 启动容器并等待 `/api/health`；
 3. 断言版本与 `pyproject.toml` 一致、健康检查 scope 为 `container`；
 4. 请求 `/`，确认 React 页面由 FastAPI 同源托管；
-5. 在容器内运行 `robodata verify-fixtures`，确认 6 个已知坏样本仍命中预期判据。
+5. 在容器内运行 `robodata verify-fixtures`，确认 6 个已知坏样本仍命中预期判据；
+6. 在镜像内启动一次 `robodata.worker --once`，确认 SQLite 队列能打开。
+
+`acceptance/linux-conversion` 另外在 Ubuntu 主机上安装隔离转换环境，跑 v2.1 官方转换/加载与 Episode 级预览续跑；这不是容器内转换。
 
 ## 不证明什么
 

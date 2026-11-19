@@ -1,4 +1,4 @@
-# 兼容矩阵（v0.15）
+# 兼容矩阵（v0.16）
 
 本文件回答售前和接入时最先被问到的三个问题：
 
@@ -37,19 +37,22 @@
 
 | 形态 | 状态 | 证据 |
 | --- | --- | --- |
-| Windows 本机单用户 | 支持（主开发环境） | 本机全量测试与 10 GB Matching Cable 验收 |
-| Linux CPU（CI） | 支持 | `linux-smoke`、`acceptance/source-linux` |
-| Docker Linux | 通过 CI | `acceptance/docker-linux`；本机无 Docker，不冒充本机验证 |
+| Windows 本机单用户 | 支持（开发/演示） | 本机全量测试与 10 GB Matching Cable 验收 |
+| Linux CPU（CI） | 支持（主证据面） | `linux-smoke`、`acceptance/source-linux`、`acceptance/linux-conversion` |
+| Docker Linux | 通过 CI（Web + 队列 worker） | `acceptance/docker-linux`；镜像不含隔离转换环境，容器内不做真实转换 |
 | 多用户 / 权限 / 审计 | 不支持 | 团队版范围，未开始 |
-| 无头单命令 `process --plan` | 支持 | 500 帧电信样本端到端 209.67 s；幂等重跑 0.54 s |
-| 全量 11,879 帧转换链路 | 支持 | 预览 1,354.58 s；复用 `format_write` 184.75 s；`official_verify` 28.10 s；完整 7 集打包/登记未跑 |
-| 阶段级幂等 | 支持 | 复用批次与当前产物；节点级断点续跑未做 |
+| 持久任务队列 | 支持（单机 SQLite） | `jobs submit/list/show/cancel/retry` + `worker`；租约、接管、取消、重试 |
+| 无头单命令 `process --plan` | 支持 | 500 帧电信样本经队列完整业务链 218.27 s；重复提交返回已有任务 |
+| 全量 11,879 帧转换链路 | 支持（转换阶段） | 预览 1,354.58 s；复用 `format_write` 184.75 s；`official_verify` 28.10 s；完整 7 集打包/登记未跑 |
+| 阶段级幂等 | 支持 | 复用批次与当前产物 |
+| 预览 Episode 级续跑 | 支持（仅 Matching Cable） | 2×2 夹具复用 1 集、只编码 1 集；`format_write` 与其他格式仍阶段级重跑 |
+| 目录布局 / 磁盘预检 / GC | 支持 | `status`、`gc --dry-run|--apply`；只删失败/中断且未引用目录 |
 | 数据卡 / 本地登记表 | 支持 | `dataset/dataset_card.json` + `registry.sqlite3` |
 | Registry 只读 API | 支持 | `GET /api/registry`、`/api/registry/{id}`、`/api/registry/{id}/{version}` |
 | Train 交接示例 | 支持 | `scripts/verify_train_handoff.py`：验卡、验结论、官方加载 |
-| LeRobot v2.1 全链路 | 支持 | 2×5 合成夹具 `process` 97 s；幂等重跑 0.67 s |
+| LeRobot v2.1 全链路 | 支持 | 2×5 合成夹具 `process` 116.06 s；幂等重跑 0.86 s |
 | MCAP 检查 | 支持 | 合成 fixture 的 topic/type/计数；无真实样本 |
-| 对象存储 / NAS | 不支持 | v0.16 评估 |
+| 对象存储 / NAS | 不支持 | 团队版或后续版本评估 |
 
 ## 4. 交付与登记
 
@@ -82,4 +85,6 @@
 - 复用预览视频依赖 `lerobot==0.4.4` 的内部 writer 行为；升级需要重跑契约测试与全量 A/B。
 - LeRobot v2.1 转换调用官方 `convert_dataset_v21_to_v30`；只支持全量 Episode，且要求 `meta/episodes_stats.jsonl`。子集选择会明确失败。
 - MCAP 当前是 **inspection-only**：`adapters detect/inspect` 可用，`prepare/import/process` 会拒绝；真实转换需要真实样本、冻结 topic 映射、时间对齐和 QoS/clock 语义。
+- v0.16 的 Episode 级续跑只覆盖 **Matching Cable 预览**；`format_write`、HDF5/SO-100/ALOHA 转换仍是阶段级重跑。不要把它写成“全格式断点续跑”。
+- 队列是 **单机单用户 SQLite**；没有多 worker 并发、优先级、配额、权限或跨机调度。Docker 镜像不含隔离转换环境。
 - 外部复现记录当前为 **0**；本矩阵只代表本机与 CI 已验证范围。

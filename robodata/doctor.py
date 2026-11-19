@@ -75,14 +75,25 @@ def run_doctor() -> dict:
     checks.append(_check("conversion_pin", "pass" if pinned else "warn",
                          f"lerobot=={pinned}" if pinned else "无法读取 tools/conversion/pyproject.toml 的 lerobot 固定版本"))
 
-    work = PROJECT_ROOT / "work"
+    from .layout import Layout
+    layout = Layout.current()
     try:
-        work.mkdir(parents=True, exist_ok=True)
-        with tempfile.NamedTemporaryFile(dir=work, prefix=".doctor-", delete=True) as stream:
+        layout.ensure()
+        with tempfile.NamedTemporaryFile(dir=layout.home, prefix=".doctor-", delete=True) as stream:
             stream.write(b"ok")
-        checks.append(_check("work_dir", "pass", f"可写：{work}"))
+        checks.append(_check("work_dir", "pass", f"可写：{layout.home}"))
     except OSError as exc:
         checks.append(_check("work_dir", "fail", f"不可写：{exc}", "检查磁盘权限或 ROBODATA 工作目录"))
+
+    try:
+        from .jobs import JobStore
+        queue = JobStore(layout.business).summary()
+        checks.append(_check("queue", "pass",
+                             f"SQLite 可读；{queue['total']} 个任务，运行中 "
+                             f"{1 if queue['running'] else 0}"))
+    except Exception as exc:  # noqa: BLE001 - doctor must report, not crash
+        checks.append(_check("queue", "fail", f"队列数据库不可用：{exc}",
+                             "检查 work/business 权限或删除损坏的 queue/jobs.sqlite3"))
 
     try:
         free = shutil.disk_usage(PROJECT_ROOT).free

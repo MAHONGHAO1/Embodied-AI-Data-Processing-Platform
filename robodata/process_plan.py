@@ -256,6 +256,47 @@ def _resolve_source(plan: dict) -> str:
     return best(Path(plan["input"]["path"]), test_label=plan["input"]["test_label"])["adapter_id"]
 
 
+def _input_bytes(path: str) -> int:
+    from pathlib import Path
+    import re
+    if not path or re.match(r"^[A-Za-z][A-Za-z0-9+.-]*://", path):
+        return 0
+    candidate = Path(path)
+    if candidate.is_file():
+        return candidate.stat().st_size
+    if candidate.is_dir():
+        total = 0
+        for item in candidate.rglob("*"):
+            try:
+                if item.is_file() and not item.is_symlink():
+                    total += item.stat().st_size
+            except OSError:
+                continue
+        return total
+    return 0
+
+
+def _disk_preflight(plan: dict, business_root=None, runs_root=None) -> str | None:
+    import os
+    import shutil
+    from pathlib import Path
+    if os.environ.get("ROBODATA_SKIP_DISK_CHECK") == "1":
+        return None
+    source = _input_bytes(plan["input"]["path"])
+    required = max(512 * 1024 ** 2, int(source * 3) + 256 * 1024 ** 2)
+    probe = Path(runs_root) if runs_root else (Path(business_root) if business_root else Path.cwd())
+    while not probe.exists() and probe.parent != probe:
+        probe = probe.parent
+    try:
+        free = shutil.disk_usage(probe).free
+    except OSError:
+        return None
+    if free < required:
+        return (f"磁盘空间不足：预计至少需要 {required / 1024 ** 3:.2f} GiB，"
+                f"当前可用 {free / 1024 ** 3:.2f} GiB；清理或更换 --runs-root 后重试")
+    return None
+
+
 def _result(*, status: str, exit_code: int, batch=None, runs=None, output=None, delivery=None,
             message: str = "", state_path: Path | None = None) -> dict:
     return {"schema_version": 1, "status": status, "exit_code": exit_code,
@@ -299,6 +340,10 @@ def run_process(plan: dict, *, runs_root=None, business_root=None, timeout: floa
                        message=f"批次来源是 {source_kind}，计划要求 {requested}", state_path=state_path)
     if dry_run:
         return _result(status="validated", exit_code=EXIT_OK, message=f"计划有效；输入适配器：{source_kind}",
+                       state_path=state_path)
+    disk_error = _disk_preflight(plan, business_root, runs_root)
+    if disk_error:
+        return _result(status="failed", exit_code=EXIT_FAILED, message=disk_error,
                        state_path=state_path)
 
     runs: dict[str, str] = dict(persisted.get("runs") or {})

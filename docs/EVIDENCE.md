@@ -1,4 +1,4 @@
-# 证据总表 · v0.15.0
+# 证据总表 · v0.16.0
 
 本文件是 README 中版本、测试数量、规模实验和训练冒烟的统一出处。README 只指向这里，不再复制会漂移的数字。
 
@@ -8,15 +8,15 @@
 
 | 位置 | 值 | 校验 |
 | --- | --- | --- |
-| README 首行 | 0.15.0 | `tests/test_version_consistency.py` |
-| README release 徽章 | 0.15.0 | 同上 |
-| `pyproject.toml` | 0.15.0 | 同上 |
-| `robodata/config.py` `APP_VERSION` | 0.15.0 | 同上 |
-| `robodata/web.py` FastAPI | 0.15.0 | 同上 |
-| `robodata/web.py` 健康检查 | 0.15.0 | 同上 |
-| `frontend/package.json` | 0.15.0 | 同上 |
-| `frontend/src/App.tsx` 版本条 | 0.15.0 | 同上 |
-| `RELEASE_NOTES_v0.15.0.md` | 存在 | 同上 |
+| README 首行 | 0.16.0 | `tests/test_version_consistency.py` |
+| README release 徽章 | 0.16.0 | 同上 |
+| `pyproject.toml` | 0.16.0 | 同上 |
+| `robodata/config.py` `APP_VERSION` | 0.16.0 | 同上 |
+| `robodata/web.py` FastAPI | 0.16.0 | 同上 |
+| `robodata/web.py` 健康检查 | 0.16.0 | 同上 |
+| `frontend/package.json` | 0.16.0 | 同上 |
+| `frontend/src/App.tsx` 版本条 | 0.16.0 | 同上 |
+| `RELEASE_NOTES_v0.16.0.md` | 存在 | 同上 |
 
 `APP_VERSION` 会写进质量报告；版本链漂移会让报告声称自己来自一个从未发布的版本，因此用测试而不是人工纪律守住。
 
@@ -39,13 +39,13 @@ Pop-Location
 
 | 套件 | 结果 |
 | --- | --- |
-| Python 全量（Windows） | **359 passed / 16 skipped / 13 subtests passed** |
+| Python 全量（Windows） | **374 passed / 16 skipped / 13 subtests passed** |
 | 已知坏样本 `verify-fixtures` | **6/6 通过** |
 | 前端单测（Vitest） | **26 passed** |
 | 前端生产构建 | 通过 |
 | Chromium 浏览器流程 | **2 passed** |
 
-跳过项主要来自：需要 `tools/conversion/` 独立环境或固定真实数据的用例、可选 ROS2 MCAP 依赖，以及默认不启用的 Git tag 校验（`CHECK_RELEASE_TAG=1`）。跳过不等于通过。v0.14 新增 `tests/test_adapters.py`、`tests/test_process_plan.py`、`tests/test_registry.py`；v0.15 新增 `tests/test_lerobot_v21.py`（通用 v2.1 探测、标记、子集拒绝、官方转换）、`tests/test_mcap_adapter.py`（inspection-only 与 topic 检查）与 `tests/test_registry_api.py`（只读 API）。`scripts/verify_matching_optional.py` 仍在独立转换环境中实跑 3 条转换路径 × 6 个阶段。
+跳过项主要来自：需要 `tools/conversion/` 独立环境或固定真实数据的用例、可选 ROS2 MCAP 依赖，以及默认不启用的 Git tag 校验（`CHECK_RELEASE_TAG=1`）。跳过不等于通过。v0.14 新增 `tests/test_adapters.py`、`tests/test_process_plan.py`、`tests/test_registry.py`；v0.15 新增 `tests/test_lerobot_v21.py`（通用 v2.1 探测、标记、子集拒绝、官方转换）、`tests/test_mcap_adapter.py`（inspection-only 与 topic 检查）与 `tests/test_registry_api.py`（只读 API）。v0.16 新增 `tests/test_jobs.py`（幂等、租约、取消、重试、worker）、`tests/test_jobs_api.py`（队列 API）、`tests/test_journal.py`（单元复用与篡改失效）与 `tests/test_ops.py`（GC 保护、status、磁盘预检）。`scripts/verify_matching_optional.py` 仍在独立转换环境中实跑 3 条转换路径 × 6 个阶段。
 
 v0.15.0 CI 结果（2026-11-19，提交 `9ce0281`）：
 
@@ -243,6 +243,31 @@ MCAP 检查（合成 fixture，无真实样本）：
 - 没有 MCAP 转换结果，也没有真实 ROS 2 数据验收。
 
 v0.15 没有重跑电信 11,879 帧；全量转换链路证据仍来自 v0.14（5.3），完整 7 集打包/登记仍未跑。
+
+### 5.5 v0.16 可运维
+
+500 帧电信 Matching Cable，经本地队列跑完整业务链：
+
+| 项 | 结果 |
+| --- | --- |
+| `jobs submit` + `worker --once`：导入、质检、标注、转换、验证、打包、交付、登记 | **218.27 s** |
+| 重复提交同计划 | `status=existing`，不新建运行 |
+| 数据卡 | `telecom-matching-cable-500` v1；`card_digest=ae3aa64022b6e6f3f59036840f58bba33fe879db6e096dd982c869b462546893` |
+| Train 交接 | `scripts/verify_train_handoff.py --archive ...`：`status=passed`、500 行 / 1 Episode |
+| 取消 | 运行 12 s 后取消：任务 `canceled`，无新增登记版本 |
+
+预览 Episode 级续跑（2×2 合成夹具）：
+
+- `scripts/verify_preview_resume.py`：预编码 Episode 68 后运行真实预览，`reused_episodes=1`、`encoded_episodes=1`、2 Episode / 4 帧。
+- 最终仍为 LeRobot v3.0；`verify_matching_optional.py` 的 18 阶段复用/子集/篡改回退全部通过。
+
+队列与目录：
+
+- `tests/test_jobs.py` 7 项、`tests/test_jobs_api.py` 2 项、`tests/test_journal.py` 2 项、`tests/test_ops.py` 4 项通过。
+- `gc` 只删除失败/中断且未被引用的运行目录；完成记录、当前产物、登记卡均受保护。
+- 磁盘预检在空间不足时直接失败；`ROBODATA_SKIP_DISK_CHECK=1` 可显式跳过。
+
+边界：`format_write` 与其他格式仍是阶段级重跑；Docker 镜像不含隔离转换环境；全量 7 集打包/交付未在本版重跑；外部复现仍为 **0**。
 
 ## 6. 历史真实数据验收
 

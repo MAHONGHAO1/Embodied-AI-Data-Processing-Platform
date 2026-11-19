@@ -105,6 +105,10 @@ class RunRequest(BaseModel):
     archive_path: str | None = None
 
 
+class JobSubmitRequest(BaseModel):
+    plan: dict
+
+
 class RecoverRequest(BaseModel):
     # 恢复「批次质检登记」会重置审核与产物，必须由调用方显式确认。
     invalidate_reviews: bool | None = None
@@ -226,7 +230,7 @@ def _load_state(run_id: str) -> dict:
 def create_app() -> FastAPI:
     bind_host = os.getenv("ROBODATA_WEB_HOST", "127.0.0.1").strip() or "127.0.0.1"
     scope = "loopback" if bind_host in {"127.0.0.1", "localhost", "::1"} else "container"
-    app = FastAPI(title="RoboData local workbench", version="0.15.0", docs_url=None, redoc_url=None,
+    app = FastAPI(title="RoboData local workbench", version="0.16.0", docs_url=None, redoc_url=None,
                   redirect_slashes=False)
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost", "testserver"])
 
@@ -246,7 +250,12 @@ def create_app() -> FastAPI:
 
     @app.get("/api/health")
     def health():
-        return {"status": "ok", "app": "RoboData Workbench", "version": "0.15.0", "scope": scope}
+        return {"status": "ok", "app": "RoboData Workbench", "version": "0.16.0", "scope": scope}
+
+    @app.get("/api/status")
+    def status_endpoint():
+        from .status import status
+        return _public_value(status())
 
     @app.get("/api/registry")
     def registry_list():
@@ -269,6 +278,54 @@ def create_app() -> FastAPI:
             return _public_value(value["versions"][0])
         except (KeyError, ValueError, OSError, IndexError) as exc:
             raise HTTPException(status_code=404, detail=explain_error(exc)) from exc
+
+    def _jobs():
+        from .jobs import JobStore
+        return JobStore()
+
+    @app.get("/api/jobs")
+    def jobs_list(state: str | None = None, limit: int = 100):
+        try:
+            value = {"jobs": _jobs().list(state, limit), "summary": _jobs().summary()}
+            return _public_value(value)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=explain_error(exc)) from exc
+
+    @app.post("/api/jobs", status_code=202)
+    def jobs_submit(request: JobSubmitRequest):
+        try:
+            value = _jobs().submit(request.plan)
+            return _public_value(value)
+        except (ValueError, KeyError, OSError) as exc:
+            raise HTTPException(status_code=400, detail=explain_error(exc)) from exc
+
+    @app.get("/api/jobs/{job_id}")
+    def jobs_detail(job_id: str):
+        try:
+            store = _jobs()
+            value = store.get(job_id)
+            value["events"] = store.events(job_id)
+            return _public_value(value)
+        except (KeyError, ValueError, OSError) as exc:
+            raise HTTPException(status_code=404, detail=explain_error(exc)) from exc
+
+    @app.post("/api/jobs/{job_id}/cancel")
+    def jobs_cancel(job_id: str):
+        try:
+            return _public_value(_jobs().cancel(job_id))
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail=explain_error(exc)) from exc
+        except (ValueError, OSError) as exc:
+            raise HTTPException(status_code=400, detail=explain_error(exc)) from exc
+
+    @app.post("/api/jobs/{job_id}/retry")
+    def jobs_retry(job_id: str):
+        try:
+            return _public_value(_jobs().retry(job_id))
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail=explain_error(exc)) from exc
+        except (ValueError, OSError) as exc:
+            raise HTTPException(status_code=400, detail=explain_error(exc)) from exc
 
     @app.get("/api/batches")
     def batches():

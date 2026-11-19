@@ -240,93 +240,156 @@ def _preview_reuse_manifest(preview: Path, episode_records: list[dict], cameras:
             "episodes": reuse_episodes, "meta_files": meta_files}
 
 
-def build_preview(source: Path, output: Path) -> dict:
+def _frame_records(source: Path, frames: list[Path], source_id: int) -> list[dict]:
+    records = []
+    for frame_path in frames:
+        records.append({"path": frame_path.relative_to(source).as_posix(),
+                        "size": frame_path.stat().st_size,
+                        "mtime_ns": frame_path.stat().st_mtime_ns,
+                        "episode_id": source_id, "sha256": sha256(frame_path)})
+    return records
+
+
+def _records_digest(records: list[dict]) -> str:
+    payload = json.dumps([[item["path"], item["size"], item["sha256"]] for item in records],
+                         ensure_ascii=False, separators=(",", ":"))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _encode_episode(episode_dir: Path, source: Path, source_frames: list[Path],
+                    records: list[dict], source_id: int, capabilities: dict,
+                    cameras: list[str], shapes: dict[str, tuple[int, int, int]]) -> None:
     import h5py
     import numpy as np
     from lerobot.datasets.lerobot_dataset import LeRobotDataset
 
+    if episode_dir.exists():
+        import shutil
+        shutil.rmtree(episode_dir)
+    dataset = LeRobotDataset.create(
+        repo_id=f"local/matching-episode-{source_id}", root=episode_dir, fps=FPS,
+        features=feature_definitions(shapes, capabilities["optional_present"]),
+        robot_type="dual_arm_teleoperation", video_backend="pyav", vcodec=VCODEC,
+        image_writer_processes=0, image_writer_threads=0, batch_encoding_size=1,
+        metadata_buffer_size=1, streaming_encoding=True, encoder_threads=ENCODER_THREADS,
+    )
+    dataset.meta.update_chunk_settings(data_files_size_in_mb=0.001, video_files_size_in_mb=0.001)
+    previous_ms = None
+    for frame_path in source_frames:
+        with h5py.File(frame_path, "r") as handle:
+            state = read_numeric(handle, STATE_FIELD, 16)
+            action = read_numeric(handle, ACTION_FIELD, 16)
+            if "timestamps" not in handle or np.asarray(handle["timestamps"]).size != 1:
+                raise ValueError(f"{frame_path.name} 缺少单值 /timestamps")
+            source_ms = float(handle["timestamps"][0])
+            if not math.isfinite(source_ms) or source_ms < 0:
+                raise ValueError(f"{frame_path.name} 的时间戳无效")
+            if previous_ms is not None and abs((source_ms - previous_ms) - 50.0) > 10.0:
+                raise ValueError(
+                    f"Episode {source_id} 的 {frame_path.name} 时间戳间隔为 "
+                    f"{source_ms - previous_ms:.1f} ms，超出 50±10 ms；不静默按 20 FPS 继续")
+            previous_ms = source_ms
+            frame = {
+                "task": f"Matching Cable episode {source_id}",
+                "observation.state": state,
+                "action": action,
+                "source.timestamp_ms": np.asarray([source_ms], dtype=np.float32),
+            }
+            for field in capabilities["optional_present"]:
+                if field not in handle:
+                    raise ValueError(f"可选字段 /{field} 在首帧存在，但 {frame_path.name} 缺失")
+                frame[OPTIONAL_FEATURE_KEYS[field]] = read_numeric(
+                    handle, field, OPTIONAL_NUMERIC_FIELDS[field])
+            for field in capabilities["optional_missing"]:
+                if field in handle:
+                    raise ValueError(f"可选字段 /{field} 在首帧缺失，但 {frame_path.name} 出现")
+            for camera in cameras:
+                source_field = CAMERA_SOURCE_FIELDS[camera]
+                if source_field not in handle:
+                    raise ValueError(f"{camera} 在首帧存在，但 {frame_path.name} 缺失")
+                frame[camera] = decode_rgb(handle[source_field][0], source_field, shapes[camera])
+            for camera in capabilities["missing_cameras"]:
+                if CAMERA_SOURCE_FIELDS[camera] in handle:
+                    raise ValueError(f"{camera} 在首帧缺失，但 {frame_path.name} 出现")
+            for depth_field in capabilities["depth_present"]:
+                if depth_field not in handle:
+                    raise ValueError(f"深度字段 /{depth_field} 在首帧存在，但 {frame_path.name} 缺失")
+                validate_depth(handle[depth_field][0], depth_field.split("/")[-1])
+            for depth_field in capabilities["depth_missing"]:
+                if depth_field in handle:
+                    raise ValueError(f"深度字段 /{depth_field} 在首帧缺失，但 {frame_path.name} 出现")
+            dataset.add_frame(frame)
+    dataset.save_episode(parallel_encoding=False)
+    dataset.finalize()
+
+
+def build_preview(source: Path, output: Path) -> dict:
+    import shutil
+    from lerobot.datasets.aggregate import aggregate_datasets
+
     assert_lerobot_compatibility()
     from lerobot_stats import patch_running_quantile_stats
+    from robodata.journal import UnitJournal, artifact_record
     patch_running_quantile_stats()
     if output.exists():
-        if not output.is_dir() or any(output.iterdir()):
-            raise FileExistsError(f"预览目录已有内容，不能覆盖：{output}")
-        output.rmdir()
+        if not output.is_dir():
+            raise FileExistsError(f"预览目标不是目录，不能覆盖：{output}")
+        if (output / "source_manifest.json").is_file():
+            raise FileExistsError(f"预览目录已有完整内容，不能覆盖：{output}")
+        if any(output.iterdir()):
+            shutil.rmtree(output)
+        else:
+            output.rmdir()
     episodes = discover_episodes(source, os.environ.get("ROBODATA_MATCHING_EPISODES"))
     capabilities = inspect_frame_capabilities(episodes[0]["frames"][0])
     cameras = capabilities["cameras"]
     shapes = inspect_shapes(episodes[0]["frames"][0], cameras)
     output.parent.mkdir(parents=True, exist_ok=True)
-    dataset = LeRobotDataset.create(
-        repo_id="local/matching-cable-teleoperation", root=output, fps=FPS,
-        features=feature_definitions(shapes, capabilities["optional_present"]), robot_type="dual_arm_teleoperation",
-        video_backend="pyav", vcodec=VCODEC, image_writer_processes=0,
-        image_writer_threads=0, batch_encoding_size=1, metadata_buffer_size=1, streaming_encoding=True,
-        encoder_threads=ENCODER_THREADS,
-    )
-    # One parquet and one MP4 per episode make preview artifacts addressable and
-    # guarantee that conversion never has to trim or re-encode a shared video.
-    dataset.meta.update_chunk_settings(data_files_size_in_mb=0.001, video_files_size_in_mb=0.001)
-    hashes = []
+
+    units_dir = output.with_name(output.name + ".units")
+    units_dir.mkdir(parents=True, exist_ok=True)
+    journal = UnitJournal(units_dir / "journal.jsonl", root=units_dir)
     episode_records = []
+    unit_roots = []
+    hashes = []
+    reused = 0
     for episode in episodes:
         source_id = int(episode["source_episode_id"])
         source_frames = [Path(frame) for frame in episode["frames"]]
-        previous_ms = None
-        for frame_path in source_frames:
-            digest = sha256(frame_path)
-            hashes.append({"path": frame_path.relative_to(source).as_posix(), "size": frame_path.stat().st_size,
-                           "mtime_ns": frame_path.stat().st_mtime_ns, "episode_id": source_id, "sha256": digest})
-            with h5py.File(frame_path, "r") as handle:
-                state = read_numeric(handle, STATE_FIELD, 16)
-                action = read_numeric(handle, ACTION_FIELD, 16)
-                if "timestamps" not in handle or np.asarray(handle["timestamps"]).size != 1:
-                    raise ValueError(f"{frame_path.name} 缺少单值 /timestamps")
-                source_ms = float(handle["timestamps"][0])
-                if not math.isfinite(source_ms) or source_ms < 0:
-                    raise ValueError(f"{frame_path.name} 的时间戳无效")
-                if previous_ms is not None and abs((source_ms - previous_ms) - 50.0) > 10.0:
-                    raise ValueError(
-                        f"Episode {source_id} 的 {frame_path.name} 时间戳间隔为 "
-                        f"{source_ms - previous_ms:.1f} ms，超出 50±10 ms；不静默按 20 FPS 继续")
-                previous_ms = source_ms
-                frame = {
-                    "task": f"Matching Cable episode {source_id}",
-                    "observation.state": state,
-                    "action": action,
-                    "source.timestamp_ms": np.asarray([source_ms], dtype=np.float32),
-                }
-                for field in capabilities["optional_present"]:
-                    if field not in handle:
-                        raise ValueError(f"可选字段 /{field} 在首帧存在，但 {frame_path.name} 缺失")
-                    frame[OPTIONAL_FEATURE_KEYS[field]] = read_numeric(
-                        handle, field, OPTIONAL_NUMERIC_FIELDS[field])
-                for field in capabilities["optional_missing"]:
-                    if field in handle:
-                        raise ValueError(f"可选字段 /{field} 在首帧缺失，但 {frame_path.name} 出现")
-                for camera in cameras:
-                    source_field = CAMERA_SOURCE_FIELDS[camera]
-                    if source_field not in handle:
-                        raise ValueError(f"{camera} 在首帧存在，但 {frame_path.name} 缺失")
-                    frame[camera] = decode_rgb(handle[source_field][0], source_field, shapes[camera])
-                for camera in capabilities["missing_cameras"]:
-                    if CAMERA_SOURCE_FIELDS[camera] in handle:
-                        raise ValueError(f"{camera} 在首帧缺失，但 {frame_path.name} 出现")
-                for depth_field in capabilities["depth_present"]:
-                    if depth_field not in handle:
-                        raise ValueError(f"深度字段 /{depth_field} 在首帧存在，但 {frame_path.name} 缺失")
-                    validate_depth(handle[depth_field][0], depth_field.split("/")[-1])
-                for depth_field in capabilities["depth_missing"]:
-                    if depth_field in handle:
-                        raise ValueError(f"深度字段 /{depth_field} 在首帧缺失，但 {frame_path.name} 出现")
-                dataset.add_frame(frame)
-        dataset.save_episode(parallel_encoding=False)
-        episode_records.append({"episode_index": int(episode["episode_index"]), "source_episode_id": source_id,
-                                "length": len(source_frames)})
-    # Parquet footers and the streaming encoder must be closed before hashing or
-    # handing any preview artifact to another process.
-    dataset.finalize()
-    info = dataset.meta.info
+        records = _frame_records(source, source_frames, source_id)
+        digest = _records_digest(records)
+        unit_id = f"preview:episode:{source_id}"
+        episode_dir = units_dir / f"episode_{source_id:06d}"
+        if journal.is_done(unit_id, digest):
+            record = journal.get(unit_id) or {}
+            meta = record.get("meta") or {}
+            if not isinstance(meta, dict) or int(meta.get("length", -1)) != len(source_frames):
+                raise ValueError(f"预览续跑记录损坏：Episode {source_id}")
+            episode_records.append(meta)
+            hashes.extend(records)
+            unit_roots.append(episode_dir)
+            reused += 1
+            continue
+        journal.start(unit_id, digest)
+        try:
+            _encode_episode(episode_dir, source, source_frames, records, source_id,
+                            capabilities, cameras, shapes)
+        except Exception as exc:
+            journal.fail(unit_id, digest, f"{type(exc).__name__}: {exc}")
+            raise
+        meta = {"episode_index": int(episode["episode_index"]),
+                "source_episode_id": source_id, "length": len(source_frames)}
+        journal.complete(unit_id, digest, [artifact_record(episode_dir, root=units_dir)], meta=meta)
+        episode_records.append(meta)
+        hashes.extend(records)
+        unit_roots.append(episode_dir)
+
+    aggregate_datasets(
+        repo_ids=[f"local/matching-episode-{int(item['source_episode_id'])}" for item in episode_records],
+        aggr_repo_id="local/matching-cable-teleoperation", roots=unit_roots, aggr_root=output,
+        data_files_size_in_mb=0.001, video_files_size_in_mb=0.001, chunk_size=1000,
+    )
+    info = json.loads((output / "meta/info.json").read_text(encoding="utf-8"))
     reuse = _preview_reuse_manifest(output, episode_records, cameras, shapes, info)
     optional_status = {field: ("provided" if field in capabilities["optional_present"] else "not_provided")
                        for field in OPTIONAL_NUMERIC_FIELDS}
@@ -338,7 +401,7 @@ def build_preview(source: Path, output: Path) -> dict:
     if capabilities["optional_missing"]:
         limitations.append("首帧缺少的可选数值字段不写入：" + "、".join(capabilities["optional_missing"]))
     limitations.append("适配器不读取触觉字段；缺失不阻断，存在也不进入输出特征。")
-    limitations.append("文件级 20 FPS 与 RGB 映射不代表相机硬件同步。")
+    limitations.append("文件按 20 FPS 与 RGB 映射，不代表相机硬件同步。")
     limitations.append("最终转换复用预览 MP4；数值逐帧与源 HDF5 复核，不进行第二次视频编码。")
     manifest = {
         "schema_version": 1, "profile": PREVIEW_PROFILE, "format_version": "v3.0",
@@ -353,23 +416,24 @@ def build_preview(source: Path, output: Path) -> dict:
             "tactile": capabilities["tactile"],
             "episode_mapping": {str(item["episode_index"]): item["source_episode_id"] for item in episode_records},
             "state_field": STATE_FIELD, "action_field": ACTION_FIELD,
-            "timestamp_semantics": "源 timestamps 为毫秒，50 ms/帧；输出时间按 20 FPS 派生，不声明硬件同步",
+            "timestamp_semantics": "源 timestamps 为毫秒，50 ms/帧；输出时间戳按 20 FPS 派生，不声明硬件同步",
         },
         "episodes": episode_records, "total_episodes": len(episode_records),
         "total_frames": sum(item["length"] for item in episode_records),
         "camera_metadata": {camera: {"fps": FPS, "resolution": list(shapes[camera]), "encoding": "JPEG -> H.264 preview"}
                             for camera in cameras},
-        "timestamp_warnings": [],
-        "files": hashes,
-        "reuse": reuse,
-        "limitations": limitations,
-        "info_fps": info.get("fps"),
+        "timestamp_warnings": [], "files": hashes, "reuse": reuse,
+        "limitations": limitations, "info_fps": info.get("fps"),
+        "resume": {"schema_version": 1, "reused_episodes": reused,
+                   "encoded_episodes": len(episode_records) - reused,
+                   "unit_journal": "preview.units/journal.jsonl"},
     }
     write_json(output / "source_manifest.json", manifest)
     write_json(output / "preview_metadata.json", {"profile": PREVIEW_PROFILE, "episodes": episode_records,
                                                    "fps": FPS, "cameras": cameras,
                                                    "video_layout": "one_file_per_episode",
                                                    "reuse_schema_version": REUSE_SCHEMA_VERSION})
+    shutil.rmtree(units_dir, ignore_errors=True)
     return manifest
 
 

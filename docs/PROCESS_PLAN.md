@@ -93,14 +93,14 @@ uv run --locked robodata process --plan plan.json --dry-run
 
 ## 3. 幂等与续跑边界
 
-`process` 做的是**阶段级幂等**：
+`process` 的恢复分为两层：
 
-- 同一计划重跑时，复用已导入的批次；
-- 已 approved 的 Episode 不重复标注；
-- 当前 revision 已有转换产物和交付 ZIP 时，直接返回，不重新转换；
-- 500 帧电信样本的第二次运行耗时 **0.54 s**，没有新增运行目录。
+- **阶段级幂等**：同一计划重跑时，复用已导入批次；已 approved 的 Episode 不重复标注；当前 revision 已有转换产物和交付 ZIP 时直接返回。
+- **预览 Episode 级续跑**：仅 Matching Cable 预览。每集编码完成后写 `preview.units/journal.jsonl`；重启时只复用输入摘要和产物哈希都一致的单位，再合并成最终 v3.0 预览。`source_manifest.json` 记录 `reused_episodes` / `encoded_episodes`。
 
-它不是**节点级断点续跑**：如果最终质检在转换中途失败，重跑会从该阶段开头重新执行，而不是从中断的节点继续。阶段内断点、任务队列和并发属于后续运维版本；文档和发布说明不得把当前能力写成“任意中断可续跑”。
+`format_write`、HDF5/SO-100/ALOHA 转换仍是**阶段级重跑**：中途失败会从该阶段开头重新执行。不要把它写成“全格式断点续跑”。
+
+`process` 可以通过本地队列执行：`robodata jobs submit --plan ...`，再由 `robodata worker --loop` 领取。队列是单机 SQLite，默认并发 1；租约、取消、重试与接管见 [OPERATIONS.md](OPERATIONS.md)。
 
 计划内容变化会改变计划摘要，从而生成新的状态文件。修改标注时请同时换 `input.label` 或数据卡版本，避免把新标注套到旧批次上。
 

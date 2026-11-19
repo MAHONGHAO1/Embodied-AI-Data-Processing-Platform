@@ -1,5 +1,17 @@
 # 变更记录
 
+## v0.16.0（2026-11-19 发布）· 可运维：单机队列、预览级续跑、目录治理
+
+**不扩格式，把“能跑通一次”变成“中断可恢复、任务可排队、目录可治理”。**
+
+- **持久队列**：新增 SQLite 任务队列与独立 worker，支持租约、接管、取消、重试、幂等提交；`jobs` / `worker` CLI 与 `/api/jobs`。
+- **预览续跑**：Matching Cable 预览按 Episode 编码并写 journal，重启只复用输入摘要与产物哈希都一致的单元，再用官方 `aggregate_datasets` 合并；`source_manifest` 记录复用/编码集数。
+- **目录治理**：新增 `layout.py`、`status`、`gc --dry-run|--apply`、磁盘预检；GC 只删失败/中断且未被批次或登记表引用的运行目录。
+- **Linux/Docker**：Python 测试改为 Ubuntu + Windows 矩阵；acceptance 新增 `linux-conversion`；Docker 增加 web + 一次性 worker，容器内验证队列可打开，但不含隔离转换环境。
+- **实测**：500 帧电信 Matching Cable 经队列完整业务链 218.27 s；重复提交返回已有任务；预览续跑 2×2 夹具复用 1 集、只编码 1 集；取消任务进入 `canceled`。
+- **测试**：Python 374 passed / 16 skipped；前端与 CI 见 `docs/EVIDENCE.md`。
+- 版本链统一到 0.16.0；发布说明：[RELEASE_NOTES_v0.16.0.md](RELEASE_NOTES_v0.16.0.md)
+
 ## v0.15.0（2026-11-19 发布）· 有选择的广度：LeRobot v2.1、MCAP 检查、Train 交接
 
 **把通用 v2.1 和 Train 交接做成真实链路；MCAP 只做检查，不假装能转换。**

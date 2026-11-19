@@ -82,12 +82,53 @@ def main(argv=None):
         command.add_argument("--test-label", default=None, help="仅用于明确标注的故障副本")
     doctor = sub.add_parser("doctor", help="检查 Python、适配器、版本链与转换环境")
     doctor.add_argument("--quiet", action="store_true", help="只输出结论，不展开检查明细")
+    status = sub.add_parser("status", help="查看队列、运行目录、磁盘与可清理空间")
+    status.add_argument("--business-root", type=Path, default=None)
+    status.add_argument("--runs-root", type=Path, default=None)
+    status.add_argument("--json", action="store_true", dest="as_json")
+    gc = sub.add_parser("gc", help="清理失败/中断且未被引用的运行目录")
+    gc.add_argument("--business-root", type=Path, default=None)
+    gc.add_argument("--runs-root", type=Path, default=None)
+    gc.add_argument("--keep-last", type=int, default=5)
+    gc.add_argument("--apply", action="store_true", help="真正删除；缺省只预览")
+    gc.add_argument("--json", action="store_true", dest="as_json")
     process = sub.add_parser("process", help="按冻结计划跑完导入、标注、转换、验证与交付")
     process.add_argument("--plan", type=Path, required=True, help="JSON 或 TOML 计划")
     process.add_argument("--business-root", type=Path, default=None)
     process.add_argument("--runs-root", type=Path, default=None)
     process.add_argument("--timeout", type=float, default=None, help="单次运行等待上限秒数")
     process.add_argument("--dry-run", action="store_true", help="只校验计划与适配器，不启动任何运行")
+    process.add_argument("--result-json", type=Path, default=None,
+                         help="把计划结果写入指定 JSON（worker 使用）")
+    jobs = sub.add_parser("jobs", help="本地持久任务队列")
+    jobs_sub = jobs.add_subparsers(dest="jobs_command", required=True)
+    jobs_submit = jobs_sub.add_parser("submit", help="提交一个冻结的 process 计划")
+    jobs_submit.add_argument("--plan", type=Path, required=True)
+    jobs_submit.add_argument("--business-root", type=Path, default=None)
+    jobs_submit.add_argument("--runs-root", type=Path, default=None)
+    jobs_submit.add_argument("--max-attempts", type=int, default=1)
+    jobs_submit.add_argument("--json", action="store_true", dest="as_json")
+    jobs_list = jobs_sub.add_parser("list", help="列出任务")
+    jobs_list.add_argument("--state", choices=("queued", "running", "succeeded", "failed", "canceled"),
+                           default=None)
+    jobs_list.add_argument("--limit", type=int, default=100)
+    jobs_list.add_argument("--business-root", type=Path, default=None)
+    jobs_list.add_argument("--json", action="store_true", dest="as_json")
+    jobs_show = jobs_sub.add_parser("show", help="查看一个任务及其事件")
+    jobs_show.add_argument("job_id")
+    jobs_show.add_argument("--business-root", type=Path, default=None)
+    jobs_show.add_argument("--json", action="store_true", dest="as_json")
+    for action, help_text in (("cancel", "请求取消任务"), ("retry", "重新入队失败/取消的任务")):
+        command = jobs_sub.add_parser(action, help=help_text)
+        command.add_argument("job_id")
+        command.add_argument("--business-root", type=Path, default=None)
+        command.add_argument("--json", action="store_true", dest="as_json")
+    worker = sub.add_parser("worker", help="运行单机任务 worker")
+    worker.add_argument("--business-root", type=Path, default=None)
+    worker.add_argument("--once", action="store_true")
+    worker.add_argument("--poll", type=float, default=2.0)
+    worker.add_argument("--lease-seconds", type=float, default=60.0)
+    worker.add_argument("--json", action="store_true", dest="as_json")
     registry = sub.add_parser("registry", help="本地数据集登记表")
     registry_sub = registry.add_subparsers(dest="registry_command", required=True)
     registry_list = registry_sub.add_parser("list", help="列出已登记数据集与版本")
@@ -170,6 +211,37 @@ def main(argv=None):
                           "warnings": [item for item in report["checks"] if item["status"] == "warn"]}
             print(json.dumps(report, ensure_ascii=False, indent=2))
             return 0 if report["ok"] else 1
+        if args.command == 'status':
+            from .status import status
+            value = status(args.business_root, args.runs_root)
+            if args.as_json:
+                print(json.dumps(value, ensure_ascii=False, indent=2, default=str))
+            else:
+                print(f"版本：{value['app']} {value['version']}")
+                print(f"队列：{value['queue']['counts']}")
+                print(f"运行：{value['runs']['counts']}")
+                print(f"磁盘：free {value['disk']['free_gib']} GiB / "
+                      f"{round(value['disk']['total_bytes'] / 1024 ** 3, 2)} GiB")
+                print(f"可清理：{value['gc']['candidate_count']} 个目录 / "
+                      f"{value['gc']['candidate_bytes']} bytes")
+            return 0
+        if args.command == 'gc':
+            from .gc import apply, scan
+            from .layout import Layout
+            layout = Layout.current(args.business_root, args.runs_root)
+            value = apply(layout, keep_last=args.keep_last) if args.apply else scan(
+                layout, keep_last=args.keep_last)
+            if args.as_json:
+                print(json.dumps(value, ensure_ascii=False, indent=2, default=str))
+            else:
+                items = value.get("deleted", value.get("candidates", []))
+                for item in items:
+                    print(f"{item['run_id']}  {item['status']:<20}  {item['bytes']:>12}  {item['reason']}")
+                if args.apply:
+                    print(f"已删除 {len(value['deleted'])} 个目录，释放 {value['freed_bytes']} bytes")
+                else:
+                    print(f"预览 {len(items)} 个目录；加 --apply 才会删除")
+            return 0
         if args.command == 'registry':
             from . import registry as registry_module
             from .business import get_store
@@ -193,16 +265,74 @@ def main(argv=None):
             return 0
         if args.command == 'process':
             from .process_plan import EXIT_INVALID, PlanError, load_plan, run_process
+
+            def write_result(value):
+                if args.result_json is None:
+                    return
+                import os as _os
+                target = Path(args.result_json)
+                target.parent.mkdir(parents=True, exist_ok=True)
+                temporary = target.with_suffix(target.suffix + ".tmp")
+                temporary.write_text(json.dumps(value, ensure_ascii=False, indent=2,
+                                                default=str, allow_nan=False),
+                                     encoding="utf-8")
+                _os.replace(temporary, target)
+
             try:
                 plan = load_plan(args.plan)
             except PlanError as exc:
-                print(json.dumps({"status": "invalid", "exit_code": EXIT_INVALID, "message": str(exc)},
-                                 ensure_ascii=False, indent=2))
+                result = {"status": "invalid", "exit_code": EXIT_INVALID, "message": str(exc)}
+                write_result(result)
+                print(json.dumps(result, ensure_ascii=False, indent=2))
                 return EXIT_INVALID
             result = run_process(plan, runs_root=args.runs_root, business_root=args.business_root,
                                  timeout=args.timeout, dry_run=args.dry_run)
+            write_result(result)
             print(json.dumps(result, ensure_ascii=False, indent=2, default=str))
             return int(result["exit_code"])
+        if args.command == 'jobs':
+            from .jobs import JobStore
+            from .process_plan import load_plan
+            store = JobStore(args.business_root) if getattr(args, 'business_root', None) is not None \
+                else JobStore()
+            if args.jobs_command == 'submit':
+                plan = load_plan(args.plan)
+                value = store.submit(plan, plan_path=args.plan,
+                                     business_root=args.business_root,
+                                     runs_root=args.runs_root,
+                                     max_attempts=args.max_attempts)
+            elif args.jobs_command == 'list':
+                value = {"jobs": store.list(args.state, args.limit), "summary": store.summary()}
+            elif args.jobs_command == 'show':
+                value = store.get(args.job_id)
+                value["events"] = store.events(args.job_id)
+            elif args.jobs_command == 'cancel':
+                value = store.cancel(args.job_id)
+            elif args.jobs_command == 'retry':
+                value = store.retry(args.job_id)
+            else:
+                raise ValueError("未知 jobs 子命令")
+            if args.as_json:
+                print(json.dumps(value, ensure_ascii=False, indent=2, default=str))
+            elif args.jobs_command == 'list':
+                for item in value["jobs"]:
+                    print(f"{item['id']}  {item['state']:<10}  {item['created_at']}  "
+                          f"{item['error'] or ''}".rstrip())
+            elif args.jobs_command == 'show':
+                print(json.dumps(value, ensure_ascii=False, indent=2, default=str))
+            else:
+                job = value.get('job', value)
+                print(f"{job['id']} {job['state']}")
+            return 0
+        if args.command == 'worker':
+            from .worker import main as worker_main
+            command = ["--business-root", str(args.business_root)] if args.business_root else []
+            command += ["--poll", str(args.poll), "--lease-seconds", str(args.lease_seconds)]
+            if args.once:
+                command.append("--once")
+            if args.as_json:
+                command.append("--json")
+            return worker_main(command)
         if args.command in {'import-batch', 'batches', 'show-batch', 'check-batch', 'convert-batch',
                             'deliver-batch', 'verify-delivery', 'reconcile-run', 'final-check-batch', 'show-flow'}:
             from . import business

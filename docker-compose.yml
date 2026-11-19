@@ -1,0 +1,27 @@
+services:
+  web:
+    build: .
+    image: robodata-workbench:local
+    ports:
+      - "127.0.0.1:8765:8765"
+    volumes:
+      - ./docker-work:/app/work
+    healthcheck:
+      test: ["CMD", "/app/.venv/bin/python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8765/api/health', timeout=2)"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+
+  worker:
+    build: .
+    image: robodata-workbench:local
+    # One-shot is deliberate: the image has the workbench Python environment,
+    # not the isolated PyTorch/LeRobot conversion environment. Run long
+    # conversion jobs on a Linux host with tools/conversion installed.
+    command: ["/app/.venv/bin/python", "-m", "robodata.worker", "--once"]
+    volumes:
+      - ./docker-work:/app/work
+    depends_on:
+      web:
+        condition: service_healthy
