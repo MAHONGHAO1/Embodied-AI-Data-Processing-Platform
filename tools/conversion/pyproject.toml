@@ -1,7 +1,7 @@
 [project]
 name = "robodata-conversion"
 version = "0.4.0"
-description = "Isolated Windows CPU environment for LeRobot conversion and loader verification"
+description = "Isolated CPU environment for LeRobot conversion and loader verification"
 requires-python = ">=3.12,<3.13"
 dependencies = [
   "lerobot==0.4.4",
@@ -15,7 +15,7 @@ dependencies = [
 
 [tool.uv]
 package = false
-environments = ["sys_platform == 'win32'"]
+environments = ["sys_platform == 'win32'", "sys_platform == 'linux'"]
 
 [[tool.uv.index]]
 name = "pytorch-cpu"
