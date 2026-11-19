@@ -72,6 +72,7 @@ def source_manifest(source: Path) -> dict:
 def candidate_rows(spec: dict, manifest: dict) -> dict[int, int]:
     rows = {int(item["episode_index"]): int(item["length"]) for item in manifest["episodes"]}
     result = {}
+    output_indices = set()
     for item in spec["episodes"]:
         source_index = int(item["source_episode_index"])
         output_index = int(item["output_episode_index"])
@@ -81,9 +82,10 @@ def candidate_rows(spec: dict, manifest: dict) -> dict[int, int]:
             raise ValueError(f"候选 Episode {source_index} 帧数不一致")
         if source_index in result:
             raise ValueError(f"候选集重复包含源 Episode {source_index}")
-        if output_index in result.values():
+        if output_index in output_indices:
             raise ValueError(f"候选集重复使用输出 Episode {output_index}")
-        result[source_index] = output_index
+        output_indices.add(output_index)
+        result[source_index] = rows[source_index]
     return result
 
 

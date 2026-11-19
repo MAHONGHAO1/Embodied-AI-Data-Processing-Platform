@@ -126,6 +126,8 @@ def main() -> int:
 
     run_conversion(preview, dataset, artifacts, spec_path)
 
+    file_validation = json.loads((artifacts / "steps/file_validation.json").read_text(encoding="utf-8"))["details"]
+    assert file_validation["episode_count"] == 2 and file_validation["row_count"] == 4, file_validation
     format_write = json.loads((artifacts / "steps/format_write.json").read_text(encoding="utf-8"))["details"]
     assert format_write["strategy"] == "preview_video_reuse", format_write
     assert format_write["source_numeric_consistency_rechecked"] is True, format_write
