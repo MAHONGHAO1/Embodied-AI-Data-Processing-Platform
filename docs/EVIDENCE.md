@@ -124,7 +124,7 @@ DataLoader 探针使用独立转换环境中的 `lerobot 0.4.4` + `torch 2.7.1+c
 `scripts/verify_matching_optional.py` 生成 2 条 Episode × 2 帧、只有 `camera_0`、没有深度/触觉/可选数值字段的合成夹具，实际运行预览和六个转换/验证阶段：
 
 ```powershell
-uv run --project tools/conversion --locked
+uv sync --project tools/conversion --locked
 uv run --locked python scripts/verify_matching_optional.py
 ```
 
