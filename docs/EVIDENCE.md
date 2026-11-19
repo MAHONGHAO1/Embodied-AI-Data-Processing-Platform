@@ -47,11 +47,17 @@ Pop-Location
 
 跳过项主要来自：需要 `tools/conversion/` 独立环境或固定真实数据的用例、可选 ROS2 MCAP 依赖，以及默认不启用的 Git tag 校验（`CHECK_RELEASE_TAG=1`）。跳过不等于通过。v0.14 新增 `tests/test_adapters.py`（四个内置适配器探测、未知版本拒绝、toy adapter 不改 core）、`tests/test_process_plan.py`（计划校验、标注覆盖、dry-run）与 `tests/test_registry.py`（数据卡自校验、登记冲突）；`scripts/verify_matching_optional.py` 在独立转换环境中实跑缺失流预览、复用转换、子集重编号与篡改回退（3 条转换路径 × 6 个阶段）。
 
-v0.14.0 的 CI 结果在发布提交后回填：
+v0.14.0 CI 结果（2026-11-19，提交 `9e20975`）：
 
-<!-- V014_CI -->
+| 运行 | 提交 | 结果 |
+| --- | --- | --- |
+| [tests](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/runs/44533668246) | `9e20975` | success：前端单测、构建、Chromium 流程；Python 全量；`verify-fixtures` |
+| [linux-smoke](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/runs/44533668354) | `9e20975` | success：Ubuntu 版本一致性、表格质检、坏样本校验、100 步冒烟 |
+| [acceptance](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/runs/44533685581) | `9e20975` | success：`source-linux`、`full-windows`、`docker-linux` 三个 job 全部通过；`full-windows` 的 Matching Cable 复用、子集重编号、篡改回退与 `verify_matching_optional` 也通过 |
 
-下面是 v0.13.0 的历史 CI 记录（tag `v0.13.0` 保持原指向，不移动）：
+`v0.14.0` tag 指向本文件更新后的文档提交；`v0.13.0` 保持在 `e06e5c6`，`v0.12.1` 保持在 `d5668ea`，均未移动。
+
+下面是 v0.13.0 的历史 CI 记录：
 
 | 运行 | 提交 | 结果 |
 | --- | --- | --- |
