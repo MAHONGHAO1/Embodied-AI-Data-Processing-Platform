@@ -51,11 +51,11 @@ CI 结果按提交记录（2026-11-19）：
 
 | 运行 | 提交 | 结果 |
 | --- | --- | --- |
-| [tests #53](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/runs/44479380526) | `0a6076c` | success：前端单测、构建、Chromium 流程；Python 全量；`verify-fixtures` |
-| [linux-smoke #16](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/runs/44479380563) | `0a6076c` | success：Ubuntu 版本一致性、表格质检、坏样本校验、100 步冒烟 |
-| [acceptance #4](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/runs/44479838630) | `0a6076c` | success：`source-linux`、`full-windows`、`docker-linux` 三个 job 全部通过；`full-windows` 的 Matching Cable 可选流步骤也通过 |
+| [tests](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/runs/44513279659) | `2df17d9` | success：前端单测、构建、Chromium 流程；Python 全量；`verify-fixtures` |
+| [linux-smoke](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/runs/44513279638) | `2df17d9` | success：Ubuntu 版本一致性、表格质检、坏样本校验、100 步冒烟 |
+| [acceptance](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/runs/44513297289) | `2df17d9` | success：`source-linux`、`full-windows`、`docker-linux` 三个 job 全部通过；`full-windows` 的 Matching Cable 复用、子集重编号与篡改回退步骤也通过 |
 
-`v0.12.1` tag 指向本文件更新后的提交；它与 `0a6076c` 的差异仅为文档，未改代码。
+`v0.13.0` tag 指向本文件更新后的文档提交；`v0.12.1` tag 保持在 `d5668ea` 未移动。`2df17d9` 与文档提交的差异仅为 `docs/EVIDENCE.md`，未改代码。
 
 `acceptance.yml` 的三个 job 分别验证：Linux 上跑 `--mode source`；Windows 上下载固定样本并跑 `--mode full`（含转换与 DataLoader）；Linux 容器构建、健康页与坏样本。本机没有 Docker，容器结论只以 `docker-linux` 为准。
 
@@ -167,6 +167,7 @@ v0.12.1 没有跑全量 11,879 帧；上面的 25 分钟是按 500 帧外推，�
 | 步骤 | 结果 |
 | --- | --- |
 | 全量预览（首次编码 4 路相机） | **1,338.44 s（22 分 18.44 秒）**；7 Episode / 28 个独立 MP4 / 7 个数值 parquet |
+| `file_validation` / `matching_validation` / `field_mapping` | 7 Episode / 11,879 帧；`preview_video_layout=one_video_per_episode` |
 | `format_write` 复用预览视频 | **206.46 s（3 分 26.46 秒）**；`strategy=preview_video_reuse`、`video_files_reused=28`、`source_numeric_consistency_rechecked=true`、`fallback_reason=null` |
 | `format_write` 干净重编码 A/B | **1,072.68 s（17 分 52.68 秒）**；`--no-reuse`、`strategy=legacy_reencode`、`fallback_reason=null` |
 | 复用输出数值 vs 重编码输出数值 | 11,879 行 × 12 列逐列相等 |
@@ -178,6 +179,8 @@ v0.12.1 没有跑全量 11,879 帧；上面的 25 分钟是按 500 帧外推，�
 | 复用输出 `output_quality` | 73.09 s；7/7 Episode 通过；11,879 行；77/77 覆盖；`issue_count=0`、`load_failure_count=0`、`not_checked_count=0` |
 
 `format_write` 复用路径没有调用视频编码器；日志里出现的 libx264 行来自同一预览首次编码或 `--no-reuse` 重编码路径，不作为复用路径的编码证据。复用时对全部 11,879 个源文件重新计算 SHA-256，再逐帧重读源 HDF5 数值与预览 parquet 对照。全量复用路径为 206.46 s，干净重编码为 1,072.68 s；复用约为重编码的 **19.2%**（5.2×）。这是本机单次测量，不是跨机器保证，也不证明硬件同步或策略效果。
+
+全量运行在 commit `381a4f7` 上完成；随后 `2df17d9` 只修复 `file_validation` / `matching_validation` 的候选行数展示（原先把输出索引之和显示成 21，而不是 11,879），不改变 `format_write` 复用路径或输出字节。CI 在 `2df17d9` 上复跑。
 
 ## 6. 历史真实数据验收
 
