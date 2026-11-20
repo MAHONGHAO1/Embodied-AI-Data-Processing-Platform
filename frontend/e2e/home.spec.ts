@@ -1,5 +1,11 @@
 import { expect, test } from '@playwright/test';
 
+test.beforeEach(async ({ page }) => {
+  await page.route('**/api/jobs', (route) => route.fulfill({
+    json: { jobs: [], summary: { counts: {}, total: 0 } },
+  }));
+});
+
 test('workbench opens with the batch intake flow', async ({ page }) => {
   await page.route('**/api/batches', (route) => route.fulfill({ json: { batches: [], errors: [] } }));
   await page.route('**/api/runs', (route) => route.fulfill({ json: { runs: [] } }));

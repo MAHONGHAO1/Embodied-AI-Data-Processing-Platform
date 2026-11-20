@@ -1,4 +1,4 @@
-import type { Batch, CameraInspection, EpisodeDetail, RunRecord } from './types';
+import type { Batch, CameraInspection, EpisodeDetail, JobRecord, RunRecord } from './types';
 
 /** 保留 HTTP 状态码，让调用方能区分「需要二次确认的 409」与真正的失败。 */
 export class ApiError extends Error {
@@ -32,6 +32,9 @@ export const api = {
   episode: (id: string, index: number) => request<EpisodeDetail>(`/api/batches/${encodeURIComponent(id)}/episodes/${index}`),
   camera: (id: string, index: number, name: string) => request<CameraInspection>(`/api/batches/${encodeURIComponent(id)}/episodes/${index}/cameras/${encodeURIComponent(name)}`),
   runs: () => request<{ runs: RunRecord[] }>('/api/runs'),
+  jobs: () => request<{ jobs: JobRecord[]; summary: { counts: Record<string, number>; total: number } }>('/api/jobs'),
+  cancelJob: (id: string) => request<JobRecord>(`/api/jobs/${encodeURIComponent(id)}/cancel`, { method: 'POST' }),
+  retryJob: (id: string) => request<JobRecord>(`/api/jobs/${encodeURIComponent(id)}/retry`, { method: 'POST' }),
   run: (id: string) => request<RunRecord>(`/api/runs/${encodeURIComponent(id)}`),
   startRun: (body: Record<string, unknown>) => request<{ run_id: string; status: string }>('/api/runs', { method: 'POST', body: JSON.stringify(body) }),
   updateDisposition: (batch: Batch, episode: number, disposition: string, reason: string, invalidateReviews = false) => request<Batch>(`/api/batches/${batch.batch_id}/episodes/${episode}/disposition`, { method: 'PATCH', body: JSON.stringify({ revision: batch.revision, disposition, reason, ...(invalidateReviews ? { invalidate_reviews: true } : {}) }) }),

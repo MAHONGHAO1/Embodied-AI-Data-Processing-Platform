@@ -203,6 +203,13 @@ input::placeholder { color: var(--color-muted); }
 .camera-evidence > div { display: grid; grid-template-columns: minmax(55px, 1fr) auto; gap: 4px 8px; align-items: center; font-size: 11px; }
 .camera-evidence small { grid-column: 1 / -1; color: var(--color-muted); font-size: 10px; line-height: 1.4; }
 
+.queue-panel { padding: 16px 16px 6px; margin-bottom: 18px; }
+.queue-panel .empty-state { padding: 22px 8px; }
+.queue-panel code { font-size: 11px; }
+.queue-message { max-width: 360px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.queue-actions { display: flex; gap: 6px; align-items: center; }
+.queue-actions .button { min-height: 28px; padding: 4px 9px; font-size: 11px; }
+.queue-note { margin-left: 6px; color: var(--color-warning); font-size: 10px; }
 .runs-layout { display: grid; grid-template-columns: minmax(280px, .75fr) minmax(0, 1.5fr); gap: 18px; align-items: start; }
 .runs-list-panel { padding: 16px 0 8px; }
 .runs-list-panel .panel-heading { padding: 0 16px; }

@@ -68,6 +68,20 @@ export interface CameraInspection {
   mapping_claim: string;
 }
 
+export interface JobRecord {
+  id: string;
+  kind: string;
+  state: 'queued' | 'running' | 'succeeded' | 'failed' | 'canceled';
+  plan_digest: string;
+  created_at: string;
+  started_at?: string | null;
+  finished_at?: string | null;
+  exit_code?: number | null;
+  error?: string | null;
+  cancel_requested?: boolean;
+  result?: Record<string, unknown> | null;
+}
+
 export interface RunRecord {
   run_id: string;
   kind?: string;

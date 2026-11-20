@@ -32,6 +32,7 @@ function mockFetch(batches: unknown[] = [makeBatch()]) {
     const url = String(input);
     if (url.endsWith('/api/batches')) return json({ batches, errors: [] });
     if (url.endsWith('/api/runs')) return json({ runs: [] });
+    if (url.endsWith('/api/jobs')) return json({ jobs: [], summary: { counts: {}, total: 0 } });
     if (url.includes('/cameras/')) return json({ name: 'cam', fps: 30, frame_count: 120,
       width: 640, height: 480, codec: 'h264', from_timestamp: 0, to_timestamp: null,
       mapping_claim: '文件级时间映射检查；不代表硬件同步' });
@@ -59,6 +60,25 @@ describe('RoboData workbench shell', () => {
     expect(await screen.findByRole('heading', { name: '机器人数据处理工作台' })).toBeInTheDocument();
     expect(await screen.findByText('还没有登记批次')).toBeInTheDocument();
     expect(screen.getByLabelText('数据来源')).toBeInTheDocument();
+  });
+
+  it('运行诊断页展示队列任务与取消入口', async () => {
+    window.history.replaceState(null, '', '/?view=runs');
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.endsWith('/api/batches')) return json({ batches: [], errors: [] });
+      if (url.endsWith('/api/runs')) return json({ runs: [] });
+      if (url.endsWith('/api/jobs')) return json({ jobs: [{
+        id: 'job_' + 'b'.repeat(16), kind: 'process_plan', state: 'running',
+        plan_digest: 'd'.repeat(64), created_at: '2026-11-20T00:00:00+00:00',
+        cancel_requested: false,
+      }], summary: { counts: { running: 1 }, total: 1 } });
+      return json({ status: 'ok', version: '0.16.0' });
+    }));
+    render(<App />);
+    expect(await screen.findByText('任务队列')).toBeInTheDocument();
+    expect(await screen.findByText('bbbbbbbbbbbb')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '取消' })).toBeInTheDocument();
   });
 
   it('阶段进度条按真实审核状态渲染，不再只剩「导入」完成', async () => {

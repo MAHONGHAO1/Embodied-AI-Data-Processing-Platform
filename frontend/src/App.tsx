@@ -5,7 +5,7 @@ import { api, isConflict, listenRun } from './api';
 import { deriveStages } from './progress';
 import { clearDraft, draftKey, getDraft, loadSession, saveSession } from './session';
 import type { DraftValues } from './session';
-import type { Batch, CameraInspection, EpisodeDetail, Issue, RouteKey, RunRecord } from './types';
+import type { Batch, CameraInspection, EpisodeDetail, Issue, JobRecord, RouteKey, RunRecord } from './types';
 
 const routeLabels: Record<RouteKey, string> = {
   overview: '批次总览', episodes: '数据浏览', runs: '运行诊断', delivery: '交付核验',
@@ -53,13 +53,13 @@ function statusText(status?: string) {
     queued: '等待启动', running: '运行中', completed: '已完成', completed_with_errors: '部分步骤失败',
     failed: '运行失败', interrupted: '运行中断', keep: '保留', quarantine: '隔离', exclude: '排除',
     approved: '审核通过', submitted: '待审核', returned: '已退回', draft: '草稿', registered: '已登记',
-    pending: '等待登记', stale: '版本已变化',
+    pending: '等待登记', stale: '版本已变化', succeeded: '已完成', canceled: '已取消',
   };
   return labels[status || ''] || status || '未知';
 }
 
 function StatusTag({ value }: { value?: string }) {
-  const tone = value === 'passed' || value === 'completed' || value === 'registered' || value === 'approved' ? 'good'
+  const tone = value === 'passed' || value === 'completed' || value === 'succeeded' || value === 'registered' || value === 'approved' ? 'good'
     : value === 'running' || value === 'queued' || value === 'submitted' ? 'active'
       : value === 'issues' || value === 'incomplete' || value === 'pending' || value === 'returned' ? 'warning'
         : value === 'failed' || value === 'load_failed' || value === 'stale' ? 'danger' : 'quiet';
@@ -90,6 +90,7 @@ function App() {
   const [batchErrors, setBatchErrors] = useState<Array<{ batch_id: string; message: string }>>([]);
   const [batch, setBatch] = useState<Batch | null>(null);
   const [runs, setRuns] = useState<RunRecord[]>([]);
+  const [jobs, setJobs] = useState<JobRecord[]>([]);
   const [selectedRun, setSelectedRun] = useState<RunRecord | null>(null);
   const [runEvents, setRunEvents] = useState<Array<Record<string, unknown>>>([]);
   const [episodeIndex, setEpisodeIndex] = useState(restoredEpisode);
@@ -169,7 +170,9 @@ function App() {
   const refresh = async () => {
     const seq = ++refreshSeq.current;
     try {
-      const [batchResult, runResult] = await Promise.all([api.batches(), api.runs()]);
+      const [batchResult, runResult, jobResult] = await Promise.all([
+        api.batches(), api.runs(), api.jobs().catch(() => ({ jobs: [] as JobRecord[] })),
+      ]);
       if (seq !== refreshSeq.current) return; // 慢响应不得覆盖更新的批次上下文
       const currentId = activeBatchIdRef.current;
       const hasBatch = Boolean(currentId && batchResult.batches.some((item) => item.batch_id === currentId));
@@ -186,6 +189,7 @@ function App() {
       setBatches(batchResult.batches);
       setBatchErrors(batchResult.errors);
       setRuns(runResult.runs);
+      setJobs(jobResult.jobs || []);
       setSelectedRun((current) => current
         ? (runResult.runs.find((item) => item.run_id === current.run_id) ?? current) : current);
       setLoading(false);
@@ -202,6 +206,22 @@ function App() {
   };
 
   useEffect(() => { void refresh(); }, [activeBatchId]);
+
+  useEffect(() => {
+    if (route !== 'runs') return;
+    let cancelled = false;
+    const loadJobs = async () => {
+      try {
+        const result = await api.jobs();
+        if (!cancelled) setJobs(result.jobs || []);
+      } catch {
+        // 队列轮询失败不打断运行诊断；下一次 refresh / 轮询会再试。
+      }
+    };
+    void loadJobs();
+    const timer = window.setInterval(() => { void loadJobs(); }, 5000);
+    return () => { cancelled = true; window.clearInterval(timer); };
+  }, [route]);
 
   useEffect(() => {
     const onPop = () => {
@@ -504,6 +524,19 @@ function App() {
       ...(protectedCount > 0 ? { invalidate_reviews: true } : {}) }, { kind: 'quality' });
   };
 
+  const jobAction = (job: JobRecord, action: 'cancel' | 'retry') => exclusive(async () => {
+    if (action === 'cancel') {
+      await api.cancelJob(job.id);
+      showNotice('已请求取消任务；运行中的阶段会在安全检查点停止，已写出的运行目录保留。');
+    } else {
+      await api.retryJob(job.id);
+      showNotice('任务已重新入队，等待 worker 领取。');
+    }
+    const result = await api.jobs();
+    setJobs(result.jobs || []);
+    await refresh();
+  });
+
   const recoverRun = () => {
     if (!selectedRun) return;
     // 质检登记会重置审核与产物，不能让「恢复」看起来像一个无害的重试按钮。
@@ -588,7 +621,7 @@ function App() {
           <span className="brand-mark"><Activity size={17} strokeWidth={2.2} /></span>
           <span><strong>RoboData</strong><small>具身数据工作台</small></span>
         </a>
-        <span className="shell-chip version-chip">v0.16.0 · React 工作台</span>
+        <span className="shell-chip version-chip">v0.16.1 · React 工作台</span>
         <span className="shell-crumb">工作台 <ChevronRight size={13} /> {routeLabels[route]}</span>
         {batch && <span className="shell-chip">{batch.label}</span>}
         {batch && <span className="shell-chip ok">{issueCount} 个质检问题</span>}
@@ -751,7 +784,24 @@ function App() {
           </>}
         </section>}
 
-        {route === 'runs' && <section className="runs-layout">
+        {route === 'runs' && <>
+          <section className="panel queue-panel">
+            <div className="panel-heading"><div><h2>任务队列</h2><p>单机 SQLite · 默认并发 1 · 用 CLI 提交冻结计划</p></div><span className="count-label">{jobs.length} 个任务</span></div>
+            {jobs.length ? <div className="table-scroll"><table>
+              <thead><tr><th>任务</th><th>状态</th><th>创建时间</th><th>结果 / 错误</th><th>操作</th></tr></thead>
+              <tbody>{jobs.slice(0, 20).map((job) => <tr key={job.id}>
+                <td><code>{job.id.slice(-12)}</code></td>
+                <td><StatusTag value={job.state} />{job.cancel_requested && job.state === 'running' && <small className="queue-note">取消中</small>}</td>
+                <td>{job.created_at.replace('T', ' ').slice(0, 19)}</td>
+                <td className="queue-message">{String(job.result?.message || job.error || (job.exit_code != null ? `退出码 ${job.exit_code}` : '等待 worker'))}</td>
+                <td className="queue-actions">
+                  {['queued', 'running'].includes(job.state) && <button className="button subtle" disabled={busy} onClick={() => void jobAction(job, 'cancel')}>取消</button>}
+                  {['failed', 'canceled'].includes(job.state) && <button className="button secondary" disabled={busy} onClick={() => void jobAction(job, 'retry')}>重试</button>}
+                </td>
+              </tr>)}</tbody>
+            </table></div> : <div className="empty-state"><Activity size={24} /><strong>队列为空</strong><span>用 <code>robodata jobs submit --plan ...</code> 提交任务，worker 会自动领取。</span></div>}
+          </section>
+          <section className="runs-layout">
           <section className="panel runs-list-panel"><div className="panel-heading"><div><h2>最近运行</h2><p>持久记录的后台操作</p></div><span className="count-label">{runs.length} 条</span></div>
             {runs.length ? runs.slice(0, 30).map((run) => <button key={run.run_id} className={selectedRun?.run_id === run.run_id ? 'run-row selected' : 'run-row'} onClick={() => { setSelectedRun(run); setRunEvents([]); }}>
               <span className="run-type">{run.request?.operation || run.kind || '数据处理'}</span><StatusTag value={run.status} /><small>{run.run_id.slice(-12)}</small><span className="run-message">{run.message || '打开查看步骤与日志'}</span>
@@ -767,7 +817,7 @@ function App() {
               <div className="event-list"><h3>运行事件</h3>{runEvents.slice(-30).reverse().map((event, index) => <div key={`${String(event.at_utc || '')}-${index}`}><time>{String(event.at_utc || '').replace('T', ' ').slice(0, 19)}</time><span>{String(event.message || event.event || '')}</span></div>)}</div>
             </> : <div className="empty-state"><Activity size={24} /><strong>运行过程会实时更新</strong><span>运行记录会保留独立节点状态、异常信息和业务登记结果。</span></div>}
           </section>
-        </section>}
+        </section></>}
 
         {route === 'delivery' && <section className="view-stack">
           {!batch ? <div className="panel empty-state large-empty"><Archive size={28} /><strong>请选择一个批次</strong><span>转换和交付依赖当前批次版本与审核证据。</span></div> : <>

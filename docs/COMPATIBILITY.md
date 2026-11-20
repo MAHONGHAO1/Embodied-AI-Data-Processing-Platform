@@ -42,6 +42,7 @@
 | Docker Linux | 通过 CI（Web + 队列 worker） | `acceptance/docker-linux`；镜像不含隔离转换环境，容器内不做真实转换 |
 | 多用户 / 权限 / 审计 | 不支持 | 团队版范围，未开始 |
 | 持久任务队列 | 支持（单机 SQLite） | `jobs submit/list/show/cancel/retry` + `worker`；租约、接管、取消、重试 |
+| 队列 UI | 支持（只读/取消/重试） | 运行诊断页每 5 秒刷新；任务仍由 CLI 提交 |
 | 无头单命令 `process --plan` | 支持 | 500 帧电信样本经队列完整业务链 218.27 s；重复提交返回已有任务 |
 | 全量 11,879 帧转换链路 | 支持（转换阶段） | 预览 1,354.58 s；复用 `format_write` 184.75 s；`official_verify` 28.10 s；完整 7 集打包/登记未跑 |
 | 阶段级幂等 | 支持 | 复用批次与当前产物 |

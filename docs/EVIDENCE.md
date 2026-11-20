@@ -1,4 +1,4 @@
-# 证据总表 · v0.16.0
+# 证据总表 · v0.16.1
 
 本文件是 README 中版本、测试数量、规模实验和训练冒烟的统一出处。README 只指向这里，不再复制会漂移的数字。
 
@@ -8,15 +8,15 @@
 
 | 位置 | 值 | 校验 |
 | --- | --- | --- |
-| README 首行 | 0.16.0 | `tests/test_version_consistency.py` |
-| README release 徽章 | 0.16.0 | 同上 |
-| `pyproject.toml` | 0.16.0 | 同上 |
-| `robodata/config.py` `APP_VERSION` | 0.16.0 | 同上 |
-| `robodata/web.py` FastAPI | 0.16.0 | 同上 |
-| `robodata/web.py` 健康检查 | 0.16.0 | 同上 |
-| `frontend/package.json` | 0.16.0 | 同上 |
-| `frontend/src/App.tsx` 版本条 | 0.16.0 | 同上 |
-| `RELEASE_NOTES_v0.16.0.md` | 存在 | 同上 |
+| README 首行 | 0.16.1 | `tests/test_version_consistency.py` |
+| README release 徽章 | 0.16.1 | 同上 |
+| `pyproject.toml` | 0.16.1 | 同上 |
+| `robodata/config.py` `APP_VERSION` | 0.16.1 | 同上 |
+| `robodata/web.py` FastAPI | 0.16.1 | 同上 |
+| `robodata/web.py` 健康检查 | 0.16.1 | 同上 |
+| `frontend/package.json` | 0.16.1 | 同上 |
+| `frontend/src/App.tsx` 版本条 | 0.16.1 | 同上 |
+| `RELEASE_NOTES_v0.16.1.md` | 存在 | 同上 |
 
 `APP_VERSION` 会写进质量报告；版本链漂移会让报告声称自己来自一个从未发布的版本，因此用测试而不是人工纪律守住。
 
@@ -41,7 +41,7 @@ Pop-Location
 | --- | --- |
 | Python 全量（Windows） | **374 passed / 16 skipped / 13 subtests passed** |
 | 已知坏样本 `verify-fixtures` | **6/6 通过** |
-| 前端单测（Vitest） | **26 passed** |
+| 前端单测（Vitest） | **27 passed** |
 | 前端生产构建 | 通过 |
 | Chromium 浏览器流程 | **2 passed** |
 
@@ -277,6 +277,13 @@ v0.15 没有重跑电信 11,879 帧；全量转换链路证据仍来自 v0.14（
 - 磁盘预检在空间不足时直接失败；`ROBODATA_SKIP_DISK_CHECK=1` 可显式跳过。
 
 边界：`format_write` 与其他格式仍是阶段级重跑；Docker 镜像不含隔离转换环境；全量 7 集打包/交付未在本版重跑；外部复现仍为 **0**。
+
+### 5.6 v0.16.1 队列可见
+
+- 运行诊断页新增「任务队列」面板：任务编号、状态、创建时间、结果/错误、取消/重试。
+- 前端单测 **27 passed**（新增队列面板用例）；生产构建通过；Chromium **2 passed**。
+- 后端未改队列契约；本版 Python 仍为 **374 passed / 16 skipped / 13 subtests**。
+- 队列仍由 CLI 提交；界面不提供隐式提交入口。
 
 ## 6. 历史真实数据验收
 
