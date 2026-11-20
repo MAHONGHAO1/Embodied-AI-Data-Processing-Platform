@@ -2,7 +2,7 @@
 
 本文件是 README 中版本、测试数量、规模实验和训练冒烟的统一出处。README 只指向这里，不再复制会漂移的数字。
 
-最后更新：2026-11-19。环境：Windows 11、Python 3.12.10、Node.js 24、本地单用户。
+最后更新：2026-11-20。环境：Windows 11、Python 3.12.10、Node.js 24、本地单用户。
 
 ## 1. 版本链
 
@@ -46,6 +46,14 @@ Pop-Location
 | Chromium 浏览器流程 | **2 passed** |
 
 跳过项主要来自：需要 `tools/conversion/` 独立环境或固定真实数据的用例、可选 ROS2 MCAP 依赖，以及默认不启用的 Git tag 校验（`CHECK_RELEASE_TAG=1`）。跳过不等于通过。v0.14 新增 `tests/test_adapters.py`、`tests/test_process_plan.py`、`tests/test_registry.py`；v0.15 新增 `tests/test_lerobot_v21.py`（通用 v2.1 探测、标记、子集拒绝、官方转换）、`tests/test_mcap_adapter.py`（inspection-only 与 topic 检查）与 `tests/test_registry_api.py`（只读 API）。v0.16 新增 `tests/test_jobs.py`（幂等、租约、取消、重试、worker）、`tests/test_jobs_api.py`（队列 API）、`tests/test_journal.py`（单元复用与篡改失效）与 `tests/test_ops.py`（GC 保护、status、磁盘预检）。`scripts/verify_matching_optional.py` 仍在独立转换环境中实跑 3 条转换路径 × 6 个阶段。
+
+v0.16.1 CI 结果（2026-11-20，提交 `7b97818`）：
+
+| 运行 | 提交 | 结果 |
+| --- | --- | --- |
+| [tests](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/runs/44694695851) | `7b97818` | success：Ubuntu + Windows 矩阵；前端 **27 passed**、构建、Chromium；Python 374 passed；`verify-fixtures` |
+| [linux-smoke](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/runs/44694695880) | `7b97818` | success |
+| [acceptance](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/runs/44694762197) | `7b97818` | success：`source-linux`、`linux-conversion`、`docker-linux`、`full-windows` 全部通过 |
 
 v0.16.0 CI 结果（2026-11-19/20，提交 `2b277ed`）：
 
