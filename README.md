@@ -210,10 +210,10 @@ flowchart LR
   SRC --> QC --> CONV
   RUN --> UI
   CONV --> UI
-  OLD[旧版 Streamlit 入口] -. 回退 .-> PY
+  OLD[旧版 Streamlit 入口] -. 仅作对照 .-> PY
 ```
 
-旧版 Streamlit 页面仍保留作回退入口：双击 `启动Streamlit旧版.cmd`，或运行 `uv run --locked streamlit run app.py`。`docs/assets/v04/` 与已归档的 [v0.4.0 验收报告](docs/validation-report-v0.4.0.html)中的逐节点截图属于旧界面，不代表当前 React 页面。
+旧版 Streamlit 页面仅保留作历史对照，功能已冻结、不再接收新功能：双击 `启动Streamlit旧版.cmd`，或运行 `uv run --locked streamlit run app.py`。主路径是 React 工作台 + FastAPI（8765）；`docs/assets/v04/` 与已归档的 [v0.4.0 验收报告](docs/validation-report-v0.4.0.html)中的逐节点截图属于旧界面，不代表当前 React 页面。
 
 **问题边界：** 机器人执行失败属于任务标注；NaN、缺字段等属于数据质量问题；文件读取、编码或超时属于程序运行问题。记录失败轨迹并不等于宣称机器人成功率或模型训练效果。
 
@@ -264,6 +264,11 @@ $env:ROBODATA_HDF5_EPISODES = "0-2,5,7-9" # 混合区间与单点
 10 条 / 531 帧走完导入 → 质检 → 筛选确认 → 标注审核 → 格式转换 → 打包交付 → 独立验证，
 输入质检 100/100 项、输出质检 110/110 项、0 数据问题，官方库离线加载并对 531 帧
 数值与 30 个采样位置像素比对一致，交付包 531 帧 / 10 条整包路径可移植、独立加载通过。
+
+> **两条路径的边界：** 旧版转换入口（`robodata/conversion.py`）固定验证公开样例
+> demo_0-2 的 174 帧 / 9 个采样位置，这是 V0.4 的验收口径；`ROBODATA_HDF5_EPISODES`
+> 改变的是工作台导入与质检范围，扩容后的转换请走业务链（导入→质检→筛选→审核→转换→交付），
+> 不要用旧入口的固定样例校验去判断扩容结果。
 
 ### 调整 SO-100 数据范围
 

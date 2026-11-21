@@ -112,6 +112,14 @@ def _read_step(directory: Path, state: dict, stage: str, success: bool) -> dict 
     return result
 
 
+# 旧版转换入口固定验证公开 HDF5 样例 demo_0-2：3 条任务 / 174 帧 / 9 个采样位置。
+# 这组数字来自 V0.4 验收，针对的是固定样例，不是可调范围的通用期望值。
+LEGACY_VERIFY_EPISODES = 3
+LEGACY_VERIFY_FRAMES = 174
+LEGACY_VERIFY_SAMPLES = 9
+LEGACY_VERIFY_BATCH = 2
+
+
 def coordinate_conversion(directory: Path, state: dict, supervise=None) -> None:
     """Called inside the persistent runtime coordinator, under its single-run lock."""
     from .dataset import dataset_fingerprint
@@ -172,9 +180,14 @@ def coordinate_conversion(directory: Path, state: dict, supervise=None) -> None:
                 return
             if stage == "official_verify":
                 details = record.get("details", {})
-                if (details.get("format_version") != "v3.0" or details.get("checked_numeric_frames") != 174 or
-                        details.get("sample_count") != 9 or details.get("batch_size") != 2 or details.get("offline") is not True):
-                    _step_failed(directory, state, stage, "官方验证记录不完整：需要全量数值、9 个视频位置、离线加载及 batch_size=2 验证证据")
+                if (details.get("format_version") != "v3.0" or details.get("checked_numeric_frames") != LEGACY_VERIFY_FRAMES or
+                        details.get("sample_count") != LEGACY_VERIFY_SAMPLES or details.get("batch_size") != LEGACY_VERIFY_BATCH or details.get("offline") is not True):
+                    _step_failed(
+                        directory, state, stage,
+                        "官方验证记录不完整：旧版转换入口固定验证公开样例 demo_0-2"
+                        f"（{LEGACY_VERIFY_EPISODES} 条任务 / {LEGACY_VERIFY_FRAMES} 帧 / {LEGACY_VERIFY_SAMPLES} 个采样位置），"
+                        "需要全量数值、离线加载与 batch_size=2 证据；调整过导入范围请走工作台业务链",
+                    )
                     return
             records[stage] = record
         # Both official decoding and workbench checks succeeded; recheck identity
@@ -223,7 +236,7 @@ def _quality_output(output: Path, directory: Path) -> int:
         report["run_id"] = directory.name
         report["execution"] = {"nodes": state["nodes"], "events_path": "events.jsonl", "kind": "conversion"}
         summary = report["summary"]
-        passed = (summary["episode_count"] == 3 and summary["row_count"] == 174 and
+        passed = (summary["episode_count"] == LEGACY_VERIFY_EPISODES and summary["row_count"] == LEGACY_VERIFY_FRAMES and
                   summary["coverage_performed"] == summary["coverage_total"] and
                   summary["issue_count"] == 0)
         node = next(n for n in report["execution"]["nodes"] if n["node_id"] == stage)
@@ -233,7 +246,7 @@ def _quality_output(output: Path, directory: Path) -> int:
             raise ValueError("转换输出仍有异常、未检查项或任务帧数不一致，不能登记为可用")
         record = {"schema_version": 1, "stage": stage, "status": "passed", "details": {
                   "summary": summary, "fingerprint": report["input_fingerprint"], "report_path": str(paths["json"]),
-                  "format_version": "v3.0", "checked_numeric_frames": 174}}
+                  "format_version": "v3.0", "checked_numeric_frames": LEGACY_VERIFY_FRAMES}}
         _atomic_json(directory / "steps" / f"{stage}.json", record)
         return 0
     except Exception as exc:
