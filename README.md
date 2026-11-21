@@ -210,10 +210,10 @@ flowchart LR
   SRC --> QC --> CONV
   RUN --> UI
   CONV --> UI
-  OLD[旧版 Streamlit 入口] -. 回退 .-> PY
+  OLD[旧版 Streamlit 入口] -. 仅作对照 .-> PY
 ```
 
-旧版 Streamlit 页面仍保留作回退入口：双击 `启动Streamlit旧版.cmd`，或运行 `uv run --locked streamlit run app.py`。`docs/assets/v04/` 与已归档的 [v0.4.0 验收报告](docs/validation-report-v0.4.0.html)中的逐节点截图属于旧界面，不代表当前 React 页面。
+旧版 Streamlit 页面仅保留作历史对照，功能已冻结、不再接收新功能：双击 `启动Streamlit旧版.cmd`，或运行 `uv run --locked streamlit run app.py`。主路径是 React 工作台 + FastAPI（8765）；`docs/assets/v04/` 与已归档的 [v0.4.0 验收报告](docs/validation-report-v0.4.0.html)中的逐节点截图属于旧界面，不代表当前 React 页面。
 
 **问题边界：** 机器人执行失败属于任务标注；NaN、缺字段等属于数据质量问题；文件读取、编码或超时属于程序运行问题。记录失败轨迹并不等于宣称机器人成功率或模型训练效果。
 
