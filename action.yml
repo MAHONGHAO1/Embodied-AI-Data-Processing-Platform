@@ -1,0 +1,69 @@
+name: RoboData quality gate
+description: 对机器人演示数据集做交付前质检；不合格时让流水线停下。Linux runner。
+author: MAHONGHAO1
+branding:
+  icon: check-circle
+  color: green
+
+inputs:
+  data-root:
+    description: 数据集目录（相对仓库根或绝对路径）
+    required: true
+  source:
+    description: 数据源类型，so100 或 converted
+    default: so100
+  skip-video:
+    description: "true 时跳过视频检查；报告会明确标为未检查"
+    default: "false"
+  fail-on-incomplete:
+    description: "true 时未检查项也按失败处理"
+    default: "true"
+  format:
+    description: 报告格式 json | junit | sarif
+    default: "junit"
+  report-dir:
+    description: 报告与质量契约输出目录（相对仓库根或绝对路径）
+    default: "robodata-report"
+
+outputs:
+  report-dir:
+    description: 报告输出目录的绝对路径
+    value: ${{ steps.gate.outputs.report-dir }}
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@v4
+      with:
+        repository: MAHONGHAO1/Embodied-AI-Data-Processing-Platform
+        path: .robodata-src
+        ref: ${{ github.action_ref || 'main' }}
+
+    - uses: astral-sh/setup-uv@v6
+      with:
+        enable-cache: true
+        cache-dependency-glob: ".robodata-src/uv.lock"
+
+    - id: gate
+      shell: bash
+      working-directory: ${{ github.workspace }}/.robodata-src
+      env:
+        ROBODATA_DATA_ROOT: ${{ inputs.data-root }}
+        ROBODATA_REPORT_DIR: ${{ inputs.report-dir }}
+        ROBODATA_SOURCE: ${{ inputs.source }}
+        ROBODATA_SKIP_VIDEO: ${{ inputs.skip-video }}
+        ROBODATA_FAIL_ON_INCOMPLETE: ${{ inputs.fail-on-incomplete }}
+        ROBODATA_FORMAT: ${{ inputs.format }}
+      run: |
+        set -euo pipefail
+        data_root="$ROBODATA_DATA_ROOT"
+        if [[ "$data_root" != /* ]]; then data_root="${{ github.workspace }}/$data_root"; fi
+        report_dir="$ROBODATA_REPORT_DIR"
+        if [[ "$report_dir" != /* ]]; then report_dir="${{ github.workspace }}/$report_dir"; fi
+        mkdir -p "$report_dir"
+        args=(check --data-root "$data_root" --source "$ROBODATA_SOURCE" --output "$report_dir" --format "$ROBODATA_FORMAT")
+        if [[ "$ROBODATA_SKIP_VIDEO" == "true" ]]; then args+=(--skip-video); fi
+        if [[ "$ROBODATA_FAIL_ON_INCOMPLETE" == "true" ]]; then args+=(--fail-on-incomplete); fi
+        uv sync --locked
+        uv run --locked robodata "${args[@]}"
+        echo "report-dir=$report_dir" >> "$GITHUB_OUTPUT"

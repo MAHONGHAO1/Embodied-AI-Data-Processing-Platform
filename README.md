@@ -330,6 +330,8 @@ uv run --locked python -m pytest -q
 
 CI 在 `windows-latest` 上执行同一组测试（[`.github/workflows/tests.yml`](.github/workflows/tests.yml)）；需要独立转换环境与固定样本的用例在缺失时自动跳过，其余用例不依赖下载数据。
 
+别的仓库可以直接引用仓库根的 `action.yml` 做交付门禁：一行 `uses: MAHONGHAO1/Embodied-AI-Data-Processing-Platform@main`，加 `data-root` 即可，退出码非零就让流水线停下。用法见 [CI 接入](docs/CI_INTEGRATION.md)。
+
 [V0.1](docs/validation.md)、[故障样本验证](docs/failure_validation.md)、[V0.2](docs/VALIDATION_v02.md)、[V0.3](docs/VALIDATION_v03.md) 保留各阶段的实测范围与结果。V0.3 的 91 项测试和固定三条转换结果属于历史基线。V0.4 真实自动链保留源任务 0、2，输出 2 条／116 帧；全量 float32 数值比对、6 个图像位置与官方读取一致、22/22 项输出质检及交付包独立加载通过。异常副本另验证任务隔离、剩余 57 帧转换和篡改 ZIP 拒绝。最终测试与实际浏览器操作按 [V0.4 验收](docs/VALIDATION_v04.md) 的范围阅读，不以界面测试代替真实数据验证。
 
 原始数据、管理副本、运行日志、报告和交付 ZIP 默认保存在被 Git 忽略的 `data/`、`work/`、`reports/`。历史证据中引用的本地产物需自行复现，不随源码自动下载。
