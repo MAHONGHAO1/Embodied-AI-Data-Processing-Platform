@@ -61,10 +61,15 @@ def run_doctor() -> dict:
         checks.append(_check("adapters", "fail", f"注册表加载失败：{exc}"))
 
     pyproject_version = _project_version()
-    version_ok = pyproject_version == APP_VERSION
-    checks.append(_check("version_chain", "pass" if version_ok else "fail",
-                         f"APP_VERSION={APP_VERSION}，pyproject={pyproject_version}",
-                         None if version_ok else "运行 tests/test_version_consistency.py 定位漂移"))
+    if pyproject_version is None:
+        # pip/uv 安装的包没有源码目录；版本链由发布流程与 test_version_consistency 保证。
+        checks.append(_check("version_chain", "skip",
+                             f"APP_VERSION={APP_VERSION}；当前不是源码目录，跳过版本链检查"))
+    else:
+        version_ok = pyproject_version == APP_VERSION
+        checks.append(_check("version_chain", "pass" if version_ok else "fail",
+                             f"APP_VERSION={APP_VERSION}，pyproject={pyproject_version}",
+                             None if version_ok else "运行 tests/test_version_consistency.py 定位漂移"))
 
     conversion_ok = CONVERSION_PYTHON.is_file()
     checks.append(_check("conversion_env", "pass" if conversion_ok else "warn",
