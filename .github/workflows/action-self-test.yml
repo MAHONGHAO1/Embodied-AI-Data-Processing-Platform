@@ -1,0 +1,44 @@
+name: action self-test
+
+on:
+  push:
+    paths:
+      - "action.yml"
+      - ".github/workflows/action-self-test.yml"
+  pull_request:
+    paths:
+      - "action.yml"
+      - ".github/workflows/action-self-test.yml"
+  workflow_dispatch:
+
+jobs:
+  expect-failure-on-known-bad:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: gate
+        uses: ./
+        continue-on-error: true
+        with:
+          data-root: fixtures/known-bad/nan-joint
+          skip-video: "true"
+          fail-on-incomplete: "false"
+          format: junit
+
+      - name: Assert the gate failed on a known-bad fixture
+        run: |
+          echo "gate outcome: ${{ steps.gate.outcome }}"
+          if [[ "${{ steps.gate.outcome }}" != "failure" ]]; then
+            echo "expected the quality gate to fail on fixtures/known-bad/nan-joint"
+            exit 1
+          fi
+          echo "gate failed as expected"
+
+      - name: Upload the quality report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: robodata-report
+          path: robodata-report/
+          if-no-files-found: warn

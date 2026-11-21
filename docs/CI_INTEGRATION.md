@@ -93,6 +93,20 @@ jobs:
 
 `data/` 换成你自己的 LeRobot v2.0 或 v3.0 目录。没有数据想先看效果，把 `--data-root` 指到仓库里的 `fixtures/known-bad/frame-gap`，会稳定返回 `3`。
 
+## 一行引用：仓库自带的 Action
+
+仓库根有 `action.yml`，别的仓库不必自己 clone、写安装步骤：
+
+```yaml
+- uses: MAHONGHAO1/Embodied-AI-Data-Processing-Platform@main
+  with:
+    data-root: data/my-dataset
+    format: junit
+    fail-on-incomplete: "true"
+```
+
+它会检出本仓库、按 `uv.lock` 装依赖、跑 `robodata check`，退出码与上面的表一致；报告默认写到 `robodata-report/`，可以直接 `upload-artifact`。只支持 Linux runner。仓库自己的 `.github/workflows/action-self-test.yml` 会用 `fixtures/known-bad/nan-joint` 验证「判据命中时 Action 确实会红」。
+
 ## 判据改了怎么办
 
 报告里的 `rule_version` 和 `docs/RULES.md` 是配套的。规则版本变了，旧报告的结论不该被当新结论用——契约里带着 `rule_version`，下游可以据此决定要不要重跑。
