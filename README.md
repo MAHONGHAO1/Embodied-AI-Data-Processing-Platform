@@ -16,7 +16,9 @@ RoboData 就是回答这一句的工具。导入、清洗筛选、标注审核�
 
 > 2026-11-19 从本机 FastAPI 服务（同源托管构建后的 `frontend/dist`）截取。视频是真能播的：时间轴跳到 8.37 s，视频 `currentTime` 也走到 8.37，曲线游标跟着帧动。v0.15.0 起只多了一个来源选项，主布局未变，因此保留这张截图。
 
-> **60 秒证据（v0.16.1）**：版本链 9 处由测试锁定；已知坏样本 `6/6` 命中预期判据；适配器契约覆盖 6 个适配器——LeRobot v2.1 可导入/转换，MCAP 仅检查；单机 SQLite 队列支持提交、租约、取消、重试与 worker 接管，运行诊断页可直接查看、取消、重试任务；500 帧电信 Matching Cable 经队列完整业务链 **218.27 s**，重复提交不新建运行；Matching Cable 预览做到 Episode 级续跑（2×2 夹具复用 1 集、只编码 1 集）；`status`/`gc --dry-run`/磁盘预检可用。Python **374 passed / 16 skipped**，前端 **27 passed**、Chromium 流程通过。逐条命令、计数、耗时与未验证边界见 [docs/EVIDENCE.md](docs/EVIDENCE.md)。
+> **30 秒自验**：`uv run --locked robodata verify-fixtures` 一条命令，6 个已知坏样本 6/6 命中预期判据。
+> 版本链 9 处由测试锁定；单机 SQLite 队列支持提交、租约、取消、重试与 worker 接管；500 帧 Matching Cable 经队列完整业务链 218.27 秒，重复提交不新建运行。
+> Python 374 passed / 16 skipped，前端 27 passed；完整命令、计数与未验证边界见 [docs/EVIDENCE.md](docs/EVIDENCE.md)。
 
 ## 三十秒，自己验一遍
 
