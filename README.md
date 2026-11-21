@@ -180,6 +180,18 @@ uv run --locked robodata fetch-hdf5
 
 HDF5 样本约 46 MB；独立环境还需下载 CPU PyTorch 等依赖。启动脚本会使用 `npm ci`、`npm run build`（仅当缺少前端依赖或构建产物时）及 `uv sync --locked`，然后由 FastAPI 同源提供页面和 API。服务只监听 `127.0.0.1`。
 
+### 方式三：只装命令行（不经过 PyPI）
+
+只做质检、不要界面时，可以直接从仓库装一个 `robodata` 命令：
+
+```bash
+uv tool install "robodata-workbench @ git+https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform"
+robodata doctor
+robodata check --data-root ./data --format junit --fail-on-incomplete
+```
+
+适合在 CI 或服务器上只跑交付门禁；界面与 HDF5 转换仍需方式一或方式二的完整安装。
+
 SO-100 浏览与故障演示另需执行 `uv run --locked robodata fetch-sample`，下载默认子集（5 条 / 3,562 帧）约 53 MB；执行 `获取全量数据.cmd` 可补齐全量 50 条 / 32,068 帧（约 535 MB）。下载器固定版本与文件清单，支持复用、重试和完整性检查；代理只通过下载参数或当前进程变量配置。
 
 v0.6.0 支持固定来源 [ALOHA Coffee](https://huggingface.co/datasets/lerobot/aloha_static_coffee)，代码配置限定在 revision `b144896feb1f37398a862927b22cd3abdf005a6b`、Episode 0–4 和四路相机。固定 revision 的 [LeRobot 元数据](https://huggingface.co/datasets/lerobot/aloha_static_coffee/resolve/b144896feb1f37398a862927b22cd3abdf005a6b/meta/info.json)声明全量 50 条任务、55,000 帧；本机实测的 Episode 0–4 为每条 1,100 帧、共 5,500 帧。四路来源视频经官方 writer 转换为 H.264，并分别检查文件、解码、帧数和记录时间映射；本次结果不证明相机硬件同步。复现步骤与验收边界见 [状态文档](docs/STATUS_v0.6.0.md)。
