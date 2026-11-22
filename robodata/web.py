@@ -230,7 +230,7 @@ def _load_state(run_id: str) -> dict:
 def create_app() -> FastAPI:
     bind_host = os.getenv("ROBODATA_WEB_HOST", "127.0.0.1").strip() or "127.0.0.1"
     scope = "loopback" if bind_host in {"127.0.0.1", "localhost", "::1"} else "container"
-    app = FastAPI(title="RoboData local workbench", version="0.16.1", docs_url=None, redoc_url=None,
+    app = FastAPI(title="RoboData local workbench", version="0.17.0", docs_url=None, redoc_url=None,
                   redirect_slashes=False)
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost", "testserver"])
 
@@ -250,7 +250,7 @@ def create_app() -> FastAPI:
 
     @app.get("/api/health")
     def health():
-        return {"status": "ok", "app": "RoboData Workbench", "version": "0.16.1", "scope": scope}
+        return {"status": "ok", "app": "RoboData Workbench", "version": "0.17.0", "scope": scope}
 
     @app.get("/api/status")
     def status_endpoint():

@@ -1,8 +1,8 @@
 name: release
 
 on:
-  push:
-    tags: ["v*"]
+  # 手动触发：在 PyPI 配好 Trusted Publishing 之后再用。
+  # 配好之前不要改回 tags，否则每次打 tag 都会因为发布失败而报红。
   workflow_dispatch:
 
 permissions:

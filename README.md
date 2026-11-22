@@ -2,9 +2,9 @@
 
 **把机器人演示数据，做成敢交给下游的训练集。**
 
-v0.16.1 · Windows / Linux CI / Python 3.12 / Node.js 24 · 本地单用户
+v0.17.0 · Windows / Linux CI / Python 3.12 / Node.js 24 · 本地单用户
 
-[![tests](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/tests.yml/badge.svg)](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/tests.yml) [![linux](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/linux-smoke.yml/badge.svg)](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/linux-smoke.yml) [![release](https://img.shields.io/badge/release-v0.16.1-blue.svg)](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/releases/tag/v0.16.1) [![license](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE) [![portfolio](https://img.shields.io/badge/portfolio-live-1677ff.svg)](https://mahonghao1.github.io/)
+[![tests](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/tests.yml/badge.svg)](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/tests.yml) [![linux](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/linux-smoke.yml/badge.svg)](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/linux-smoke.yml) [![release](https://img.shields.io/badge/release-v0.17.0-blue.svg)](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/releases/tag/v0.16.1) [![license](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE) [![portfolio](https://img.shields.io/badge/portfolio-live-1677ff.svg)](https://mahonghao1.github.io/)
 
 采集现场四路相机各录一份，导出时每个批次的目录结构都不一样，交接时对方只问一句：这个包能训吗。
 

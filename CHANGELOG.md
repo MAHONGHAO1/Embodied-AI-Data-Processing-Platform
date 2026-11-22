@@ -1,5 +1,17 @@
 # 变更记录
 
+## v0.17.0（2026-11-22 发布）· 交付门禁与可安装性
+
+**让「别人也能用」：一行 Action 接进别人的仓库，一条命令装成 CLI。**
+
+- **GitHub Action**：新增根目录 `action.yml`，一行 `uses` 即可对指定数据目录跑质检，退出码非零拦下流水线；报告写到 `robodata-report/`。新增 `action-self-test.yml` 用已知坏样本验证「该红就红」。
+- **命令行安装**：README 增加 `uv tool install "robodata-workbench @ git+..."`，不经过 PyPI。
+- **doctor 修复**：非源码安装时版本链检查改为 `skip`，不再误报失败。
+- **转换校验**：`conversion.py` 的 174/9/3 提取为 `LEGACY_VERIFY_*`，失败信息说明旧入口适用 demo_0-2，扩容走业务链。
+- **文档**：README 首屏改为 30 秒自验；CI_INTEGRATION 补 Action 用法；新增 RELEASING；SOP 启动入口改 8765，旧版 Streamlit 标为「仅作对照」。
+- **实测**：本机 371 passed / 19 skipped；acceptance 带 `run_full=true` 四 job 全 success；Action 自测 success；命令行安装后 `doctor` 返回 `ok: true`。
+- 版本链统一到 0.17.0；发布说明：[RELEASE_NOTES_v0.17.0.md](RELEASE_NOTES_v0.17.0.md)
+
 ## v0.16.1（2026-11-20 发布）· 队列可见：运行诊断页直接看任务、取消与重试
 
 **补上 v0.16.0 队列的操作界面，不改后端契约。**
