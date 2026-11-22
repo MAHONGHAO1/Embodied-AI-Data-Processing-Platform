@@ -46,7 +46,8 @@ robodata check --data-root ./data --format junit --fail-on-incomplete
 
 | 项 | 结果 |
 | --- | --- |
-| 本机 `pytest -q` | 371 passed / 19 skipped（跳过项为需独立转换环境或固定样本的用例） |
+| `pytest -q`（作者本机） | 374 passed / 16 skipped |
+| `pytest -q`（审查机复跑） | 371 passed / 19 skipped；差的 3 项是需要独立转换环境的用例 |
 | `robodata verify-fixtures` | 6/6 |
 | acceptance（带 `run_full=true`） | 四个 job 全 success：linux-conversion、docker-linux、source-linux、full-windows |
 | Action 自测 | run 44884209788 success |
