@@ -6,7 +6,7 @@ requires-python = ">=3.12,<3.13"
 dependencies = [
   "streamlit>=1.45,<2", "fastapi>=0.115,<1", "uvicorn[standard]>=0.34,<1", "python-multipart>=0.0.20,<1",
   "plotly>=6,<8", "numpy>=2,<3", "pandas>=2.2,<4",
-  "pyarrow>=20,<26", "av>=14,<19", "requests>=2.32,<3", "pillow>=11,<13"
+  "pyarrow>=20,<26", "av>=14,<20", "requests>=2.32,<3", "pillow>=11,<13"
 ]
 
 [dependency-groups]
