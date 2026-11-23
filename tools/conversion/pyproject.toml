@@ -9,7 +9,7 @@ dependencies = [
   "torchvision==0.22.1+cpu",
   "av==15.1.0",
   "h5py==3.14.0",
-  "numpy==2.2.6",
+  "numpy==2.5.5",
   "datasets==4.1.1",
 ]
 
