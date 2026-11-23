@@ -5,7 +5,7 @@ description = "Isolated CPU environment for LeRobot conversion and loader verifi
 requires-python = ">=3.12,<3.13"
 dependencies = [
   "lerobot==0.4.4",
-  "torch==2.7.1+cpu",
+  "torch==2.15.0",
   "torchvision==0.22.1+cpu",
   "av==15.1.0",
   "h5py==3.14.0",
