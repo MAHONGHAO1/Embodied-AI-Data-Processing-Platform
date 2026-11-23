@@ -17,11 +17,13 @@ Trusted Publishing 用 OIDC 换临时凭据，不需要在 GitHub 里存 token�
 
 ## 每次发版
 
-1. 改 `pyproject.toml` 的 `version`，同步 README 版本行、`robodata/config.py` 的 `APP_VERSION`、前端 `package.json`。
-2. 更新 `CHANGELOG.md` 与 `RELEASE_NOTES_vX.Y.Z.md`。
+1. 改 `pyproject.toml` 的 `version`，同步 README 版本行、release 徽章文字与徽章链接、`docs/EVIDENCE.md` 顶部版本、`robodata/config.py` 的 `APP_VERSION`、前端 `package.json`。
+2. 更新 `CHANGELOG.md` 与 `docs/releases/RELEASE_NOTES_vX.Y.Z.md`。
 3. 本地跑一遍：
 
    ```bash
+   uv run --locked python -m pytest tests/test_version_consistency.py -q
+   uv run --locked ruff check .
    uv run --locked python -m pytest -q
    uv run --locked robodata verify-fixtures
    ```

@@ -2,23 +2,25 @@
 
 **把机器人演示数据，做成敢交给下游的训练集。**
 
-v0.17.0 · Windows / Linux CI / Python 3.12 / Node.js 24 · 本地单用户
+5,500 帧，四路 640×480，50 FPS。数据跑通了。
 
-[![tests](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/tests.yml/badge.svg)](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/tests.yml) [![linux](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/linux-smoke.yml/badge.svg)](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/linux-smoke.yml) [![release](https://img.shields.io/badge/release-v0.17.0-blue.svg)](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/releases/tag/v0.16.1) [![license](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE) [![portfolio](https://img.shields.io/badge/portfolio-live-1677ff.svg)](https://mahonghao1.github.io/)
+但在跑通之前，我得把四条时间轴并排拉开，一帧一帧确认：这一路是不是少了一段？那一路的时间戳为什么跳了？某一帧的关节值是不是 NaN？这些活没有技术含量，但漏一个，训练就白跑。
 
-采集现场四路相机各录一份，导出时每个批次的目录结构都不一样，交接时对方只问一句：这个包能训吗。
-
-RoboData 就是回答这一句的工具。导入、清洗筛选、标注审核、质检、转成 LeRobot v3.0、打包，最后把包**独立验一遍**。哪一步没过，批次就停在那儿，不放给下游。
-
-界面是 React + TypeScript，服务是 FastAPI，全跑在你自己机器上。Python 侧的数据处理、质检和验包才是业务权威实现——界面只是它的一层皮，不会替它做决定。
+我在擎仓做真机数采。采集员按下录制，到算法同学把包拉进训练脚本，中间这一段归我。这段路最容易出事，也最少有人愿意写清楚。所以 RoboData 的第一原则不是“功能多”，是“敢说这个不能用”。过不了，包就停在这儿，不往下游走。
 
 ![工作台（v0.12.1 截图；v0.15.0 起只多了一个来源选项，主布局未变）：固定 revision 的 SO-100 2 Episode，t=8.37 s / 帧 251，右侧检视显示来源锁定与质检结果](docs/assets/workbench-v0.12.1.png)
 
 > 2026-11-19 从本机 FastAPI 服务（同源托管构建后的 `frontend/dist`）截取。视频是真能播的：时间轴跳到 8.37 s，视频 `currentTime` 也走到 8.37，曲线游标跟着帧动。v0.15.0 起只多了一个来源选项，主布局未变，因此保留这张截图。
 
-> **30 秒自验**：`uv run --locked robodata verify-fixtures` 一条命令，6 个已知坏样本 6/6 命中预期判据。
-> 版本链 9 处由测试锁定；单机 SQLite 队列支持提交、租约、取消、重试与 worker 接管；500 帧 Matching Cable 经队列完整业务链 218.27 秒，重复提交不新建运行。
-> Python 374 passed / 16 skipped，前端 27 passed；完整命令、计数与未验证边界见 [docs/EVIDENCE.md](docs/EVIDENCE.md)。
+界面是 React + TypeScript，服务是 FastAPI，全跑在你自己机器上。Python 侧的数据处理、质检和验包才是业务权威实现——界面只是它的一层皮，不会替它做决定。
+
+**30 秒自验**：`uv run --locked robodata verify-fixtures`，6 个已知坏样本 6/6 命中预期判据。完整计数、CI 记录和未验证边界见 [docs/EVIDENCE.md](docs/EVIDENCE.md)。
+
+## 我为什么做这个
+
+我受不了“文件都在”被当成“数据能用”。
+
+相机少一路、时间戳跳了几帧、某个关节值是 NaN、交付包换台机器就加载不了——这些在目录里都看不出来，但任何一个都能让一次训练白跑。人往往要等到 loss 炸了才知道。
 
 ## 三十秒，自己验一遍
 
@@ -135,7 +137,7 @@ uv run --locked robodata check --data-root <你的数据目录> --emit-contract 
 - **想快速复现**：[五分钟复现](docs/REPRODUCTION.md)：先跑无网络的 6/6，再决定是否下载样本
 - **想反馈复现**：[外部复现反馈模板](docs/FEEDBACK.md)：当前 0 条已完成记录；不伪造用户反馈
 - **想读实现**：[数据字典](docs/data_dictionary.md)、[适配器契约](docs/ADAPTER_CONTRACT.md)、[兼容矩阵](docs/COMPATIBILITY.md)、[无头计划](docs/PROCESS_PLAN.md)、[运维手册](docs/OPERATIONS.md)、[数据卡与登记](docs/REGISTRY.md)、[MCAP 检查](docs/MCAP_INSPECTION.md)、[Train 交接](docs/TRAIN_HANDOFF.md)、[V0.5 状态](docs/STATUS_v05.md)、[导航验证](docs/VALIDATION_navigation.md)
-- **想看迭代**：[v0.16.1 发布说明](RELEASE_NOTES_v0.16.1.md)、[v0.16.0 发布说明](RELEASE_NOTES_v0.16.0.md)、[v0.15.0 发布说明](RELEASE_NOTES_v0.15.0.md)、[v0.14.0 发布说明](RELEASE_NOTES_v0.14.0.md)、[v0.13.0 发布说明](RELEASE_NOTES_v0.13.0.md)、[v0.12.1 发布说明](RELEASE_NOTES_v0.12.1.md)、[v0.12.0 发布说明](RELEASE_NOTES_v0.12.0.md)、[v0.11.0 发布说明](RELEASE_NOTES_v0.11.0.md)、[v0.10.0 发布说明](RELEASE_NOTES_v0.10.0.md)、[变更记录](CHANGELOG.md)
+- **想看迭代**：[v0.17.0 发布说明](docs/releases/RELEASE_NOTES_v0.17.0.md)、[v0.16.1 发布说明](docs/releases/RELEASE_NOTES_v0.16.1.md)、[v0.16.0 发布说明](docs/releases/RELEASE_NOTES_v0.16.0.md)、[v0.15.0 发布说明](docs/releases/RELEASE_NOTES_v0.15.0.md)、[v0.14.0 发布说明](docs/releases/RELEASE_NOTES_v0.14.0.md)、[v0.13.0 发布说明](docs/releases/RELEASE_NOTES_v0.13.0.md)、[v0.12.1 发布说明](docs/releases/RELEASE_NOTES_v0.12.1.md)、[v0.12.0 发布说明](docs/releases/RELEASE_NOTES_v0.12.0.md)、[v0.11.0 发布说明](docs/releases/RELEASE_NOTES_v0.11.0.md)、[v0.10.0 发布说明](docs/releases/RELEASE_NOTES_v0.10.0.md)、[变更记录](CHANGELOG.md)
 - **想看跨领域验证**：[Fund Lens 的跨领域证据](https://github.com/MAHONGHAO1/AI-Fund-Management-Platform/blob/main/docs/CROSS_DOMAIN.md)：同一个「来源—校验—失败可见」结构换到基金净值后的落地与边界
 - **想照着操作**：[标准操作 SOP](docs/SOP.md)，[HTML 手册](docs/SOP.html) 可离线打开
 
@@ -368,6 +370,10 @@ CI 在 `windows-latest` 上执行同一组测试（[`.github/workflows/tests.yml
 
 每一版改了什么、为什么改，都写在这里。想看最新一版的结论，往上翻到「到底做到了什么程度」。
 
+## v0.17.0 · 交付门禁与可安装性
+
+把质检做成别人仓库里的一条 `uses`，把命令行做成不经过 PyPI 也能装的一条命令。完整改动、测试口径与边界见 [v0.17.0 发布说明](docs/releases/RELEASE_NOTES_v0.17.0.md)。
+
 ## v0.9.0 · 状态回退修复与上线级审计
 
 v0.9.0 不新增界面，而是把「提交审核后离开一小时，回来看起来全部回退到导入阶段」这条真实缺陷查到底并修完，同时补上防止复发的护栏。
@@ -382,7 +388,7 @@ v0.9.0 不新增界面，而是把「提交审核后离开一小时，回来看�
 | 交互 | 破坏性操作缺少说明，且后端 409 时前端只能反复点同一个按钮 | 质检重跑 / 恢复质检登记 / 修改筛选决定均二次确认；新增可操作的「确认并重试」，先取服务器真相再带确认标记重发 |
 | 提示 | 用户自己的写操作被误报成「后台处理改了批次」 | 版本基准随写操作同步，提示改为中性归因，并明确说明产物失效 |
 
-验证：发布时后端全量 **289 passed / 7 skipped / 13 subtests**，前端 **26 项单测** 与生产构建通过（[v0.9.0 发布说明](RELEASE_NOTES_v0.9.0.md)）。当前主线在新增版本护栏、规模实验和训练冒烟后，测试数量与原始汇总统一记录在 [证据总表](docs/EVIDENCE.md)，不在 README 里重复。`test_concurrent_starters_cannot_create_two_active_runs` 在高负载下偶发失败；互斥实现是 OS 字节锁加排他创建，不是产品 bug，所以没放宽断言。真实 `uvicorn` 下终态 SSE 在 8 ms 内结束闭环。完整根因链、逐条修复位置与剩余风险见 [上线级审计报告](docs/LAUNCH_AUDIT_REPORT.md)。
+验证：发布时后端全量 **289 passed / 7 skipped / 13 subtests**，前端 **26 项单测** 与生产构建通过（[v0.9.0 发布说明](docs/releases/RELEASE_NOTES_v0.9.0.md)）。当前主线在新增版本护栏、规模实验和训练冒烟后，测试数量与原始汇总统一记录在 [证据总表](docs/EVIDENCE.md)，不在 README 里重复。`test_concurrent_starters_cannot_create_two_active_runs` 在高负载下偶发失败；互斥实现是 OS 字节锁加排他创建，不是产品 bug，所以没放宽断言。真实 `uvicorn` 下终态 SSE 在 8 ms 内结束闭环。完整根因链、逐条修复位置与剩余风险见 [上线级审计报告](docs/LAUNCH_AUDIT_REPORT.md)。
 
 > 运行边界不变：本机单用户、仅 `127.0.0.1` loopback。报告第 8 节列出的产品语义决策项与公网化前置项未在本版处理，因此本版不宣称「公网多用户可上线」。
 
@@ -415,6 +421,14 @@ v0.8.0 把两套界面从「窄栏长页」重做为**一屏闭环的固定工�
 业务链路包含**上传／导入 → 清洗 → 筛选 → 标注审核 → 质检 → 格式转换 → 打包与独立验包**。工作台分为批次总览、episode 与相机浏览、运行诊断、交付核验四类界面；每次处理保留阶段状态、日志和证据。只有通过官方 LeRobot 加载、输出质检、打包和独立验包的产物才可交付。
 
 > **本地边界：** 新工作台只监听 `127.0.0.1`，不提供公网交互服务。仓库的 [在线作品集展示页](https://mahonghao1.github.io/) 与 [RoboData 深度页](https://mahonghao1.github.io/robodata/) 汇总当前截图、验收证据与能力边界；它是静态页，不提供本机的 Python 交互服务。
+
+## 状态
+
+v0.17.0 · Windows / Linux CI · Python 3.12 / Node.js 24 · 本地单用户
+
+[![tests](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/tests.yml/badge.svg)](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/tests.yml) [![linux](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/linux-smoke.yml/badge.svg)](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/workflows/linux-smoke.yml) [![release](https://img.shields.io/badge/release-v0.17.0-blue.svg)](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/releases/tag/v0.17.0) [![license](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE) [![portfolio](https://img.shields.io/badge/portfolio-live-1677ff.svg)](https://mahonghao1.github.io/)
+
+Python 全量、前端单测、生产构建和 Chromium 流程均通过；具体计数、CI 运行记录和未验证边界见 [docs/EVIDENCE.md](docs/EVIDENCE.md)。
 
 ## 许可
 

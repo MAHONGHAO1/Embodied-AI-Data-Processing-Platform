@@ -34,7 +34,7 @@ v0.9.0 是**状态一致性修复版本**，不新增界面。它处理的是一
 | 真实 `uvicorn` 运行态 | 终态 SSE 在 **8 ms** 内下发 `done` 并关闭；连续读后 `registration.json` 字节级不变 |
 | 性能硬断言 | 并发读 n=80 p95 < 2 s；5000 episode 读 < 1.5 s；300 条运行列表 < 5 s；60 次终态读状态不变 |
 
-完整根因链、逐条修复位置、双入口复核与剩余风险见 [上线级审计报告](docs/LAUNCH_AUDIT_REPORT.md)。
+完整根因链、逐条修复位置、双入口复核与剩余风险见 [上线级审计报告](../LAUNCH_AUDIT_REPORT.md)。
 
 ## 边界
 
@@ -44,4 +44,4 @@ v0.9.0 是**状态一致性修复版本**，不新增界面。它处理的是一
 - 端到端浏览器回归仍为 2 条旧用例，未覆盖「离开一小时 / 标签页被丢弃 / 409 重试」场景，列为后续迭代项。
 - 自动验收中的标注审核门禁为脚本模拟，不代表人工审核、机器人执行或训练效果。
 
-本版本于 2026-11-14 发布为 [GitHub Release v0.9.0](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/releases/tag/v0.9.0)。安装、启动与复现命令见 [README](README.md)。
+本版本于 2026-11-14 发布为 [GitHub Release v0.9.0](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/releases/tag/v0.9.0)。安装、启动与复现命令见 [README](../../README.md)。

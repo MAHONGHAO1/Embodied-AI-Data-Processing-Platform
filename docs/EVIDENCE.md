@@ -1,22 +1,23 @@
-# 证据总表 · v0.16.1
+# 证据总表 · v0.17.0
 
 本文件是 README 中版本、测试数量、规模实验和训练冒烟的统一出处。README 只指向这里，不再复制会漂移的数字。
 
-最后更新：2026-11-20。环境：Windows 11、Python 3.12.10、Node.js 24、本地单用户。
+最后更新：2026-11-23。环境：Windows 11、Python 3.12.10、Node.js 24、本地单用户。
 
 ## 1. 版本链
 
 | 位置 | 值 | 校验 |
 | --- | --- | --- |
-| README 首行 | 0.16.1 | `tests/test_version_consistency.py` |
-| README release 徽章 | 0.16.1 | 同上 |
-| `pyproject.toml` | 0.16.1 | 同上 |
-| `robodata/config.py` `APP_VERSION` | 0.16.1 | 同上 |
-| `robodata/web.py` FastAPI | 0.16.1 | 同上 |
-| `robodata/web.py` 健康检查 | 0.16.1 | 同上 |
-| `frontend/package.json` | 0.16.1 | 同上 |
-| `frontend/src/App.tsx` 版本条 | 0.16.1 | 同上 |
-| `RELEASE_NOTES_v0.16.1.md` | 存在 | 同上 |
+| README 版本行 | 0.17.0 | `tests/test_version_consistency.py` |
+| README release 徽章 | 0.17.0 | 同上 |
+| README release 徽章链接 | 0.17.0 | 同上 |
+| `pyproject.toml` | 0.17.0 | 同上 |
+| `robodata/config.py` `APP_VERSION` | 0.17.0 | 同上 |
+| `robodata/web.py` FastAPI | 0.17.0 | 同上 |
+| `robodata/web.py` 健康检查 | 0.17.0 | 同上 |
+| `frontend/package.json` | 0.17.0 | 同上 |
+| `frontend/src/App.tsx` 版本条 | 0.17.0 | 同上 |
+| `docs/releases/RELEASE_NOTES_v0.17.0.md` | 存在 | 同上 |
 
 `APP_VERSION` 会写进质量报告；版本链漂移会让报告声称自己来自一个从未发布的版本，因此用测试而不是人工纪律守住。
 
@@ -35,17 +36,29 @@ npm run test:e2e
 Pop-Location
 ```
 
-本机本轮（2026-11-19）：
+本机本轮（2026-11-22）：
 
 | 套件 | 结果 |
 | --- | --- |
-| Python 全量（Windows） | **374 passed / 16 skipped / 13 subtests passed** |
+| Python 全量（作者本机，Windows） | **374 passed / 16 skipped / 13 subtests passed** |
+| Python 全量（审查机复跑） | **371 passed / 19 skipped / 13 subtests passed**；差的 3 项是需要独立转换环境的用例 |
 | 已知坏样本 `verify-fixtures` | **6/6 通过** |
 | 前端单测（Vitest） | **27 passed** |
 | 前端生产构建 | 通过 |
 | Chromium 浏览器流程 | **2 passed** |
 
 跳过项主要来自：需要 `tools/conversion/` 独立环境或固定真实数据的用例、可选 ROS2 MCAP 依赖，以及默认不启用的 Git tag 校验（`CHECK_RELEASE_TAG=1`）。跳过不等于通过。v0.14 新增 `tests/test_adapters.py`、`tests/test_process_plan.py`、`tests/test_registry.py`；v0.15 新增 `tests/test_lerobot_v21.py`（通用 v2.1 探测、标记、子集拒绝、官方转换）、`tests/test_mcap_adapter.py`（inspection-only 与 topic 检查）与 `tests/test_registry_api.py`（只读 API）。v0.16 新增 `tests/test_jobs.py`（幂等、租约、取消、重试、worker）、`tests/test_jobs_api.py`（队列 API）、`tests/test_journal.py`（单元复用与篡改失效）与 `tests/test_ops.py`（GC 保护、status、磁盘预检）。`scripts/verify_matching_optional.py` 仍在独立转换环境中实跑 3 条转换路径 × 6 个阶段。
+
+v0.17.0 CI 结果（2026-11-22，提交 `315d991`）：
+
+| 运行 | 提交 | 结果 |
+| --- | --- | --- |
+| [tests](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/runs/45006746186) | `315d991` | success：Ubuntu + Windows 矩阵；前端 **27 passed**、构建、Chromium；Python 全量；`verify-fixtures` |
+| [linux-smoke](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/runs/45006746296) | `315d991` | success |
+| [action self-test](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/runs/45006709264) | `a6bc4b5` | success：已知坏样本必须让 Action 失败 |
+| [acceptance（定时）](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/actions/runs/45178992499) | `315d991` | success（2026-11-23）：`source-linux`、`linux-conversion`、`docker-linux`、`full-windows` 全部通过 |
+
+下面保留 v0.16.1 的历史记录：
 
 v0.16.1 CI 结果（2026-11-20，提交 `7b97818`）：
 

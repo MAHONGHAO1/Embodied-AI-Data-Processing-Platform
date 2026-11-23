@@ -56,7 +56,7 @@
 
 ## 证据入口
 
-- [Matching Cable 适配器](docs/MATCHING_CABLE.md)：目录、必填/可选字段、缺失语义和命令
-- [证据总表](docs/EVIDENCE.md)：版本链、测试计数与未验证事项
-- [合成回归脚本](scripts/verify_matching_optional.py)：一条命令复现缺失流场景
+- [Matching Cable 适配器](../MATCHING_CABLE.md)：目录、必填/可选字段、缺失语义和命令
+- [证据总表](../EVIDENCE.md)：版本链、测试计数与未验证事项
+- [合成回归脚本](../../scripts/verify_matching_optional.py)：一条命令复现缺失流场景
 - [PR #2](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/pull/2)：原始适配器贡献与审查记录

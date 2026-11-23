@@ -19,7 +19,7 @@ v0.9.0 发布时，README 和前端写 0.9.0，`pyproject.toml` 还停在 0.6.0�
 
 ## 规模证据
 
-新增 [10 万 / 100 万行规模实验](docs/benchmarks/2026-11-18-scale-experiment.md) 与原始 JSON：
+新增 [10 万 / 100 万行规模实验](../benchmarks/2026-11-18-scale-experiment.md) 与原始 JSON：
 
 | 行数 | 重复 | 中位数 | 表格行/秒 |
 | ---: | ---: | ---: | ---: |
@@ -30,7 +30,7 @@ v0.9.0 发布时，README 和前端写 0.9.0，`pyproject.toml` 还停在 0.6.0�
 
 ## 训练输入冒烟
 
-新增 `scripts/train_smoke.py` 与 [说明](docs/TRAINING_SMOKE.md)：在标准化状态特征上跑 100 步小批量 SGD，预测 6 维动作。
+新增 `scripts/train_smoke.py` 与 [说明](../TRAINING_SMOKE.md)：在标准化状态特征上跑 100 步小批量 SGD，预测 6 维动作。
 
 本机合成数据结果：2,048 行，初始 MSE `0.71632246`，100 步后 `0.00012241`，损失比 `0.000171`，参数全部有限，CPU 耗时 `0.003 秒`。
 
@@ -44,9 +44,9 @@ v0.9.0 发布时，README 和前端写 0.9.0，`pyproject.toml` 还停在 0.6.0�
 
 ## 证据入口
 
-- [docs/EVIDENCE.md](docs/EVIDENCE.md)：版本链、测试计数、坏样本、真实数据验收、规模实验、训练冒烟、未验证事项
-- [docs/benchmarks/2026-11-18-scale-experiment.md](docs/benchmarks/2026-11-18-scale-experiment.md)
-- [docs/TRAINING_SMOKE.md](docs/TRAINING_SMOKE.md)
+- [docs/EVIDENCE.md](../EVIDENCE.md)：版本链、测试计数、坏样本、真实数据验收、规模实验、训练冒烟、未验证事项
+- [docs/benchmarks/2026-11-18-scale-experiment.md](../benchmarks/2026-11-18-scale-experiment.md)
+- [docs/TRAINING_SMOKE.md](../TRAINING_SMOKE.md)
 
 ## 不宣称
 

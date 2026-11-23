@@ -39,7 +39,7 @@ v0.12.1 的 Matching Cable 转换会在预览阶段编码一次视频，`format_
 | 复用输出 `output_quality` | 73.09 s；7/7 Episode；77/77 覆盖；0 issue |
 | 复用输出 `archive_verify` | 27.89 s；通过 |
 
-复用路径约为干净重编码耗时的 **19.2%**（5.2×）。11,879 行 × 12 列数值逐列相等；28/28 个视频路径与 SHA-256 相同。28 个视频的规范哈希汇总为 `c8fcf19f308b965580e20da1c12e288d6582796f34382905ece400fdf52f451e`。逐项命令与证据见 [docs/EVIDENCE.md](docs/EVIDENCE.md) 5.2。
+复用路径约为干净重编码耗时的 **19.2%**（5.2×）。11,879 行 × 12 列数值逐列相等；28/28 个视频路径与 SHA-256 相同。28 个视频的规范哈希汇总为 `c8fcf19f308b965580e20da1c12e288d6582796f34382905ece400fdf52f451e`。逐项命令与证据见 [docs/EVIDENCE.md](../EVIDENCE.md) 5.2。
 
 ## 验证
 
@@ -57,4 +57,4 @@ v0.12.1 的 Matching Cable 转换会在预览阶段编码一次视频，`format_
 - 视频 `std` 仍为 0，来自 LeRobot 对 `uint8` 帧的流式平方溢出；这是 v0.12.1 已存在的遗留问题，v0.13.0 没有修改统计算法。
 - 全量结论只引用实际跑完的记录；未跑过的规模不写成已验证。
 
-完整证据、命令、计数和未验证边界见 [docs/EVIDENCE.md](docs/EVIDENCE.md)。
+完整证据、命令、计数和未验证边界见 [docs/EVIDENCE.md](../EVIDENCE.md)。

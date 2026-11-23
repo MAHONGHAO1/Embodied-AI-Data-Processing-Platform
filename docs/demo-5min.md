@@ -5,7 +5,7 @@
 ## 演示前准备
 
 - 本地启动具身工作台，打开 `http://127.0.0.1:8765`；确认可进入已准备好的 ALOHA Coffee 验收批次。启动方法见 [README 安装与启动](../README.md#安装与启动) 与[八分钟路线](demo.md)。
-- 同时准备以下只读证据： [v0.6 验收记录](VALIDATION_v0.6.0.md)、[v0.8.0 发布说明](../RELEASE_NOTES_v0.8.0.md)、[线上静态作品集](https://mahonghao1.github.io/Embodied-AI-Data-Processing-Platform/)。
+- 同时准备以下只读证据： [v0.6 验收记录](VALIDATION_v0.6.0.md)、[v0.8.0 发布说明](releases/RELEASE_NOTES_v0.8.0.md)、[线上静态作品集](https://mahonghao1.github.io/Embodied-AI-Data-Processing-Platform/)。
 - 若本机没有 ALOHA 批次，只展示线上静态页面与已提交验收记录；不要把 UI 布局验证图说成实际业务状态。
 
 ## 逐分钟话术与操作
@@ -61,7 +61,7 @@
 | 你们的审核是真人审核吗？ | 这次自动验收的门禁是脚本模拟；我不会把它描述成人工审核。 | 批次审核记录、[能力边界](../README.md#它证明了什么) |
 | 跑多大规模？ | 本次 ALOHA 实测范围是 5 条 Episode、5,500 帧；另有表格质检 1k/5k/10k 行的合成规模实验，视频、IO、转换不在该基准里。 | [验收记录](VALIDATION_v0.6.0.md)、[规模实验说明](benchmarks/2026-11-12-scale-experiment.md) |
 | 支持 ROS bag / MCAP 吗？ | 当前主工作台不宣称支持。仓库另有一个隔离的 MCAP 标量 topic 示例，只用合成 fixture 验证解析与时间检查，不接入主 API。 | [ROS2 MCAP 示例说明](../examples/ros2_mcap/README.md) |
-| 16:9 改版动了数据链路吗？ | 没有；v0.8.0 是布局层重构，API、Python 业务逻辑与验收范围不变。 | [v0.8.0 发布说明](../RELEASE_NOTES_v0.8.0.md) |
+| 16:9 改版动了数据链路吗？ | 没有；v0.8.0 是布局层重构，API、Python 业务逻辑与验收范围不变。 | [v0.8.0 发布说明](releases/RELEASE_NOTES_v0.8.0.md) |
 
 ## 讲解纪律
 
