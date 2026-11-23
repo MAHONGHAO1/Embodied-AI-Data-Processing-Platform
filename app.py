@@ -1,4 +1,9 @@
-"""Local data inspection and persistent runs for two fixed robot-data profiles."""
+"""Local data inspection and persistent runs for two fixed robot-data profiles.
+
+LEGACY ENTRY (frozen): the main entry point is the React workbench served by
+``robodata.web`` on port 8765. This Streamlit app is kept for historical
+comparison only; see the README section on the old Streamlit entry.
+"""
 
 from __future__ import annotations
 
