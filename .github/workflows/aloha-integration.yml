@@ -23,7 +23,7 @@ jobs:
         run: uv run --locked python scripts/verify_aloha.py --work-root work/aloha-integration --artifacts artifacts/aloha --timeout-seconds 7200
       - name: Upload acceptance evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: aloha-coffee-episode-0-4-evidence
           path: artifacts/aloha/
