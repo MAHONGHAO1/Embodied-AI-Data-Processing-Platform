@@ -206,7 +206,7 @@ def main():
     assert archive_verify["status"] == "passed", archive_verify.get("diagnostic")
     assert archive_verify["details"]["row_count"] == expected_rows, archive_verify["details"]
     record["checks"]["archive_verify"] = archive_verify["details"]
-    print(f"      交付包验证：解包后官方离线加载通过", flush=True)
+    print("      交付包验证：解包后官方离线加载通过", flush=True)
 
     record["summary"] = {"source": "SO-100（jmrog/so100_sweet_pick）", "app_version": APP_VERSION,
                          "source_format": "LeRobot v2.0", "output_format": "LeRobot v3.0",

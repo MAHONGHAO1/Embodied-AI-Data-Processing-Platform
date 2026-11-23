@@ -28,7 +28,7 @@ v0.8.0 是**界面布局重构版本**：把具身工作台（以及副项目基
 ## 素材来源与诚实标注
 
 - `docs/assets/workbench-v0.8.0.png`、`docs/assets/fund-v0.3.0.png`、`docs/assets/fund-v0.3.0-analysis.png`：本机真实 FastAPI 服务渲染，1920×1080；绩效分析截图已等待净值曲线加载完成后截取，不含「正在加载」占位。
-- `docs/assets/workbench-v0.8.0-aloha.png`：**16:9 布局验证截图**。四路镜头画面取自已验收 ALOHA Coffee 交付包的真实帧，但批次与相机元数据为验证布局构造的数据，**不作为业务状态或 ALOHA 转换证据**。真实 ALOHA 数据证据仍以 `workbench-v0.6.0-aloha.png` 与 [V0.6 验收记录](docs/VALIDATION_v0.6.0.md) 为准。
+- `docs/assets/workbench-v0.8.0-aloha.png`：**16:9 布局验证截图**。四路镜头画面取自已验收 ALOHA Coffee 交付包的真实帧，但批次与相机元数据为验证布局构造的数据，**不作为业务状态或 ALOHA 转换证据**。真实 ALOHA 数据证据仍以 `workbench-v0.6.0-aloha.png` 与 [V0.6 验收记录](../VALIDATION_v0.6.0.md) 为准。
 
 ## 边界
 
@@ -38,4 +38,4 @@ v0.8.0 是**界面布局重构版本**：把具身工作台（以及副项目基
 - 面板拖拽与布局保存（设计路线的 P2）未实现；应用内四路相机同时回放仅在当前业务状态存在四相机批次时可见，本次真实服务登记的是 SO-100 单相机批次。
 - 自动验收中的标注审核门禁为脚本模拟，不代表人工审核或机器人执行结果。
 
-本版本已于 2026-11-12 发布为 [GitHub Release v0.8.0](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/releases/tag/v0.8.0)。安装、启动与复现命令见 [README](README.md)。
+本版本已于 2026-11-12 发布为 [GitHub Release v0.8.0](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/releases/tag/v0.8.0)。安装、启动与复现命令见 [README](../../README.md)。

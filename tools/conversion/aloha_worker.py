@@ -207,7 +207,6 @@ def write_dataset(source: Path, output: Path, artifacts: Path, spec: dict,
         video_backend="pyav", vcodec="h264", image_writer_processes=0,
         image_writer_threads=0, batch_encoding_size=1, streaming_encoding=True,
     )
-    task_by_index = provenance["metadata"]["tasks"]
     selection = []
     try:
         for candidate in candidates:

@@ -67,6 +67,6 @@ $env:ROBODATA_MATCHING_VCODEC='h264_nvenc'
 
 ## 证据
 
-- [Matching Cable 适配器](docs/MATCHING_CABLE.md)：字段、速度与全量运行建议
-- [证据总表](docs/EVIDENCE.md)：测试计数、合成回归与真实数据兼容性记录
+- [Matching Cable 适配器](../MATCHING_CABLE.md)：字段、速度与全量运行建议
+- [证据总表](../EVIDENCE.md)：测试计数、合成回归与真实数据兼容性记录
 - [真实数据兼容性报告](work/telecom-compatibility.md)：本机生成，不随仓库分发

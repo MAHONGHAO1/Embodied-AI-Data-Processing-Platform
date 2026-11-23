@@ -120,7 +120,6 @@ class MatchingCableAdapter(SourceAdapter):
         from ...quality import RULES
         preview = managed / "preview"
         preview_manifest = read_json(preview / "source_manifest.json")
-        metadata = load_metadata(preview)
         manifest = read_json(managed / "input_manifest.json")
         source = {
             "kind": SOURCE_KIND, "managed_path": str(managed),

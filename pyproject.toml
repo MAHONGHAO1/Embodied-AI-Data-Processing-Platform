@@ -10,7 +10,22 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = ["pytest>=8,<10", "httpx>=0.27,<1"]
+dev = ["pytest>=8,<10", "httpx>=0.27,<1", "ruff>=0.8,<1"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+exclude = ["docs/history", "tools/conversion/.venv"]
+
+[tool.ruff.lint]
+# Start with pyflakes (undefined names, unused variables, redefinitions) so the
+# gate is meaningful without a 300-file import-sorting diff. Widen to I/UP/B in
+# a dedicated cleanup PR.
+select = ["E9", "F"]
+ignore = ["F401"]  # re-exports and side-effect imports
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["F811"]  # a few tests intentionally shadow fixture imports
 
 [project.scripts]
 robodata = "robodata.cli:main"

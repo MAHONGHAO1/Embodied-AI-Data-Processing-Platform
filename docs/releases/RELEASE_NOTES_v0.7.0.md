@@ -17,6 +17,6 @@ v0.7.0 是**展示与文档版本**：不改业务代码、不扩大数据验收
 
 ## 边界
 
-时间轴是**静态帧序列**，用于核对同一时刻四路都有画面与帧—时间映射一致；不代表相机硬件同步，不等于工作台实时解码，也不改变「两个服务仅监听本机地址、展示页为纯静态」的既有边界。数据验收范围仍以 [V0.6 验收记录](docs/VALIDATION_v0.6.0.md) 为准：ALOHA Coffee 固定 revision 的 Episode 0–4、5,500 帧、四路相机、55/55 项输出质检；自动验收中的标注审核门禁为脚本模拟，不代表人工审核或机器人执行结果。
+时间轴是**静态帧序列**，用于核对同一时刻四路都有画面与帧—时间映射一致；不代表相机硬件同步，不等于工作台实时解码，也不改变「两个服务仅监听本机地址、展示页为纯静态」的既有边界。数据验收范围仍以 [V0.6 验收记录](../VALIDATION_v0.6.0.md) 为准：ALOHA Coffee 固定 revision 的 Episode 0–4、5,500 帧、四路相机、55/55 项输出质检；自动验收中的标注审核门禁为脚本模拟，不代表人工审核或机器人执行结果。
 
-本版本已于 2026-11-11 发布为 [GitHub Release v0.7.0](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/releases/tag/v0.7.0)。安装、启动与复现命令见 [README](README.md)。
+本版本已于 2026-11-11 发布为 [GitHub Release v0.7.0](https://github.com/MAHONGHAO1/Embodied-AI-Data-Processing-Platform/releases/tag/v0.7.0)。安装、启动与复现命令见 [README](../../README.md)。

@@ -56,10 +56,10 @@
 
 ## 证据入口
 
-- [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md)：下载、复核、三种模式与失败排查
-- [docs/EVIDENCE.md](docs/EVIDENCE.md)：版本链、测试计数、真实样本验收、历史记录、规模实验与未验证事项
-- [docs/benchmarks/2026-11-18-pipeline-2-episodes.md](docs/benchmarks/2026-11-18-pipeline-2-episodes.md)：分阶段耗时与 DataLoader 边界
-- [docs/DOCKER.md](docs/DOCKER.md)：容器范围与非声明
+- [docs/ACCEPTANCE.md](../ACCEPTANCE.md)：下载、复核、三种模式与失败排查
+- [docs/EVIDENCE.md](../EVIDENCE.md)：版本链、测试计数、真实样本验收、历史记录、规模实验与未验证事项
+- [docs/benchmarks/2026-11-18-pipeline-2-episodes.md](../benchmarks/2026-11-18-pipeline-2-episodes.md)：分阶段耗时与 DataLoader 边界
+- [docs/DOCKER.md](../DOCKER.md)：容器范围与非声明
 
 ## 不宣称
 

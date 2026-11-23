@@ -10,7 +10,7 @@
 - **转换校验**：`conversion.py` 的 174/9/3 提取为 `LEGACY_VERIFY_*`，失败信息说明旧入口适用 demo_0-2，扩容走业务链。
 - **文档**：README 首屏改为 30 秒自验；CI_INTEGRATION 补 Action 用法；新增 RELEASING；SOP 启动入口改 8765，旧版 Streamlit 标为「仅作对照」。
 - **实测**：本机 371 passed / 19 skipped；acceptance 带 `run_full=true` 四 job 全 success；Action 自测 success；命令行安装后 `doctor` 返回 `ok: true`。
-- 版本链统一到 0.17.0；发布说明：[RELEASE_NOTES_v0.17.0.md](RELEASE_NOTES_v0.17.0.md)
+- 版本链统一到 0.17.0；发布说明：[v0.17.0 发布说明](docs/releases/RELEASE_NOTES_v0.17.0.md)
 
 ## v0.16.1（2026-11-20 发布）· 队列可见：运行诊断页直接看任务、取消与重试
 
@@ -19,7 +19,7 @@
 - **任务队列面板**：运行诊断页显示任务编号、状态、创建时间、结果/错误；运行/排队可取消，失败/取消可重试；每 5 秒刷新。
 - **状态文案**：补齐 `succeeded` / `canceled`；界面仍只做查看、取消、重试，任务计划由 CLI 冻结提交。
 - **实测**：前端 **27 passed**；生产构建通过；Chromium **2 passed**；Python **374 passed / 16 skipped**。
-- 版本链统一到 0.16.1；发布说明：[RELEASE_NOTES_v0.16.1.md](RELEASE_NOTES_v0.16.1.md)
+- 版本链统一到 0.16.1；发布说明：[v0.16.1 发布说明](docs/releases/RELEASE_NOTES_v0.16.1.md)
 
 ## v0.16.0（2026-11-19 发布）· 可运维：单机队列、预览级续跑、目录治理
 
@@ -31,7 +31,7 @@
 - **Linux/Docker**：Python 测试改为 Ubuntu + Windows 矩阵；acceptance 新增 `linux-conversion`；Docker 增加 web + 一次性 worker，容器内验证队列可打开，但不含隔离转换环境。
 - **实测**：500 帧电信 Matching Cable 经队列完整业务链 218.27 s；重复提交返回已有任务；预览续跑 2×2 夹具复用 1 集、只编码 1 集；取消任务进入 `canceled`。
 - **测试**：Python 374 passed / 16 skipped；前端与 CI 见 `docs/EVIDENCE.md`。
-- 版本链统一到 0.16.0；发布说明：[RELEASE_NOTES_v0.16.0.md](RELEASE_NOTES_v0.16.0.md)
+- 版本链统一到 0.16.0；发布说明：[v0.16.0 发布说明](docs/releases/RELEASE_NOTES_v0.16.0.md)
 
 ## v0.15.0（2026-11-19 发布）· 有选择的广度：LeRobot v2.1、MCAP 检查、Train 交接
 
@@ -44,7 +44,7 @@
 - **UI**：来源下拉新增 LeRobot v2.1；主布局未变。
 - **实测**：v2.1 2×5 合成夹具 `process` 97.00 s，幂等重跑 0.67 s；数据卡 `lerobot-v21-demo` v1；Train 交接 `status=passed`；MCAP 合成 fixture 检查通过，无真实样本。
 - **测试**：Python 359 passed / 16 skipped；前端与 CI 见 `docs/EVIDENCE.md`。
-- 版本链统一到 0.15.0；发布说明：[RELEASE_NOTES_v0.15.0.md](RELEASE_NOTES_v0.15.0.md)
+- 版本链统一到 0.15.0；发布说明：[v0.15.0 发布说明](docs/releases/RELEASE_NOTES_v0.15.0.md)
 
 ## v0.14.0（2026-11-19 发布）· 契约化：适配器、无头计划与数据卡
 
@@ -59,7 +59,7 @@
 - **500 帧端到端**：`process` 209.67 s；数据卡 `telecom-matching-cable-500` v1；ZIP 26 个文件含数据卡；登记表 1 条；修复后视频 `std≈0.202`。
 - **全量转换链路**：7 Episode / 11,879 帧预览 1,354.58 s，复用 `format_write` 184.75 s，`official_verify` 28.10 s；11,879 行、28 个视频，视频 `std≈0.207`。完整 7 集 `process`（打包/交付/登记）未跑。
 - **测试**：Python 353 passed / 14 skipped；前端 26 passed；`verify-fixtures` 6/6；浏览器流程 2 passed。
-- 版本链统一到 0.14.0；发布说明：[RELEASE_NOTES_v0.14.0.md](RELEASE_NOTES_v0.14.0.md)
+- 版本链统一到 0.14.0；发布说明：[v0.14.0 发布说明](docs/releases/RELEASE_NOTES_v0.14.0.md)
 
 ## v0.13.0（2026-11-19 发布）· Matching Cable 编码一次
 
@@ -73,7 +73,7 @@
 - **500 帧 A/B**：预览 60.79 s；复用 `format_write` 18.28 s；强制重编码 58.71 s；数值逐列相等，4 路视频 SHA-256 逐字节相等。
 - **全量 7 集 / 11,879 帧**：预览 1,338.44 s；复用 `format_write` 206.46 s；干净重编码 1,072.68 s；复用约为重编码的 19.2%。复用输出 `official_verify` 28.51 s、`output_quality` 73.09 s（77/77 覆盖、0 issue）、`archive_verify` 27.89 s；11,879 行数值逐列相等，28/28 个视频 SHA-256 相同。
 - **测试**：`scripts/verify_matching_optional.py` 增加复用、子集重编号、篡改视频回退和 archive verify；Python 全量 328 passed / 14 skipped。
-- 版本链统一到 0.13.0；发布说明：[RELEASE_NOTES_v0.13.0.md](RELEASE_NOTES_v0.13.0.md)
+- 版本链统一到 0.13.0；发布说明：[v0.13.0 发布说明](docs/releases/RELEASE_NOTES_v0.13.0.md)
 
 ## v0.12.1（2026-11-19 发布）· 大样本编码提速与超时校准
 
@@ -84,7 +84,7 @@
 - **超时校准**：`format_write` 30→60 分钟，`official_verify` 20→30 分钟，`output_quality` 20→40 分钟，打包/验包 30→60 分钟，`file_validation` 10→20 分钟，`matching_validation`/`field_mapping` 20→30 分钟。
 - **真实数据基线**：电信 7 Episode / 11,879 帧 / 10.04 GB 结构兼容；2 Episode × 2 帧完整业务链与 500 帧格式写入/官方加载通过。
 - 文档更新：`docs/MATCHING_CABLE.md` 增加速度、环境变量与全量运行建议。
-- 发布说明：[RELEASE_NOTES_v0.12.1.md](RELEASE_NOTES_v0.12.1.md)
+- 发布说明：[v0.12.1 发布说明](docs/releases/RELEASE_NOTES_v0.12.1.md)
 
 ## v0.12.0（2026-11-19 发布）· Matching Cable 缺失流可见
 
@@ -97,8 +97,8 @@
 - **合成回归**：新增 `scripts/verify_matching_optional.py`，2 Episode × 2 帧、只有一路 RGB、无深度/触觉/可选字段，预览 + 六阶段通过；`acceptance.yml` 的 `full-windows` 增加该步骤。
 - **界面**：来源锁定面板显示已写入相机、缺失相机、缺失深度和触觉状态。
 - **文档**：新增 `docs/MATCHING_CABLE.md`，更新 README 数据配置、数据字典与证据总表；新增 `docs/REPRODUCTION.md` 五分钟复现页与外部复现 issue 模板。
-- 版本链统一到 0.12.0，并补齐 `RELEASE_NOTES_v0.12.0.md`。
-- 发布说明：[RELEASE_NOTES_v0.12.0.md](RELEASE_NOTES_v0.12.0.md)
+- 版本链统一到 0.12.0，并补齐 `docs/releases/RELEASE_NOTES_v0.12.0.md`。
+- 发布说明：[v0.12.0 发布说明](docs/releases/RELEASE_NOTES_v0.12.0.md)
 
 ## v0.11.0（2026-11-18 发布）· 可复现验收
 
@@ -111,8 +111,8 @@
 - **实测**：`--mode full` 跑完 9 个阶段约 106.1 秒；2 Episode / 1,300 帧；DataLoader 读取 4 个 batch / 32 帧；ZIP 独立解包通过。
 - **Docker/Linux**：新增 `Dockerfile`、`.dockerignore` 与 `acceptance.yml` 的 `source-linux`、`full-windows`、`docker-linux` 三个 job；本机无 Docker，容器结论仅来自 CI。
 - **文档**：新增 `docs/ACCEPTANCE.md`、`docs/DOCKER.md`、`docs/SCORECARD.md` 与流水线性能基线。
-- 版本链统一到 0.11.0，并补齐 `RELEASE_NOTES_v0.11.0.md`。
-- 发布说明：[RELEASE_NOTES_v0.11.0.md](RELEASE_NOTES_v0.11.0.md)
+- 版本链统一到 0.11.0，并补齐 `docs/releases/RELEASE_NOTES_v0.11.0.md`。
+- 发布说明：[v0.11.0 发布说明](docs/releases/RELEASE_NOTES_v0.11.0.md)
 
 ## v0.10.0（2026-11-18 发布）· Evidence-grade
 
@@ -124,7 +124,7 @@
 - **训练输入冒烟**：新增 `scripts/train_smoke.py` 与 `docs/TRAINING_SMOKE.md`；合成数据 100 步线性动作探针 MSE 0.71632246 → 0.00012241，明确不宣称策略训练效果。
 - **Linux**：新增 `.github/workflows/linux-smoke.yml`，在 ubuntu-latest 跑核心 Python 检查与 `verify-fixtures`；Docker 与 Linux 桌面未验证。
 - **README**：首屏增加「60 秒证据」，测试数量移入 `docs/EVIDENCE.md` 单一出处；v0.9.0 段落保留发布时 289 passed / 7 skipped 的历史记录。
-- 发布说明：[RELEASE_NOTES_v0.10.0.md](RELEASE_NOTES_v0.10.0.md)
+- 发布说明：[v0.10.0 发布说明](docs/releases/RELEASE_NOTES_v0.10.0.md)
 
 ## v0.9.0（2026-11-14 发布）· 上线级审计与状态回退修复
 

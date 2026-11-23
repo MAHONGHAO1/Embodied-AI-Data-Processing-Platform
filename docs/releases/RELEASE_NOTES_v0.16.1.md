@@ -33,4 +33,4 @@
 - 外部复现记录仍为 **0**。
 - 旧 tag 不移动；`v0.12.1`、`v0.13.0`、`v0.14.0`、`v0.15.0`、`v0.16.0` 保持原指向。
 
-完整证据见 [docs/EVIDENCE.md](docs/EVIDENCE.md)，运维命令见 [docs/OPERATIONS.md](docs/OPERATIONS.md)。
+完整证据见 [docs/EVIDENCE.md](../EVIDENCE.md)，运维命令见 [docs/OPERATIONS.md](../OPERATIONS.md)。
